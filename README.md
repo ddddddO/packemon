@@ -10,7 +10,7 @@ $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -
 $ sudo go run main.go
 ```
 
-L3以上はまだでフレームしかできてないけど、一応 Wireshark で確認できた
+L3以上はまだでフレームしかできてないけど、一応 Wireshark で確認できた（77c9149 でコミットしたファイルにて）
 ![](./doc/Frame.png)
 
 

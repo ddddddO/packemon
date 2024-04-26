@@ -10,10 +10,15 @@ $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -
 $ sudo go run *.go
 ```
 
-L3以上はまだでフレームしかできてないけど、一応 Wireshark で確認できた（77c9149 でコミットしたファイルにて）
-![](./doc/Frame.png)
+L3以上はまだでフレームしかできてないけど、一応 Wireshark で確認できた
 
+- Ethernetフレームのみ作ってみた（`77c9149` でコミットしたファイルにて）
 
+  ![](./doc/Frame.png)
+
+- ARPリクエスト（`390f266` でコミットしたファイルにて。中身はめちゃくちゃと思うけど）
+
+  ![](./doc/ARP.png)
 
 
 ## 参考

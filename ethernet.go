@@ -6,12 +6,12 @@ import (
 	"net"
 )
 
-func newEthernetFrame(dst hardwareAddr, src net.HardwareAddr, payload []byte) *ethernetFrame {
+func newEthernetFrame(dst hardwareAddr, src net.HardwareAddr, typ uint16, payload []byte) *ethernetFrame {
 	return &ethernetFrame{
 		header: &ethernetHeader{
 			dst: dst,
 			src: hardwareAddr(src),
-			typ: ETHER_TYPE_ARP,
+			typ: typ,
 		},
 		data: payload,
 	}

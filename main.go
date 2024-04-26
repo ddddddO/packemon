@@ -43,8 +43,10 @@ func main() {
 	}
 
 	dst := [6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xff}
-	payload := []byte("Yeah!!!!!")
-	frame := newEthernetFrame(dst, intf.HardwareAddr, payload)
+	// payload := []byte("Yeah!!!!!")
+	arp := newARP()
+	payload := arp.toBytes()
+	frame := newEthernetFrame(dst, intf.HardwareAddr, ETHER_TYPE_ARP, payload)
 	packet := frame.toBytes()
 	if err := unix.Sendto(sock, packet, 0, &addr); err != nil {
 		panic(err)

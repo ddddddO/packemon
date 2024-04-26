@@ -6,11 +6,6 @@ import (
 	"net"
 )
 
-type ethernetFrame struct {
-	header *ethernetHeader
-	data   []byte
-}
-
 func newEthernetFrame(dst hardwareAddr, src net.HardwareAddr, payload []byte) *ethernetFrame {
 	return &ethernetFrame{
 		header: &ethernetHeader{
@@ -35,13 +30,18 @@ func (ef *ethernetFrame) toBytes() []byte {
 	return buf.Bytes()
 }
 
-type hardwareAddr [6]uint8
+type ethernetFrame struct {
+	header *ethernetHeader
+	data   []byte
+}
 
 type ethernetHeader struct {
 	dst hardwareAddr
 	src hardwareAddr
 	typ uint16
 }
+
+type hardwareAddr [6]uint8
 
 const ETHER_TYPE_IP uint16 = 0x0800
 const ETHER_TYPE_ARP uint16 = 0x0806

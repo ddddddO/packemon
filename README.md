@@ -3,11 +3,11 @@
 ## 動作確認
 
 ```console
-$ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -k -i - &
+$ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -k -i -
 ```
 
 ```console
-$ sudo go run main.go
+$ sudo go run *.go
 ```
 
 L3以上はまだでフレームしかできてないけど、一応 Wireshark で確認できた（77c9149 でコミットしたファイルにて）

@@ -1,53 +1,11 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"net"
 
 	"golang.org/x/sys/unix"
 )
-
-type ethernetFrame struct {
-	header *ethernetHeader
-	data   []byte
-}
-
-func (ef *ethernetFrame) toBytes() []byte {
-	var buf bytes.Buffer
-
-	var dstByte []byte
-	for _, b := range ef.header.dst {
-		dstByte = append(dstByte, b)
-	}
-	buf.Write(dstByte)
-
-	var srcByte []byte
-	for _, b := range ef.header.src {
-		srcByte = append(srcByte, b)
-	}
-	buf.Write(srcByte)
-
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, ef.header.typ)
-	buf.Write(b)
-
-	buf.Write(ef.data)
-
-	return buf.Bytes()
-}
-
-type hardwareAddr [6]uint8
-
-type ethernetHeader struct {
-	dst hardwareAddr
-	src hardwareAddr
-	typ uint16
-}
-
-const ETHER_TYPE_IP uint16 = 0x0800
-const ETHER_TYPE_ARP uint16 = 0x0806
 
 func main() {
 	interfaces, err := net.Interfaces()
@@ -84,17 +42,9 @@ func main() {
 		panic(err)
 	}
 
-	src := [6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xab}
-	frame := &ethernetFrame{
-		header: &ethernetHeader{
-			dst: hardwareAddr(intf.HardwareAddr),
-			// src: hardwareAddr(intf.HardwareAddr),
-			src: src,
-			typ: ETHER_TYPE_ARP,
-		},
-		data: []byte("Yeah!!!!!"),
-	}
-
+	dst := [6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xff}
+	payload := []byte("Yeah!!!!!")
+	frame := newEthernetFrame(dst, intf.HardwareAddr, payload)
 	packet := frame.toBytes()
 	if err := unix.Sendto(sock, packet, 0, &addr); err != nil {
 		panic(err)

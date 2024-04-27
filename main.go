@@ -37,13 +37,13 @@ func main() {
 		panic(err)
 	}
 
-	// if err := send(intf, sock, addr); err != nil {
-	// 	panic(err)
-	// }
-
-	if err := recieve(sock); err != nil {
+	if err := send(intf, sock, addr); err != nil {
 		panic(err)
 	}
+
+	// if err := recieve(sock); err != nil {
+	// 	panic(err)
+	// }
 }
 
 func hton(i uint16) uint16 {
@@ -136,18 +136,18 @@ func recieve(sock int) error {
 						protocolLength:     recievedEthernetFrame.data[5],
 						operation:          [2]uint8(recievedEthernetFrame.data[6:8]),
 
-						srcHardwareAddr: hardwareAddr(recievedEthernetFrame.data[8:14]),
-						srcIPAddr:       [4]uint8(recievedEthernetFrame.data[14:18]),
+						senderHardwareAddr: hardwareAddr(recievedEthernetFrame.data[8:14]),
+						senderIPAddr:       [4]uint8(recievedEthernetFrame.data[14:18]),
 
-						dstHardwareAddr: hardwareAddr(recievedEthernetFrame.data[18:24]),
-						dstIPAddr:       [4]uint8(recievedEthernetFrame.data[24:28]),
+						targetHardwareAddr: hardwareAddr(recievedEthernetFrame.data[18:24]),
+						targetIPAddr:       [4]uint8(recievedEthernetFrame.data[24:28]),
 					}
 
 					fmt.Println("--- ARP ---")
-					fmt.Printf("Source MAC Addr: %x\n", arp.srcHardwareAddr)
-					fmt.Printf("Source IP Addr: %x\n", arp.srcIPAddr)
-					fmt.Printf("Target MAC Addr: %x\n", arp.dstHardwareAddr)
-					fmt.Printf("Target IP Addr: %x\n", arp.dstIPAddr)
+					fmt.Printf("Source MAC Addr: %x\n", arp.senderHardwareAddr)
+					fmt.Printf("Source IP Addr: %x\n", arp.senderIPAddr)
+					fmt.Printf("Target MAC Addr: %x\n", arp.targetHardwareAddr)
+					fmt.Printf("Target IP Addr: %x\n", arp.targetIPAddr)
 				}
 			}
 		}

@@ -13,11 +13,11 @@ type arp struct {
 	protocolLength     uint8
 	operation          [2]uint8
 
-	srcHardwareAddr hardwareAddr
-	srcIPAddr       [4]uint8
+	senderHardwareAddr hardwareAddr
+	senderIPAddr       [4]uint8
 
-	dstHardwareAddr hardwareAddr
-	dstIPAddr       [4]uint8
+	targetHardwareAddr hardwareAddr
+	targetIPAddr       [4]uint8
 }
 
 func (a *arp) toBytes() []byte {
@@ -31,10 +31,10 @@ func (a *arp) toBytes() []byte {
 	buf.WriteByte(a.hardwareAddrLength)
 	buf.WriteByte(a.protocolLength)
 	buf.Write(a.operation[:])
-	buf.Write(a.srcHardwareAddr[:])
-	buf.Write(a.srcIPAddr[:])
-	buf.Write(a.dstHardwareAddr[:])
-	buf.Write(a.dstIPAddr[:])
+	buf.Write(a.senderHardwareAddr[:])
+	buf.Write(a.senderIPAddr[:])
+	buf.Write(a.targetHardwareAddr[:])
+	buf.Write(a.targetIPAddr[:])
 	return buf.Bytes()
 }
 
@@ -46,10 +46,10 @@ func newARP() *arp {
 		protocolLength:     0x04,
 		operation:          [2]byte{0x00, 0x01},
 
-		srcHardwareAddr: [6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xff},
-		srcIPAddr:       [4]byte{0xac, 0x17, 0xf2, 0x4e},
+		senderHardwareAddr: [6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xff},
+		senderIPAddr:       [4]byte{0xac, 0x17, 0xf2, 0x4e},
 
-		dstHardwareAddr: [6]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-		dstIPAddr:       [4]byte{0x08, 0x08, 0x08, 0x08},
+		targetHardwareAddr: [6]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		targetIPAddr:       [4]byte{0x08, 0x08, 0x08, 0x08},
 	}
 }

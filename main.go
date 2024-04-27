@@ -41,10 +41,30 @@ func main() {
 	// 	panic(err)
 	// }
 
+	if err := recieve(sock); err != nil {
+		panic(err)
+	}
+}
+
+func hton(i uint16) uint16 {
+	return (i<<8)&0xff00 | i>>8
+}
+
+func send(intf net.Interface, sock int, addr unix.SockaddrLinklayer) error {
+	dst := [6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0x11}
+	// payload := []byte("Yeah!!!!!")
+	arp := newARP()
+	payload := arp.toBytes()
+	frame := newEthernetFrame(dst, intf.HardwareAddr, ETHER_TYPE_ARP, payload)
+
+	return unix.Sendto(sock, frame.toBytes(), 0, &addr)
+}
+
+func recieve(sock int) error {
 	events := make([]unix.EpollEvent, 10)
 	epollfd, err := unix.EpollCreate1(0)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := unix.EpollCtl(
@@ -56,13 +76,13 @@ func main() {
 			Fd:     int32(sock),
 		},
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	for {
 		fds, err := unix.EpollWait(epollfd, events, -1)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		for i := 0; i < fds; i++ {
@@ -76,7 +96,7 @@ func main() {
 				if n == -1 {
 					continue
 				}
-				panic(err)
+				return err
 			}
 
 			// var typ uint16
@@ -130,31 +150,8 @@ func main() {
 					fmt.Printf("Target IP Addr: %x\n", arp.dstIPAddr)
 				}
 			}
-
-			// fmt.Println(recievedEthernetFrame.header.dst)
-			// fmt.Println(recievedEthernetFrame.header.src)
-
-			// fmt.Println(recievedEthernetFrame.header.typ)
-			// fmt.Printf("%x\n%b\n", recievedEthernetFrame.header.typ, recievedEthernetFrame.header.typ)
-			// fmt.Printf("ret? -> %t\n", recievedEthernetFrame.header.typ == ETHER_TYPE_ARP)
-
-			// fmt.Printf("%d bytes, from %s, packet: %x\n", n, intf.Name, recieved)
 		}
-
 	}
 
-}
-
-func hton(i uint16) uint16 {
-	return (i<<8)&0xff00 | i>>8
-}
-
-func send(intf net.Interface, sock int, addr unix.SockaddrLinklayer) error {
-	dst := [6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0x11}
-	// payload := []byte("Yeah!!!!!")
-	arp := newARP()
-	payload := arp.toBytes()
-	frame := newEthernetFrame(dst, intf.HardwareAddr, ETHER_TYPE_ARP, payload)
-
-	return unix.Sendto(sock, frame.toBytes(), 0, &addr)
+	return nil
 }

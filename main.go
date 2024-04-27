@@ -37,13 +37,13 @@ func main() {
 		panic(err)
 	}
 
-	if err := send(intf, sock, addr); err != nil {
-		panic(err)
-	}
-
-	// if err := recieve(sock); err != nil {
+	// if err := send(intf, sock, addr); err != nil {
 	// 	panic(err)
 	// }
+
+	if err := recieve(sock); err != nil {
+		panic(err)
+	}
 }
 
 func hton(i uint16) uint16 {

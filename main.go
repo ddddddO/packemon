@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"flag"
 	"fmt"
 	"net"
 
@@ -9,12 +10,16 @@ import (
 )
 
 func main() {
-	if err := run(); err != nil {
+	var wantSend bool
+	flag.BoolVar(&wantSend, "send", false, "Send packet")
+	flag.Parse()
+
+	if err := run(wantSend); err != nil {
 		panic(err)
 	}
 }
 
-func run() error {
+func run(wantSend bool) error {
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return err
@@ -43,15 +48,11 @@ func run() error {
 		return err
 	}
 
-	// if err := send(intf, sock, addr); err != nil {
-	// 	return err
-	// }
-
-	if err := recieve(sock); err != nil {
-		return err
+	if wantSend {
+		return send(intf, sock, addr)
+	} else {
+		return recieve(sock)
 	}
-
-	return nil
 }
 
 func hton(i uint16) uint16 {

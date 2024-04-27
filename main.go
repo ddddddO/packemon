@@ -129,14 +129,6 @@ func recieve(sock int) error {
 			switch recievedEthernetFrame.header.typ {
 			case ETHER_TYPE_ARP:
 				if recievedEthernetFrame.header.dst == HARDWAREADDR_BROADCAST {
-					fmt.Println("Recieved ARP Request!!!")
-					fmt.Println()
-
-					fmt.Println("--- Ethernet header ---")
-					fmt.Printf("Destination MAC Addr: %x\n", recievedEthernetFrame.header.dst)
-					fmt.Printf("Source MAC Addr: %x\n", recievedEthernetFrame.header.src)
-					fmt.Println()
-
 					arp := &arp{
 						hardwareType:       [2]uint8(recievedEthernetFrame.data[0:2]),
 						protocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
@@ -151,11 +143,9 @@ func recieve(sock int) error {
 						targetIPAddr:       [4]uint8(recievedEthernetFrame.data[24:28]),
 					}
 
-					fmt.Println("--- ARP ---")
-					fmt.Printf("Source MAC Addr: %x\n", arp.senderHardwareAddr)
-					fmt.Printf("Source IP Addr: %x\n", arp.senderIPAddr)
-					fmt.Printf("Target MAC Addr: %x\n", arp.targetHardwareAddr)
-					fmt.Printf("Target IP Addr: %x\n", arp.targetIPAddr)
+					if err := view(recievedEthernetFrame, arp); err != nil {
+						return err
+					}
 				}
 			}
 		}

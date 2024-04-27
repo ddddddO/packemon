@@ -2,6 +2,7 @@
 
 ## 動作確認
 
+### パケットキャプチャ
 ```console
 $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -k -i -
 ```
@@ -10,6 +11,16 @@ $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -
 $ sudo go run *.go
 ```
 
+### 手軽にブロードキャスト
+```console
+$ arping -c 1 1.2.3.4
+ARPING 1.2.3.4 from 172.23.242.78 eth0
+Sent 1 probes (1 broadcast(s))
+Received 0 response(s)
+```
+
+
+## 動作確認の様子
 - Ethernetフレームのみ作ってみた（`77c9149` でコミットしたファイルにて）
 
   ![](./doc/Frame.png)

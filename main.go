@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"net"
 
@@ -13,20 +14,14 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Interfaces")
-
 	var intf net.Interface
 	for i := range interfaces {
-		fmt.Println(interfaces[i])
-
 		if interfaces[i].Name == "eth0" {
 			intf = interfaces[i]
 		}
 	}
 
-	// fmt.Println(intf)
-	fmt.Println(unix.ETH_P_ALL)
-	fmt.Println(hton(unix.ETH_P_ALL))
+	fmt.Printf("Monitor interface: %v\n", intf)
 
 	sock, err := unix.Socket(unix.AF_PACKET, unix.SOCK_RAW, int(hton(unix.ETH_P_ALL)))
 	if err != nil {
@@ -42,8 +37,110 @@ func main() {
 		panic(err)
 	}
 
-	if err := send(intf, sock, addr); err != nil {
+	// if err := send(intf, sock, addr); err != nil {
+	// 	panic(err)
+	// }
+
+	events := make([]unix.EpollEvent, 10)
+	epollfd, err := unix.EpollCreate1(0)
+	if err != nil {
 		panic(err)
+	}
+
+	if err := unix.EpollCtl(
+		epollfd,
+		unix.EPOLL_CTL_ADD,
+		sock,
+		&unix.EpollEvent{
+			Events: unix.EPOLLIN,
+			Fd:     int32(sock),
+		},
+	); err != nil {
+		panic(err)
+	}
+
+	for {
+		fds, err := unix.EpollWait(epollfd, events, -1)
+		if err != nil {
+			panic(err)
+		}
+
+		for i := 0; i < fds; i++ {
+			if events[i].Fd != int32(sock) {
+				continue
+			}
+
+			recieved := make([]byte, 1500)
+			n, _, err := unix.Recvfrom(sock, recieved, 0)
+			if err != nil {
+				if n == -1 {
+					continue
+				}
+				panic(err)
+			}
+
+			// var typ uint16
+			// if err := binary.Read(bytes.NewReader(recieved[12:14]), binary.BigEndian, &typ); err != nil {
+			// 	panic(err)
+			// }
+			// 上のtypeとbinary.BigEndian.Uint16(recieved[12:14]) は同値
+			// サンプルとしてunit testに置いておくあとで
+
+			recievedEthernetFrame := &ethernetFrame{
+				header: &ethernetHeader{
+					dst: hardwareAddr(recieved[0:6]),
+					src: hardwareAddr(recieved[6:12]),
+					typ: binary.BigEndian.Uint16(recieved[12:14]),
+				},
+				data: recieved[14:],
+			}
+
+			HARDWAREADDR_BROADCAST := [6]uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+
+			// 一旦 ARP request のみ
+			switch recievedEthernetFrame.header.typ {
+			case ETHER_TYPE_ARP:
+				if recievedEthernetFrame.header.dst == HARDWAREADDR_BROADCAST {
+					fmt.Println("Recieved ARP Request!!!")
+					fmt.Println()
+
+					fmt.Println("--- Ethernet header ---")
+					fmt.Printf("Destination MAC Addr: %x\n", recievedEthernetFrame.header.dst)
+					fmt.Printf("Source MAC Addr: %x\n", recievedEthernetFrame.header.src)
+					fmt.Println()
+
+					arp := &arp{
+						hardwareType:       [2]uint8(recievedEthernetFrame.data[0:2]),
+						protocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
+						hardwareAddrLength: recievedEthernetFrame.data[4],
+						protocolLength:     recievedEthernetFrame.data[5],
+						operation:          [2]uint8(recievedEthernetFrame.data[6:8]),
+
+						srcHardwareAddr: hardwareAddr(recievedEthernetFrame.data[8:14]),
+						srcIPAddr:       [4]uint8(recievedEthernetFrame.data[14:18]),
+
+						dstHardwareAddr: hardwareAddr(recievedEthernetFrame.data[18:24]),
+						dstIPAddr:       [4]uint8(recievedEthernetFrame.data[24:28]),
+					}
+
+					fmt.Println("--- ARP ---")
+					fmt.Printf("Source MAC Addr: %x\n", arp.srcHardwareAddr)
+					fmt.Printf("Source IP Addr: %x\n", arp.srcIPAddr)
+					fmt.Printf("Target MAC Addr: %x\n", arp.dstHardwareAddr)
+					fmt.Printf("Target IP Addr: %x\n", arp.dstIPAddr)
+				}
+			}
+
+			// fmt.Println(recievedEthernetFrame.header.dst)
+			// fmt.Println(recievedEthernetFrame.header.src)
+
+			// fmt.Println(recievedEthernetFrame.header.typ)
+			// fmt.Printf("%x\n%b\n", recievedEthernetFrame.header.typ, recievedEthernetFrame.header.typ)
+			// fmt.Printf("ret? -> %t\n", recievedEthernetFrame.header.typ == ETHER_TYPE_ARP)
+
+			// fmt.Printf("%d bytes, from %s, packet: %x\n", n, intf.Name, recieved)
+		}
+
 	}
 
 }

@@ -42,17 +42,22 @@ func main() {
 		panic(err)
 	}
 
-	dst := [6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xff}
-	// payload := []byte("Yeah!!!!!")
-	arp := newARP()
-	payload := arp.toBytes()
-	frame := newEthernetFrame(dst, intf.HardwareAddr, ETHER_TYPE_ARP, payload)
-	packet := frame.toBytes()
-	if err := unix.Sendto(sock, packet, 0, &addr); err != nil {
+	if err := send(intf, sock, addr); err != nil {
 		panic(err)
 	}
+
 }
 
 func hton(i uint16) uint16 {
 	return (i<<8)&0xff00 | i>>8
+}
+
+func send(intf net.Interface, sock int, addr unix.SockaddrLinklayer) error {
+	dst := [6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0x11}
+	// payload := []byte("Yeah!!!!!")
+	arp := newARP()
+	payload := arp.toBytes()
+	frame := newEthernetFrame(dst, intf.HardwareAddr, ETHER_TYPE_ARP, payload)
+
+	return unix.Sendto(sock, frame.toBytes(), 0, &addr)
 }

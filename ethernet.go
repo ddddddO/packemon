@@ -3,14 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/binary"
-	"net"
 )
 
-func newEthernetFrame(dst hardwareAddr, src net.HardwareAddr, typ uint16, payload []byte) *ethernetFrame {
+func newEthernetFrame(dst hardwareAddr, src hardwareAddr, typ uint16, payload []byte) *ethernetFrame {
 	return &ethernetFrame{
 		header: &ethernetHeader{
 			dst: dst,
-			src: hardwareAddr(src),
+			src: src,
 			typ: typ,
 		},
 		data: payload,

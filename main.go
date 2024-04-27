@@ -9,9 +9,15 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		panic(err)
+	}
+}
+
+func run() error {
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	var intf net.Interface
@@ -25,7 +31,7 @@ func main() {
 
 	sock, err := unix.Socket(unix.AF_PACKET, unix.SOCK_RAW, int(hton(unix.ETH_P_ALL)))
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	addr := unix.SockaddrLinklayer{
@@ -34,16 +40,18 @@ func main() {
 	}
 
 	if err := unix.Bind(sock, &addr); err != nil {
-		panic(err)
+		return err
 	}
 
 	// if err := send(intf, sock, addr); err != nil {
-	// 	panic(err)
+	// 	return err
 	// }
 
 	if err := recieve(sock); err != nil {
-		panic(err)
+		return err
 	}
+
+	return nil
 }
 
 func hton(i uint16) uint16 {

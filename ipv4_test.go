@@ -35,4 +35,11 @@ func Test_sandbox(t *testing.T) {
 	t.Logf("want: %x, got: %x", 0x01, (p5 >> 3))
 	// 4bit左シフトして2bit右シフト. 00101100
 	t.Logf("want: %x, got: %x", 0x2c, (p5 << 4 >> 2))
+
+	var buf1, buf2 bytes.Buffer
+	var p6 uint8 = 0x0f // 00001111
+	buf1.WriteByte(p6)
+	buf2.WriteByte(p6 << 2) // 00111100
+	t.Logf("buf1 bytes(want: 0f): %x", buf1.Bytes())
+	t.Logf("buf2 bytes(want: 3c): %x", buf2.Bytes())
 }

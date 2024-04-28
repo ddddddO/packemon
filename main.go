@@ -117,13 +117,6 @@ func recieve(sock int) error {
 				return err
 			}
 
-			// var typ uint16
-			// if err := binary.Read(bytes.NewReader(recieved[12:14]), binary.BigEndian, &typ); err != nil {
-			// 	panic(err)
-			// }
-			// 上のtypeとbinary.BigEndian.Uint16(recieved[12:14]) は同値
-			// サンプルとしてunit testに置いておくあとで
-
 			recievedEthernetFrame := &ethernetFrame{
 				header: &ethernetHeader{
 					dst: hardwareAddr(recieved[0:6]),

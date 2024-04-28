@@ -49,11 +49,11 @@ func run(wantSend bool) error {
 	}
 
 	if wantSend {
-		// dst := hardwareAddr([6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0x11})
-		// src := hardwareAddr(intf.HardwareAddr)
-		// return send(dst, src, ETHER_TYPE_ARP, sock, addr)
+		dst := hardwareAddr([6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0x11})
+		src := hardwareAddr(intf.HardwareAddr)
+		return send(dst, src, ETHER_TYPE_ARP, sock, addr)
 
-		return form(sendForForm(sock, addr)) // Form のアクションで 送信した方が良さそうなのでこの形
+		// return form(sendForForm(sock, addr)) // Form のアクションで 送信した方が良さそうなのでこの形
 	} else {
 		return recieve(sock)
 	}
@@ -71,8 +71,14 @@ func sendForForm(sock int, addr unix.SockaddrLinklayer) func([6]byte, [6]byte, u
 
 func send(dst, src hardwareAddr, etherType uint16, sock int, addr unix.SockaddrLinklayer) error {
 	// payload := []byte("Yeah!!!!!")
-	arp := newARP()
-	payload := arp.toBytes()
+
+	// arp := newARP()
+	// payload := arp.toBytes()
+	// frame := newEthernetFrame(dst, src, etherType, payload)
+
+	ipv4 := newIPv4()
+	payload := ipv4.toBytes()
+	etherType = ETHER_TYPE_IP
 	frame := newEthernetFrame(dst, src, etherType, payload)
 
 	return unix.Sendto(sock, frame.toBytes(), 0, &addr)

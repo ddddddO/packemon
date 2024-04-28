@@ -1,5 +1,10 @@
 package main
 
+import (
+	"bytes"
+	"encoding/binary"
+)
+
 // https://www.infraexpert.com/study/tcpip1.html
 type ipv4 struct {
 	version        uint8  // 4bit
@@ -17,4 +22,64 @@ type ipv4 struct {
 
 	options []uint8
 	padding []uint8
+}
+
+// 一旦固定
+func newIPv4() *ipv4 {
+	return &ipv4{
+		version:        0x04,
+		ihl:            0x05,
+		tos:            0x00,
+		totalLength:    0x14,
+		identification: 0xe31f,
+		flags:          0x0,
+		fragmentOffset: 0x0,
+		ttl:            0x80,
+		protocol:       0x11,
+		headerChecksum: 0x0f55,
+		srcAddr:        0xc0a86358, // 192.168.99.88
+		dstAddr:        0xc0a86301, // 192.168.99.1
+	}
+}
+
+func (i *ipv4) toBytes() []byte {
+	var buf bytes.Buffer
+
+	// Wireshark で他の正常なパケット見ると、versionとヘッダー長(ihl)が「45」
+	// 以下コメントアウト部だと、「40 50」となりダメ
+	// buf.WriteByte(i.version<<4)
+	// buf.WriteByte(i.ihl<<4)
+	buf.WriteByte(i.version<<4 | i.ihl)
+
+	buf.WriteByte(i.tos)
+
+	b := make([]byte, 2)
+	binary.BigEndian.PutUint16(b, i.totalLength)
+	buf.Write(b)
+
+	b = make([]byte, 2)
+	binary.BigEndian.PutUint16(b, i.identification)
+	buf.Write(b)
+
+	buf.WriteByte(i.flags)
+
+	b = make([]byte, 2)
+	binary.BigEndian.PutUint16(b, i.fragmentOffset|uint16(i.ttl))
+	buf.Write(b)
+
+	buf.WriteByte(i.protocol)
+
+	b = make([]byte, 2)
+	binary.BigEndian.PutUint16(b, i.headerChecksum)
+	buf.Write(b)
+
+	b = make([]byte, 4)
+	binary.BigEndian.PutUint32(b, i.srcAddr)
+	buf.Write(b)
+
+	b = make([]byte, 4)
+	binary.BigEndian.PutUint32(b, i.dstAddr)
+	buf.Write(b)
+
+	return buf.Bytes()
 }

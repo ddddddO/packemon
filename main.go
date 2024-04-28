@@ -49,11 +49,11 @@ func run(wantSend bool) error {
 	}
 
 	if wantSend {
-		dst := hardwareAddr([6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0x11})
-		src := hardwareAddr(intf.HardwareAddr)
-		return send(dst, src, ETHER_TYPE_ARP, sock, addr)
+		// dst := hardwareAddr([6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0x11})
+		// src := hardwareAddr(intf.HardwareAddr)
+		// return send(dst, src, ETHER_TYPE_ARP, sock, addr)
 
-		// return form(sendForForm(sock, addr)) // Form のアクションで 送信した方が良さそうなのでこの形
+		return form(sendForForm(sock, addr)) // Form のアクションで 送信した方が良さそうなのでこの形
 	} else {
 		return recieve(sock)
 	}
@@ -85,7 +85,6 @@ func send(dst, src hardwareAddr, etherType uint16, sock int, addr unix.SockaddrL
 }
 
 func recieve(sock int) error {
-	events := make([]unix.EpollEvent, 10)
 	epollfd, err := unix.EpollCreate1(0)
 	if err != nil {
 		return err
@@ -103,6 +102,7 @@ func recieve(sock int) error {
 		return err
 	}
 
+	events := make([]unix.EpollEvent, 10)
 	for {
 		fds, err := unix.EpollWait(epollfd, events, -1)
 		if err != nil {

@@ -7,20 +7,39 @@ import (
 	"github.com/rivo/tview"
 )
 
+type viewer interface {
+	rows() int
+	columns() int
+	viewTable() *tview.Table
+}
+
 // TODO: refactor
-func view(ethernetFrame *ethernetFrame, arp *arp) error {
-	ethTable := ethernetFrame.viewTable()
-	arpTable := arp.viewTable()
-	grid := tview.NewGrid().SetRows(10, 25).SetColumns(20, 20).SetBorders(false).
-		AddItem(ethTable, 0, 0, 1, 3, 0, 0, false).
-		AddItem(arpTable, 1, 0, 1, 3, 0, 0, false)
+// func view(ethernetFrame *ethernetFrame, arp *arp) error {
+func view(viewers ...viewer) error {
+	rows := make([]int, len(viewers))
+	columns := make([]int, len(viewers))
+	for i := range viewers {
+		rows[i] = viewers[i].rows()
+		columns[i] = viewers[i].columns()
+	}
+	grid := tview.NewGrid().SetRows(rows...).SetColumns(columns...).SetBorders(false)
+	for i := range viewers {
+		grid.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false)
+	}
 	grid.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon ")
 
 	if err := tview.NewApplication().SetRoot(grid, true).Run(); err != nil {
 		return err
 	}
-
 	return nil
+}
+
+func (ef *ethernetFrame) rows() int {
+	return 10
+}
+
+func (ef *ethernetFrame) columns() int {
+	return 20
 }
 
 func (ef *ethernetFrame) viewTable() *tview.Table {
@@ -37,6 +56,14 @@ func (ef *ethernetFrame) viewTable() *tview.Table {
 	ethTable.SetCell(2, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.header.typ))))
 
 	return ethTable
+}
+
+func (a *arp) rows() int {
+	return 22
+}
+
+func (a *arp) columns() int {
+	return 20
 }
 
 func (a *arp) viewTable() *tview.Table {

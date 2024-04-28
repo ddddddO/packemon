@@ -3,9 +3,9 @@
 - 開発途上で気長にやる予定
 - 現在の機能は以下（`578cb8b` のコミット）
   - 任意のイーサネットヘッダーを楽に作れてフレームを送信できる
-    ![](./doc/tui_send_packet.png)
-  - フレームを受信して詳細表示（ARPリクエストのみ）
-    ![](./doc/tui_recieve_packet.png)
+  - フレームを受信して詳細表示（ARPとIPv4）
+    ![](./doc/tui_0428.png)
+    ![](./doc/tui_cap_0428.png)
 
 - TUIライブラリとして https://github.com/rivo/tview を使わせてもらってる🙇
 

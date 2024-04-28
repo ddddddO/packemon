@@ -78,7 +78,7 @@ func send(dst, src hardwareAddr, etherType uint16, sock int, addr unix.SockaddrL
 
 	ipv4 := newIPv4()
 	payload := ipv4.toBytes()
-	etherType = ETHER_TYPE_IP
+	etherType = ETHER_TYPE_IPv4
 	frame := newEthernetFrame(dst, src, etherType, payload)
 
 	return unix.Sendto(sock, frame.toBytes(), 0, &addr)

@@ -41,7 +41,7 @@ func (a *arp) toBytes() []byte {
 func newARP() *arp {
 	return &arp{
 		hardwareType:       [2]byte{0x00, 0x01},
-		protocolType:       ETHER_TYPE_IP,
+		protocolType:       ETHER_TYPE_IPv4,
 		hardwareAddrLength: 0x06,
 		protocolLength:     0x04,
 		operation:          [2]byte{0x00, 0x01},

@@ -47,10 +47,10 @@ func form(sendFn func([6]byte, [6]byte, uint16) error) error {
 
 			return true
 		}, nil).
-		AddDropDown("Ether Type", []string{"IP", "ARP"}, 1, func(selected string, _ int) {
+		AddDropDown("Ether Type", []string{"IPv4", "ARP"}, 1, func(selected string, _ int) {
 			switch selected {
-			case "IP":
-				etherType = ETHER_TYPE_IP
+			case "IPv4":
+				etherType = ETHER_TYPE_IPv4
 			case "ARP":
 				etherType = ETHER_TYPE_ARP
 			}

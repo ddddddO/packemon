@@ -39,5 +39,5 @@ func Test_sandbox(t *testing.T) {
 	// 3bit右シフト. 0x01 = 1 = 00000001
 	t.Logf("want: %x, got: %x", 0x01, (p5 >> 3))
 	// 4bit左シフトして2bit右シフト. 00101100
-	t.Logf("want: %x, got:%x", 0x2c, (p5 << 4 >> 2))
+	t.Logf("want: %x, got: %x", 0x2c, (p5 << 4 >> 2))
 }

@@ -14,7 +14,6 @@ type viewer interface {
 }
 
 // TODO: refactor
-// func view(ethernetFrame *ethernetFrame, arp *arp) error {
 func view(viewers ...viewer) error {
 	rows := make([]int, len(viewers))
 	columns := make([]int, len(viewers))

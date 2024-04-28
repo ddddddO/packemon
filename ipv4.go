@@ -22,7 +22,14 @@ type ipv4 struct {
 
 	options []uint8
 	padding []uint8
+
+	data []byte
 }
+
+const (
+	IPv4_PROTO_ICMP = 0x01
+	IPv4_PROTO_UDP  = 0x11
+)
 
 // 一旦固定
 func newIPv4() *ipv4 {
@@ -35,7 +42,7 @@ func newIPv4() *ipv4 {
 		flags:          0x0,
 		fragmentOffset: 0x0,
 		ttl:            0x80,
-		protocol:       0x11,
+		protocol:       IPv4_PROTO_UDP,
 		headerChecksum: 0x0f55,
 		srcAddr:        0xc0a86358, // 192.168.99.88
 		dstAddr:        0xc0a86301, // 192.168.99.1
@@ -80,6 +87,8 @@ func (i *ipv4) toBytes() []byte {
 	b = make([]byte, 4)
 	binary.BigEndian.PutUint32(b, i.dstAddr)
 	buf.Write(b)
+
+	buf.Write(i.data)
 
 	return buf.Bytes()
 }

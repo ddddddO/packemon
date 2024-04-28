@@ -42,4 +42,8 @@ func Test_sandbox(t *testing.T) {
 	buf2.WriteByte(p6 << 2) // 00111100
 	t.Logf("buf1 bytes(want: 0f): %x", buf1.Bytes())
 	t.Logf("buf2 bytes(want: 3c): %x", buf2.Bytes())
+	buf1.WriteByte(0x0e)
+	t.Logf("buf1 bytes(want: 0f0e): %x = %b", buf1.Bytes(), buf1.Bytes())
+	buf1.WriteByte(0x07)
+	t.Logf("buf1 bytes(want: 0f0e07): %x = %b(= [1111 1110 111])", buf1.Bytes(), buf1.Bytes())
 }

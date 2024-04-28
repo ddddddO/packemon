@@ -49,13 +49,15 @@ func run(wantSend bool) error {
 	}
 
 	if wantSend {
-		// dst := hardwareAddr([6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0x11})
+		// arp := newARP()
+		// dst := hardwareAddr([6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0x12})
 		// src := hardwareAddr(intf.HardwareAddr)
-		// return send(dst, src, ETHER_TYPE_ARP, sock, addr)
+		// ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_ARP, arp.toBytes())
+		// return send(ethernetFrame, sock, addr)
 
 		return form(sendForForm(sock, addr)) // Form のアクションで 送信した方が良さそうなのでこの形
 	} else {
-		return recieve(sock)
+		return recieve(sock, intf)
 	}
 }
 
@@ -63,28 +65,17 @@ func hton(i uint16) uint16 {
 	return (i<<8)&0xff00 | i>>8
 }
 
-func sendForForm(sock int, addr unix.SockaddrLinklayer) func([6]byte, [6]byte, uint16) error {
-	return func(dst, src [6]byte, etherType uint16) error {
-		return send(hardwareAddr(dst), hardwareAddr(src), etherType, sock, addr)
+func sendForForm(sock int, addr unix.SockaddrLinklayer) func(*ethernetFrame) error {
+	return func(ethernetFrame *ethernetFrame) error {
+		return send(ethernetFrame, sock, addr)
 	}
 }
 
-func send(dst, src hardwareAddr, etherType uint16, sock int, addr unix.SockaddrLinklayer) error {
-	// payload := []byte("Yeah!!!!!")
-
-	// arp := newARP()
-	// payload := arp.toBytes()
-	// frame := newEthernetFrame(dst, src, etherType, payload)
-
-	ipv4 := newIPv4()
-	payload := ipv4.toBytes()
-	etherType = ETHER_TYPE_IPv4
-	frame := newEthernetFrame(dst, src, etherType, payload)
-
-	return unix.Sendto(sock, frame.toBytes(), 0, &addr)
+func send(ethernetFrame *ethernetFrame, sock int, addr unix.SockaddrLinklayer) error {
+	return unix.Sendto(sock, ethernetFrame.toBytes(), 0, &addr)
 }
 
-func recieve(sock int) error {
+func recieve(sock int, intf net.Interface) error {
 	epollfd, err := unix.EpollCreate1(0)
 	if err != nil {
 		return err
@@ -134,10 +125,10 @@ func recieve(sock int) error {
 
 			HARDWAREADDR_BROADCAST := [6]uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
 
-			// 一旦 ARP request のみ
 			switch recievedEthernetFrame.header.typ {
 			case ETHER_TYPE_ARP:
 				if recievedEthernetFrame.header.dst == HARDWAREADDR_BROADCAST {
+					fmt.Println("in ARP!!")
 					arp := &arp{
 						hardwareType:       [2]uint8(recievedEthernetFrame.data[0:2]),
 						protocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
@@ -154,6 +145,30 @@ func recieve(sock int) error {
 
 					if err := view(recievedEthernetFrame, arp); err != nil {
 						return err
+					}
+				}
+			case ETHER_TYPE_IPv4:
+				if recievedEthernetFrame.header.dst == hardwareAddr(intf.HardwareAddr) {
+					// for debug
+					if recievedEthernetFrame.header.src == HARDWAREADDR_BROADCAST {
+						ipv4 := &ipv4{
+							version:        recievedEthernetFrame.data[0] >> 4,
+							ihl:            recievedEthernetFrame.data[0] << 4 >> 4,
+							tos:            recievedEthernetFrame.data[1],
+							totalLength:    binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
+							identification: binary.BigEndian.Uint16(recievedEthernetFrame.data[4:6]),
+							flags:          recievedEthernetFrame.data[6],
+							fragmentOffset: binary.BigEndian.Uint16(recievedEthernetFrame.data[6:8]),
+							ttl:            recievedEthernetFrame.data[8],
+							protocol:       recievedEthernetFrame.data[9],
+							headerChecksum: binary.BigEndian.Uint16(recievedEthernetFrame.data[10:12]),
+							srcAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[12:16]),
+							dstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[16:20]),
+						}
+
+						if err := view(recievedEthernetFrame, ipv4); err != nil {
+							return err
+						}
 					}
 				}
 			}

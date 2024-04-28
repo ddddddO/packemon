@@ -7,11 +7,6 @@ import (
 )
 
 func Test_sandbox(t *testing.T) {
-	s := "hello"
-	if s != "hello" {
-		t.Errorf("ダメです: got: %s, want: %s", s, "kkk")
-	}
-
 	p0 := []byte{0x08, 0x06}
 	var p1, p2 uint16
 	if err := binary.Read(bytes.NewReader(p0), binary.BigEndian, &p1); err != nil {

@@ -21,27 +21,7 @@ const (
 
 // gridの中にForm二つは出力できて、一つ目のFormには入力できたけど、二つ目に遷移できなかった
 func form(sendFn func(*ethernetFrame) error) error {
-	// default値
-	ipv4 := &ipv4{
-		version:        0x04,
-		ihl:            0x05,
-		tos:            0x00,
-		totalLength:    0x14,
-		identification: 0xe31f,
-		flags:          0x0,
-		fragmentOffset: 0x0,
-		ttl:            0x80,
-		protocol:       0x11,
-		headerChecksum: 0x0f55,
-		srcAddr:        0xc0a86358, // 192.168.99.88
-		dstAddr:        0xc0a86301, // 192.168.99.1
-	}
-	ethernetHeader := &ethernetHeader{
-		dst: hardwareAddr([6]byte{0x00, 0x15, 0x5d, 0xf2, 0x7c, 0xcb}),
-		src: hardwareAddr([6]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}),
-		typ: ETHER_TYPE_IPv4,
-	}
-
+	ethernetHeader, ipv4 := defaultPackets()
 	app := tview.NewApplication()
 	form := tview.NewForm().
 		// AddInputField("Last name", "", 20, nil, nil).
@@ -153,6 +133,30 @@ func form(sendFn func(*ethernetFrame) error) error {
 	}
 
 	return nil
+}
+
+func defaultPackets() (*ethernetHeader, *ipv4) {
+	ipv4 := &ipv4{
+		version:        0x04,
+		ihl:            0x05,
+		tos:            0x00,
+		totalLength:    0x14,
+		identification: 0xe31f,
+		flags:          0x0,
+		fragmentOffset: 0x0,
+		ttl:            0x80,
+		protocol:       0x11,
+		headerChecksum: 0x0f55,
+		srcAddr:        0xc0a86358, // 192.168.99.88
+		dstAddr:        0xc0a86301, // 192.168.99.1
+	}
+	ethernetHeader := &ethernetHeader{
+		dst: hardwareAddr([6]byte{0x00, 0x15, 0x5d, 0xf2, 0x7c, 0xcb}),
+		src: hardwareAddr([6]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}),
+		typ: ETHER_TYPE_IPv4,
+	}
+
+	return ethernetHeader, ipv4
 }
 
 func strHexToBytes(s string) ([]byte, error) {

@@ -25,116 +25,10 @@ func form(sendFn func(*ethernetFrame) error) error {
 	pages := tview.NewPages()
 	pages.Box = tview.NewBox().SetTitle(" Packemon [Make & Send packet] ").SetBorder(true)
 
-	ipv4Form := tview.NewForm().
-		AddTextView("IPv4 Header", "This section generates the IPv4 header.\nIt is still under development.", 60, 4, true, false).
-		AddInputField("Version(hex)", "0x04", 4, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 4 {
-				return true
-			} else if len(textToCheck) > 4 {
-				return false
-			}
-
-			b, err := strHexToBytes(textToCheck)
-			if err != nil {
-				return false
-			}
-			ipv4.version = uint8(binary.BigEndian.Uint16(b))
-
-			return true
-		}, nil).
-		AddInputField("Source IP Addr", DEAFULT_IP_SOURCE, 15, func(textToCheck string, lastChar rune) bool {
-			count := strings.Count(textToCheck, ".")
-			if count < 3 {
-				return true
-			} else if count == 3 {
-				ip, err := strIPToBytes(textToCheck)
-				if err != nil {
-					return false
-				}
-				ipv4.srcAddr = binary.BigEndian.Uint32(ip)
-				return true
-			}
-
-			return false
-		}, nil).
-		AddInputField("Destination IP Addr", DEFAULT_IP_DESTINATION, 15, func(textToCheck string, lastChar rune) bool {
-			count := strings.Count(textToCheck, ".")
-			if count < 3 {
-				return true
-			} else if count == 3 {
-				ip, err := strIPToBytes(textToCheck)
-				if err != nil {
-					return false
-				}
-				ipv4.dstAddr = binary.BigEndian.Uint32(ip)
-				return true
-			}
-
-			return false
-		}, nil).
-		AddButton("Send!", func() {
-			ethernetFrame := &ethernetFrame{
-				header: ethernetHeader,
-				data:   ipv4.toBytes(),
-			}
-			if err := sendFn(ethernetFrame); err != nil {
-				app.Stop()
-			}
-		}).
-		AddButton("Prev", func() {
-			pages.SwitchToPage("Ethernet")
-		}).
-		AddButton("Quit", func() {
-			app.Stop()
-		})
+	ipv4Form := ipv4Form(app, pages, sendFn, ethernetHeader, ipv4)
 
 	arpForm := tview.NewForm().
 		AddTextView("ARP", "This section generates the ARP.\nIt is still under development.", 60, 4, true, false).
-		// AddInputField("Version(hex)", "0x04", 4, func(textToCheck string, lastChar rune) bool {
-		// 	if len(textToCheck) < 4 {
-		// 		return true
-		// 	} else if len(textToCheck) > 4 {
-		// 		return false
-		// 	}
-
-		// 	b, err := strHexToBytes(textToCheck)
-		// 	if err != nil {
-		// 		return false
-		// 	}
-		// 	ipv4.version = uint8(binary.BigEndian.Uint16(b))
-
-		// 	return true
-		// }, nil).
-		// AddInputField("Source IP Addr", DEAFULT_IP_SOURCE, 15, func(textToCheck string, lastChar rune) bool {
-		// 	count := strings.Count(textToCheck, ".")
-		// 	if count < 3 {
-		// 		return true
-		// 	} else if count == 3 {
-		// 		ip, err := strIPToBytes(textToCheck)
-		// 		if err != nil {
-		// 			return false
-		// 		}
-		// 		ipv4.srcAddr = binary.BigEndian.Uint32(ip)
-		// 		return true
-		// 	}
-
-		// 	return false
-		// }, nil).
-		// AddInputField("Destination IP Addr", DEFAULT_IP_DESTINATION, 15, func(textToCheck string, lastChar rune) bool {
-		// 	count := strings.Count(textToCheck, ".")
-		// 	if count < 3 {
-		// 		return true
-		// 	} else if count == 3 {
-		// 		ip, err := strIPToBytes(textToCheck)
-		// 		if err != nil {
-		// 			return false
-		// 		}
-		// 		ipv4.dstAddr = binary.BigEndian.Uint32(ip)
-		// 		return true
-		// 	}
-
-		// 	return false
-		// }, nil).
 		AddButton("Send!", func() {
 			ethernetFrame := &ethernetFrame{
 				header: ethernetHeader,
@@ -152,11 +46,6 @@ func form(sendFn func(*ethernetFrame) error) error {
 		})
 
 	ethernetForm := tview.NewForm().
-		// AddInputField("Last name", "", 20, nil, nil).
-		// AddTextArea("Address", "", 40, 0, 0, nil).
-		// AddTextView("Notes", "This is just a demo.\nYou can enter whatever you wish.", 40, 2, true, false).
-		// AddCheckbox("Age 18+", false, nil).
-		// AddPasswordField("Password", "", 10, '*', nil).
 		AddTextView("Ethernet Header", "This section generates the Ethernet header.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 14, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 14 {
@@ -280,4 +169,71 @@ func strIPToBytes(s string) ([]byte, error) {
 		b[i] = byte(ip)
 	}
 	return b, nil
+}
+
+func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader, ipv4 *ipv4) *tview.Form {
+	ipv4Form := tview.NewForm().
+		AddTextView("IPv4 Header", "This section generates the IPv4 header.\nIt is still under development.", 60, 4, true, false).
+		AddInputField("Version(hex)", "0x04", 4, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 4 {
+				return true
+			} else if len(textToCheck) > 4 {
+				return false
+			}
+
+			b, err := strHexToBytes(textToCheck)
+			if err != nil {
+				return false
+			}
+			ipv4.version = uint8(binary.BigEndian.Uint16(b))
+
+			return true
+		}, nil).
+		AddInputField("Source IP Addr", DEAFULT_IP_SOURCE, 15, func(textToCheck string, lastChar rune) bool {
+			count := strings.Count(textToCheck, ".")
+			if count < 3 {
+				return true
+			} else if count == 3 {
+				ip, err := strIPToBytes(textToCheck)
+				if err != nil {
+					return false
+				}
+				ipv4.srcAddr = binary.BigEndian.Uint32(ip)
+				return true
+			}
+
+			return false
+		}, nil).
+		AddInputField("Destination IP Addr", DEFAULT_IP_DESTINATION, 15, func(textToCheck string, lastChar rune) bool {
+			count := strings.Count(textToCheck, ".")
+			if count < 3 {
+				return true
+			} else if count == 3 {
+				ip, err := strIPToBytes(textToCheck)
+				if err != nil {
+					return false
+				}
+				ipv4.dstAddr = binary.BigEndian.Uint32(ip)
+				return true
+			}
+
+			return false
+		}, nil).
+		AddButton("Send!", func() {
+			ethernetFrame := &ethernetFrame{
+				header: ethernetHeader,
+				data:   ipv4.toBytes(),
+			}
+			if err := sendFn(ethernetFrame); err != nil {
+				app.Stop()
+			}
+		}).
+		AddButton("Prev", func() {
+			pages.SwitchToPage("Ethernet")
+		}).
+		AddButton("Quit", func() {
+			app.Stop()
+		})
+
+	return ipv4Form
 }

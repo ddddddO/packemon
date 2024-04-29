@@ -10,7 +10,7 @@ type ipv4 struct {
 	version        uint8  // 4bit
 	ihl            uint8  // 4bit. hearder length
 	tos            uint8  // 8bit. type of service
-	totalLength    uint16 // 16bit. total length
+	totalLength    uint16 // 16bit. total length // TODO: ここちゃんと計算できてないと、インターネット層以上で異常なパケットとしてWiresharkに怒られる
 	identification uint16 // 16bit
 	flags          uint8  // 3bit
 	fragmentOffset uint16 // 13bit
@@ -27,22 +27,22 @@ type ipv4 struct {
 }
 
 const (
-	IPv4_PROTO_ICMP = 0x01
-	IPv4_PROTO_UDP  = 0x11
+	IPv4_PROTO_ICMP uint8 = 0x01
+	IPv4_PROTO_UDP  uint8 = 0x11
 )
 
 // 一旦固定
-func newIPv4() *ipv4 {
+func newIPv4(protocol uint8) *ipv4 {
 	return &ipv4{
 		version:        0x04,
 		ihl:            0x05,
 		tos:            0x00,
-		totalLength:    0x14,
+		totalLength:    0x54,
 		identification: 0xe31f,
 		flags:          0x0,
 		fragmentOffset: 0x0,
 		ttl:            0x80,
-		protocol:       IPv4_PROTO_UDP,
+		protocol:       protocol,
 		headerChecksum: 0x0f55,
 		srcAddr:        0xc0a86358, // 192.168.99.88
 		dstAddr:        0xc0a86301, // 192.168.99.1

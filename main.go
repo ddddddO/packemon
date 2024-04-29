@@ -172,7 +172,7 @@ func recieve(sock int, intf net.Interface) error {
 					GLOBAL_VIEWERS_CH <- []viewer{recievedEthernetFrame, arp}
 				}
 			case ETHER_TYPE_IPv4:
-				if recievedEthernetFrame.header.dst == hardwareAddr(intf.HardwareAddr) {
+				if recievedEthernetFrame.header.dst == hardwareAddr(intf.HardwareAddr) || recievedEthernetFrame.header.dst == HARDWAREADDR_BROADCAST {
 					// for debug
 					if recievedEthernetFrame.header.src == HARDWAREADDR_BROADCAST {
 						ipv4 := &ipv4{

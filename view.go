@@ -15,24 +15,21 @@ type viewer interface {
 	viewTable() *tview.Table
 }
 
-// TODO: refactor
-func view(viewers ...viewer) error {
-	rows := make([]int, len(viewers))
-	columns := make([]int, len(viewers))
-	for i := range viewers {
-		rows[i] = viewers[i].rows()
-		columns[i] = viewers[i].columns()
+func updateView() {
+	for viewers := range GLOBAL_VIEWERS_CH {
+		GLOBAL_TVIEW_APP.QueueUpdateDraw(func() {
+			rows := make([]int, len(viewers))
+			columns := make([]int, len(viewers))
+			for i := range viewers {
+				rows[i] = viewers[i].rows()
+				columns[i] = viewers[i].columns()
+			}
+			GLOBAL_TVIEW_GRID.SetRows(rows...).SetColumns(columns...).SetBorders(false)
+			for i := range viewers {
+				GLOBAL_TVIEW_GRID.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false)
+			}
+		})
 	}
-	grid := tview.NewGrid().SetRows(rows...).SetColumns(columns...).SetBorders(false)
-	for i := range viewers {
-		grid.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false)
-	}
-	grid.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon ")
-
-	if err := tview.NewApplication().SetRoot(grid, true).Run(); err != nil {
-		return err
-	}
-	return nil
 }
 
 func (*ethernetFrame) rows() int {

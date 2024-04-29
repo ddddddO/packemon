@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/rivo/tview"
 	"golang.org/x/sys/unix"
 )
 
@@ -18,6 +19,15 @@ func main() {
 		panic(err)
 	}
 }
+
+// TODO:
+// - 以下グローバルなところ何とかしたい
+// - 外部ライブラリへの依存は局所的にしたい
+var (
+	GLOBAL_TVIEW_APP  *tview.Application
+	GLOBAL_TVIEW_GRID *tview.Grid
+	GLOBAL_VIEWERS_CH = make(chan []viewer, 10)
+)
 
 func run(wantSend bool) error {
 	interfaces, err := net.Interfaces()
@@ -68,7 +78,13 @@ func run(wantSend bool) error {
 
 		return form(sendForForm(sock, addr)) // Form のアクションで 送信した方が良さそうなのでこの形
 	} else {
-		return recieve(sock, intf)
+		GLOBAL_TVIEW_GRID = tview.NewGrid()
+		GLOBAL_TVIEW_GRID.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon ")
+		GLOBAL_TVIEW_APP = tview.NewApplication()
+
+		go updateView()
+		go recieve(sock, intf)
+		return GLOBAL_TVIEW_APP.SetRoot(GLOBAL_TVIEW_GRID, true).Run()
 	}
 }
 
@@ -139,7 +155,6 @@ func recieve(sock int, intf net.Interface) error {
 			switch recievedEthernetFrame.header.typ {
 			case ETHER_TYPE_ARP:
 				if recievedEthernetFrame.header.dst == HARDWAREADDR_BROADCAST {
-					fmt.Println("in ARP!!")
 					arp := &arp{
 						hardwareType:       [2]uint8(recievedEthernetFrame.data[0:2]),
 						protocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
@@ -154,9 +169,7 @@ func recieve(sock int, intf net.Interface) error {
 						targetIPAddr:       [4]uint8(recievedEthernetFrame.data[24:28]),
 					}
 
-					if err := view(recievedEthernetFrame, arp); err != nil {
-						return err
-					}
+					GLOBAL_VIEWERS_CH <- []viewer{recievedEthernetFrame, arp}
 				}
 			case ETHER_TYPE_IPv4:
 				if recievedEthernetFrame.header.dst == hardwareAddr(intf.HardwareAddr) {
@@ -177,9 +190,7 @@ func recieve(sock int, intf net.Interface) error {
 							dstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[16:20]),
 						}
 
-						if err := view(recievedEthernetFrame, ipv4); err != nil {
-							return err
-						}
+						GLOBAL_VIEWERS_CH <- []viewer{recievedEthernetFrame, ipv4}
 					}
 				}
 			}

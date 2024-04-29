@@ -20,60 +20,17 @@ const (
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
 // とすると、高レイヤーの入力から埋めて進めていくようにしないといけなさそう
 func form(sendFn func(*ethernetFrame) error) error {
-	ethernetHeader, arp, ipv4 := defaultPackets()
 	app := tview.NewApplication()
 	pages := tview.NewPages()
 	pages.Box = tview.NewBox().SetTitle(" Packemon [Make & Send packet] ").SetBorder(true)
+	ethernetHeader, arp, ipv4 := defaultPackets()
 
 	ipv4Form := ipv4Form(app, pages, sendFn, ethernetHeader, ipv4)
-	arpForm := arpForm(app, pages, sendFn, ethernetHeader, arp)
-
-	ethernetForm := tview.NewForm().
-		AddTextView("Ethernet Header", "This section generates the Ethernet header.\nIt is still under development.", 60, 4, true, false).
-		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 14, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 14 {
-				return true
-			} else if len(textToCheck) > 14 {
-				return false
-			}
-
-			b, err := strHexToBytes(textToCheck)
-			if err != nil {
-				return false
-			}
-			ethernetHeader.dst = hardwareAddr(b)
-
-			return true
-		}, nil).
-		AddInputField("Source Mac Addr(hex)", DEFAULT_MAC_SOURCE, 14, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 14 {
-				return true
-			} else if len(textToCheck) > 14 {
-				return false
-			}
-
-			b, err := strHexToBytes(textToCheck)
-			if err != nil {
-				return false
-			}
-			ethernetHeader.src = hardwareAddr(b)
-
-			return true
-		}, nil).
-		AddDropDown("Ether Type", []string{"IPv4", "ARP"}, 0, func(selected string, _ int) {
-			switch selected {
-			case "IPv4":
-				ethernetHeader.typ = ETHER_TYPE_IPv4
-				pages.SwitchToPage("IPv4")
-			case "ARP":
-				ethernetHeader.typ = ETHER_TYPE_ARP
-				pages.SwitchToPage("ARP")
-			}
-		})
-
-	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 	ipv4Form.SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
+	arpForm := arpForm(app, pages, sendFn, ethernetHeader, arp)
 	arpForm.SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft)
+	ethernetForm := ethernetForm(app, pages, ethernetHeader)
+	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 
 	pages.
 		AddPage("ARP", arpForm, true, true).
@@ -241,4 +198,51 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 		})
 
 	return arpForm
+}
+
+func ethernetForm(app *tview.Application, pages *tview.Pages, ethernetHeader *ethernetHeader) *tview.Form {
+	ethernetForm := tview.NewForm().
+		AddTextView("Ethernet Header", "This section generates the Ethernet header.\nIt is still under development.", 60, 4, true, false).
+		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 14, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 14 {
+				return true
+			} else if len(textToCheck) > 14 {
+				return false
+			}
+
+			b, err := strHexToBytes(textToCheck)
+			if err != nil {
+				return false
+			}
+			ethernetHeader.dst = hardwareAddr(b)
+
+			return true
+		}, nil).
+		AddInputField("Source Mac Addr(hex)", DEFAULT_MAC_SOURCE, 14, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 14 {
+				return true
+			} else if len(textToCheck) > 14 {
+				return false
+			}
+
+			b, err := strHexToBytes(textToCheck)
+			if err != nil {
+				return false
+			}
+			ethernetHeader.src = hardwareAddr(b)
+
+			return true
+		}, nil).
+		AddDropDown("Ether Type", []string{"IPv4", "ARP"}, 0, func(selected string, _ int) {
+			switch selected {
+			case "IPv4":
+				ethernetHeader.typ = ETHER_TYPE_IPv4
+				pages.SwitchToPage("IPv4")
+			case "ARP":
+				ethernetHeader.typ = ETHER_TYPE_ARP
+				pages.SwitchToPage("ARP")
+			}
+		})
+
+	return ethernetForm
 }

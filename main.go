@@ -145,7 +145,7 @@ func recieve(sock int, intf net.Interface) error {
 				header: &ethernetHeader{
 					dst: hardwareAddr(recieved[0:6]),
 					src: hardwareAddr(recieved[6:12]),
-					typ: binary.BigEndian.Uint16(recieved[12:14]),
+					typ: binary.BigEndian.Uint16(recieved[12:14]), // タグVLANだとズレる
 				},
 				data: recieved[14:],
 			}

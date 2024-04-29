@@ -81,6 +81,9 @@ func form(sendFn func(*ethernetFrame) error) error {
 				app.Stop()
 			}
 		}).
+		AddButton("Prev", func() {
+			pages.SwitchToPage("Ethernet")
+		}).
 		AddButton("Quit", func() {
 			app.Stop()
 		})
@@ -140,6 +143,9 @@ func form(sendFn func(*ethernetFrame) error) error {
 			if err := sendFn(ethernetFrame); err != nil {
 				app.Stop()
 			}
+		}).
+		AddButton("Prev", func() {
+			pages.SwitchToPage("Ethernet")
 		}).
 		AddButton("Quit", func() {
 			app.Stop()

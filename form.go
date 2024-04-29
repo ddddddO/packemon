@@ -26,24 +26,7 @@ func form(sendFn func(*ethernetFrame) error) error {
 	pages.Box = tview.NewBox().SetTitle(" Packemon [Make & Send packet] ").SetBorder(true)
 
 	ipv4Form := ipv4Form(app, pages, sendFn, ethernetHeader, ipv4)
-
-	arpForm := tview.NewForm().
-		AddTextView("ARP", "This section generates the ARP.\nIt is still under development.", 60, 4, true, false).
-		AddButton("Send!", func() {
-			ethernetFrame := &ethernetFrame{
-				header: ethernetHeader,
-				data:   arp.toBytes(),
-			}
-			if err := sendFn(ethernetFrame); err != nil {
-				app.Stop()
-			}
-		}).
-		AddButton("Prev", func() {
-			pages.SwitchToPage("Ethernet")
-		}).
-		AddButton("Quit", func() {
-			app.Stop()
-		})
+	arpForm := arpForm(app, pages, sendFn, ethernetHeader, arp)
 
 	ethernetForm := tview.NewForm().
 		AddTextView("Ethernet Header", "This section generates the Ethernet header.\nIt is still under development.", 60, 4, true, false).
@@ -236,4 +219,26 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetF
 		})
 
 	return ipv4Form
+}
+
+func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader, arp *arp) *tview.Form {
+	arpForm := tview.NewForm().
+		AddTextView("ARP", "This section generates the ARP.\nIt is still under development.", 60, 4, true, false).
+		AddButton("Send!", func() {
+			ethernetFrame := &ethernetFrame{
+				header: ethernetHeader,
+				data:   arp.toBytes(),
+			}
+			if err := sendFn(ethernetFrame); err != nil {
+				app.Stop()
+			}
+		}).
+		AddButton("Prev", func() {
+			pages.SwitchToPage("Ethernet")
+		}).
+		AddButton("Quit", func() {
+			app.Stop()
+		})
+
+	return arpForm
 }

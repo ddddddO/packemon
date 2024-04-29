@@ -9,12 +9,15 @@ import (
 )
 
 const (
-	DEFAULT_MAC_DESTINATION = "0x00155df27ccb"
-	DEFAULT_MAC_SOURCE      = "0xffffffffffff"
-	DEFAULT_ETHER_TYPE      = "IPv4"
+	DEFAULT_ETHER_TYPE = "IPv4"
+)
 
-	DEAFULT_IP_SOURCE      = "192.168.99.88"
-	DEFAULT_IP_DESTINATION = "192.168.99.1"
+var (
+	DEFAULT_MAC_DESTINATION = ""
+	DEFAULT_MAC_SOURCE      = ""
+
+	DEAFULT_IP_SOURCE      = ""
+	DEFAULT_IP_DESTINATION = ""
 )
 
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
@@ -23,7 +26,10 @@ func form(sendFn func(*ethernetFrame) error) error {
 	app := tview.NewApplication()
 	pages := tview.NewPages()
 	pages.Box = tview.NewBox().SetTitle(" Packemon [Make & Send packet] ").SetBorder(true)
-	ethernetHeader, arp, ipv4 := defaultPackets()
+	ethernetHeader, arp, ipv4, err := defaultPackets()
+	if err != nil {
+		return err
+	}
 
 	ipv4Form := ipv4Form(app, pages, sendFn, ethernetHeader, ipv4)
 	ipv4Form.SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
@@ -44,7 +50,12 @@ func form(sendFn func(*ethernetFrame) error) error {
 	return nil
 }
 
-func defaultPackets() (*ethernetHeader, *arp, *ipv4) {
+func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
+	ip, err := strIPToBytes(DEAFULT_IP_SOURCE)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	ipv4 := &ipv4{
 		version:        0x04,
 		ihl:            0x05,
@@ -56,8 +67,8 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4) {
 		ttl:            0x80,
 		protocol:       0x11,
 		headerChecksum: 0x0f55,
-		srcAddr:        0xc0a86358, // 192.168.99.88
-		dstAddr:        0xc0a86301, // 192.168.99.1
+		srcAddr:        binary.BigEndian.Uint32(ip),
+		dstAddr:        binary.BigEndian.Uint32(ip),
 	}
 
 	arp := &arp{
@@ -74,13 +85,17 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4) {
 		targetIPAddr:       [4]byte{0x08, 0x08, 0x08, 0x08},
 	}
 
+	mac, err := strHexToBytes(DEFAULT_MAC_SOURCE)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	ethernetHeader := &ethernetHeader{
-		dst: hardwareAddr([6]byte{0x00, 0x15, 0x5d, 0xf2, 0x7c, 0xcb}),
-		src: hardwareAddr([6]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}),
+		dst: hardwareAddr(mac),
+		src: hardwareAddr(mac),
 		typ: ETHER_TYPE_IPv4,
 	}
 
-	return ethernetHeader, arp, ipv4
+	return ethernetHeader, arp, ipv4, nil
 }
 
 func strHexToBytes(s string) ([]byte, error) {

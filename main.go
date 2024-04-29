@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/rivo/tview"
 	"golang.org/x/sys/unix"
@@ -40,8 +41,16 @@ func run(wantSend bool) error {
 			intf = interfaces[i]
 		}
 	}
+	DEFAULT_MAC_DESTINATION = fmt.Sprintf("0x%s", strings.ReplaceAll(intf.HardwareAddr.String(), ":", ""))
+	DEFAULT_MAC_SOURCE = DEFAULT_MAC_DESTINATION
 
 	fmt.Printf("Monitor interface: %v\n", intf)
+	ipAddr, err := intf.Addrs()
+	if err != nil {
+		return err
+	}
+	DEAFULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
+	DEFAULT_IP_DESTINATION = DEAFULT_IP_SOURCE
 
 	sock, err := unix.Socket(unix.AF_PACKET, unix.SOCK_RAW, int(hton(unix.ETH_P_ALL)))
 	if err != nil {

@@ -15,8 +15,8 @@ type viewer interface {
 	viewTable() *tview.Table
 }
 
-func updateView() {
-	for viewers := range GLOBAL_VIEWERS_CH {
+func updateView(viewersCh <-chan []viewer) {
+	for viewers := range viewersCh {
 		GLOBAL_TVIEW_APP.QueueUpdateDraw(func() {
 			rows := make([]int, len(viewers))
 			columns := make([]int, len(viewers))

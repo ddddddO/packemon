@@ -26,7 +26,6 @@ func main() {
 var (
 	GLOBAL_TVIEW_APP  *tview.Application
 	GLOBAL_TVIEW_GRID *tview.Grid
-	GLOBAL_VIEWERS_CH = make(chan []viewer, 10)
 )
 
 func run(wantSend bool) error {
@@ -81,9 +80,10 @@ func run(wantSend bool) error {
 		GLOBAL_TVIEW_GRID = tview.NewGrid()
 		GLOBAL_TVIEW_GRID.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon ")
 		GLOBAL_TVIEW_APP = tview.NewApplication()
+		viewersCh := make(chan []viewer, 10)
 
-		go updateView()
-		go recieve(sock, intf)
+		go updateView(viewersCh)
+		go recieve(sock, intf, viewersCh)
 		return GLOBAL_TVIEW_APP.SetRoot(GLOBAL_TVIEW_GRID, true).Run()
 	}
 }
@@ -102,7 +102,7 @@ func send(ethernetFrame *ethernetFrame, sock int, addr unix.SockaddrLinklayer) e
 	return unix.Sendto(sock, ethernetFrame.toBytes(), 0, &addr)
 }
 
-func recieve(sock int, intf net.Interface) error {
+func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 	epollfd, err := unix.EpollCreate1(0)
 	if err != nil {
 		return err
@@ -169,7 +169,7 @@ func recieve(sock int, intf net.Interface) error {
 						targetIPAddr:       [4]uint8(recievedEthernetFrame.data[24:28]),
 					}
 
-					GLOBAL_VIEWERS_CH <- []viewer{recievedEthernetFrame, arp}
+					viewersCh <- []viewer{recievedEthernetFrame, arp}
 				}
 			case ETHER_TYPE_IPv4:
 				if recievedEthernetFrame.header.dst == hardwareAddr(intf.HardwareAddr) || recievedEthernetFrame.header.dst == HARDWAREADDR_BROADCAST {
@@ -190,7 +190,7 @@ func recieve(sock int, intf net.Interface) error {
 							dstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[16:20]),
 						}
 
-						GLOBAL_VIEWERS_CH <- []viewer{recievedEthernetFrame, ipv4}
+						viewersCh <- []viewer{recievedEthernetFrame, ipv4}
 					}
 				}
 			}

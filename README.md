@@ -1,11 +1,17 @@
 # Packémon
 - Packet monitor、略して Packémon（パケモン ! (っ‘-’)╮=͟͟͞͞◒）
 - 開発途上で気長にやる予定
-- 現在の機能は以下（`5062561` のコミット）
-  - 任意のイーサネットヘッダーを楽に作れてフレームを送信できる
+- 現在の機能は以下
+  - 任意の Ethernet ヘッダ/ IPv4 ヘッダを楽に作れてフレームを送信できる
   - フレームを受信して詳細表示（ARPとIPv4）
+    ![](./doc/tui_send_recieve.png)
+
+    <details><summary>少し前のUI（`5062561` のコミット）</summary>
+
     ![](./doc/tui_0428.png)
     ![](./doc/tui_cap_0428.png)
+
+    </details>
 
 - TUIライブラリとして https://github.com/rivo/tview を使わせてもらってる🙇
 

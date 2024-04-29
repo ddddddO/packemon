@@ -184,8 +184,6 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 			case ETHER_TYPE_IPv4:
 				switch recievedEthernetFrame.header.dst {
 				case hardwareAddr(intf.HardwareAddr), HARDWAREADDR_BROADCAST:
-					// for debug. 以下外すと結構受信しちゃうから動作確認は↓をコメントイン
-					// if recievedEthernetFrame.header.src == HARDWAREADDR_BROADCAST {
 					ipv4 := &ipv4{
 						version:        recievedEthernetFrame.data[0] >> 4,
 						ihl:            recievedEthernetFrame.data[0] << 4 >> 4,
@@ -201,8 +199,14 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 						dstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[16:20]),
 					}
 
-					viewersCh <- []viewer{recievedEthernetFrame, ipv4}
-					// }
+					ipOfEth0, err := strIPToBytes(DEAFULT_IP_SOURCE)
+					if err != nil {
+						return err
+					}
+					switch ipv4.dstAddr {
+					case binary.BigEndian.Uint32(ipOfEth0):
+						viewersCh <- []viewer{recievedEthernetFrame, ipv4}
+					}
 				}
 			}
 		}

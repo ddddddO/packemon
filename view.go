@@ -17,16 +17,16 @@ type viewer interface {
 
 func updateView(viewersCh <-chan []viewer) {
 	for viewers := range viewersCh {
-		GLOBAL_TVIEW_APP.QueueUpdateDraw(func() {
+		globalTviewApp.QueueUpdateDraw(func() {
 			rows := make([]int, len(viewers))
 			columns := make([]int, len(viewers))
 			for i := range viewers {
 				rows[i] = viewers[i].rows()
 				columns[i] = viewers[i].columns()
 			}
-			GLOBAL_TVIEW_GRID.SetRows(rows...).SetColumns(columns...).SetBorders(false)
+			globalTviewGrid.SetRows(rows...).SetColumns(columns...).SetBorders(false)
 			for i := range viewers {
-				GLOBAL_TVIEW_GRID.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false)
+				globalTviewGrid.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false)
 			}
 		})
 	}

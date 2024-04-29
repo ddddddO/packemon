@@ -24,8 +24,8 @@ func main() {
 // - 以下グローバルなところ何とかしたい
 // - 外部ライブラリへの依存は局所的にしたい
 var (
-	GLOBAL_TVIEW_APP  *tview.Application
-	GLOBAL_TVIEW_GRID *tview.Grid
+	globalTviewApp  *tview.Application
+	globalTviewGrid *tview.Grid
 )
 
 func run(wantSend bool) error {
@@ -77,14 +77,14 @@ func run(wantSend bool) error {
 
 		return form(sendForForm(sock, addr)) // Form のアクションで 送信した方が良さそうなのでこの形
 	} else {
-		GLOBAL_TVIEW_GRID = tview.NewGrid()
-		GLOBAL_TVIEW_GRID.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon ")
-		GLOBAL_TVIEW_APP = tview.NewApplication()
+		globalTviewGrid = tview.NewGrid()
+		globalTviewGrid.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon ")
+		globalTviewApp = tview.NewApplication()
 		viewersCh := make(chan []viewer, 10)
 
 		go updateView(viewersCh)
 		go recieve(sock, intf, viewersCh)
-		return GLOBAL_TVIEW_APP.SetRoot(GLOBAL_TVIEW_GRID, true).Run()
+		return globalTviewApp.SetRoot(globalTviewGrid, true).Run()
 	}
 }
 
@@ -154,7 +154,8 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 
 			switch recievedEthernetFrame.header.typ {
 			case ETHER_TYPE_ARP:
-				if recievedEthernetFrame.header.dst == HARDWAREADDR_BROADCAST {
+				switch recievedEthernetFrame.header.dst {
+				case hardwareAddr(intf.HardwareAddr), HARDWAREADDR_BROADCAST:
 					arp := &arp{
 						hardwareType:       [2]uint8(recievedEthernetFrame.data[0:2]),
 						protocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
@@ -172,26 +173,27 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 					viewersCh <- []viewer{recievedEthernetFrame, arp}
 				}
 			case ETHER_TYPE_IPv4:
-				if recievedEthernetFrame.header.dst == hardwareAddr(intf.HardwareAddr) || recievedEthernetFrame.header.dst == HARDWAREADDR_BROADCAST {
-					// for debug
-					if recievedEthernetFrame.header.src == HARDWAREADDR_BROADCAST {
-						ipv4 := &ipv4{
-							version:        recievedEthernetFrame.data[0] >> 4,
-							ihl:            recievedEthernetFrame.data[0] << 4 >> 4,
-							tos:            recievedEthernetFrame.data[1],
-							totalLength:    binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
-							identification: binary.BigEndian.Uint16(recievedEthernetFrame.data[4:6]),
-							flags:          recievedEthernetFrame.data[6],
-							fragmentOffset: binary.BigEndian.Uint16(recievedEthernetFrame.data[6:8]),
-							ttl:            recievedEthernetFrame.data[8],
-							protocol:       recievedEthernetFrame.data[9],
-							headerChecksum: binary.BigEndian.Uint16(recievedEthernetFrame.data[10:12]),
-							srcAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[12:16]),
-							dstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[16:20]),
-						}
-
-						viewersCh <- []viewer{recievedEthernetFrame, ipv4}
+				switch recievedEthernetFrame.header.dst {
+				case hardwareAddr(intf.HardwareAddr), HARDWAREADDR_BROADCAST:
+					// for debug. 以下外すと結構受信しちゃうから動作確認は↓をコメントイン
+					// if recievedEthernetFrame.header.src == HARDWAREADDR_BROADCAST {
+					ipv4 := &ipv4{
+						version:        recievedEthernetFrame.data[0] >> 4,
+						ihl:            recievedEthernetFrame.data[0] << 4 >> 4,
+						tos:            recievedEthernetFrame.data[1],
+						totalLength:    binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
+						identification: binary.BigEndian.Uint16(recievedEthernetFrame.data[4:6]),
+						flags:          recievedEthernetFrame.data[6],
+						fragmentOffset: binary.BigEndian.Uint16(recievedEthernetFrame.data[6:8]),
+						ttl:            recievedEthernetFrame.data[8],
+						protocol:       recievedEthernetFrame.data[9],
+						headerChecksum: binary.BigEndian.Uint16(recievedEthernetFrame.data[10:12]),
+						srcAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[12:16]),
+						dstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[16:20]),
 					}
+
+					viewersCh <- []viewer{recievedEthernetFrame, ipv4}
+					// }
 				}
 			}
 		}

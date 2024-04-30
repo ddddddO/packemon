@@ -49,6 +49,11 @@ func newIPv4(protocol uint8) *ipv4 {
 	}
 }
 
+func (i *ipv4) calculateTotalLength() {
+	headerLength := 20 + len(i.options) + len(i.padding)
+	i.totalLength = uint16(headerLength) + uint16(len(i.data))
+}
+
 func (i *ipv4) toBytes() []byte {
 	var buf bytes.Buffer
 

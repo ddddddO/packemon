@@ -44,8 +44,8 @@ func newIPv4(protocol uint8) *ipv4 {
 		ttl:            0x80,
 		protocol:       protocol,
 		headerChecksum: 0x0f55,
-		srcAddr:        0xc0a86358, // 192.168.99.88
-		dstAddr:        0xc0a86301, // 192.168.99.1
+		srcAddr:        0xac17f24e, // 172.23.242.78
+		dstAddr:        0x08080808,
 	}
 }
 

@@ -76,6 +76,7 @@ func run(wantSend bool) error {
 		// icmp := newICMP()
 		// ipv4 := newIPv4(IPv4_PROTO_ICMP)
 		// ipv4.data = icmp.toBytes()
+		// ipv4.calculateTotalLength()
 		// dst := hardwareAddr([6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0x12})
 		// src := hardwareAddr(intf.HardwareAddr)
 		// ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())

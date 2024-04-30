@@ -1,5 +1,5 @@
 # Packémon
-- Packet monitor、略して Packémon（パケモン ! (っ‘-’)╮=͟͟͞͞◒）
+- Packet monitor、略して Packémon（パケモン ! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ)）
 - 開発途上で気長にやる予定
 - 現在の機能は以下
   - 任意の Ethernet ヘッダ/ IPv4 ヘッダを楽に作れてフレームを送信できる

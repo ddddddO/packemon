@@ -38,14 +38,14 @@ func newIPv4(protocol uint8) *ipv4 {
 		ihl:            0x05,
 		tos:            0x00,
 		totalLength:    0x54,
-		identification: 0xe31f,
-		flags:          0x0,
+		identification: 0x0d94,
+		flags:          0x40,
 		fragmentOffset: 0x0,
-		ttl:            0x80,
+		ttl:            0x40,
 		protocol:       protocol,
 		headerChecksum: 0x0f55,
 		srcAddr:        0xac17f24e, // 172.23.242.78
-		dstAddr:        0x08080808,
+		dstAddr:        0x141bb171,
 	}
 }
 

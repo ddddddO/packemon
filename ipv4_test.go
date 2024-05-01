@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"testing"
+	"time"
 )
 
 func Test_sandbox(t *testing.T) {
@@ -46,4 +47,15 @@ func Test_sandbox(t *testing.T) {
 	t.Logf("buf1 bytes(want: 0f0e): %x = %b", buf1.Bytes(), buf1.Bytes())
 	buf1.WriteByte(0x07)
 	t.Logf("buf1 bytes(want: 0f0e07): %x = %b(= [1111 1110 111])", buf1.Bytes(), buf1.Bytes())
+
+	now := time.Now().Unix()
+	t.Logf("unixtime: %d\n", now)
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, uint32(now))
+	t.Logf("unixtime bytes: %x\n", b) // リトルエンディアンでicmpのtimestampに詰めればよさそう
+	b = make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, uint32(now))
+	t.Logf("unixtime bytes(lit): %x\n", b) // これで良さそうtimestampは
+	b = binary.LittleEndian.AppendUint32(b, 0x00000000)
+	t.Logf("icmp timestamp: %x\n", b)
 }

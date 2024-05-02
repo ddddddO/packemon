@@ -21,7 +21,7 @@ var (
 )
 
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
-// とすると、高レイヤーの入力から埋めて進めていくようにしないといけなさそう
+// とすると、高レイヤーの入力から埋めて進めていくようにしないといけなさそう. ユーザーが選べるようにするのがいいかも
 func form(sendFn func(*ethernetFrame) error) error {
 	app := tview.NewApplication()
 	pages := tview.NewPages()

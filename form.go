@@ -16,6 +16,8 @@ var (
 	DEFAULT_MAC_DESTINATION = ""
 	DEFAULT_MAC_SOURCE      = ""
 
+	DEFAULT_ARP_HARDWARE_TYPE = "0x0001"
+
 	DEAFULT_IP_SOURCE      = ""
 	DEFAULT_IP_DESTINATION = ""
 )
@@ -71,8 +73,13 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
 		dstAddr:        binary.BigEndian.Uint32(ip),
 	}
 
+	hardwareType, err := strHexToBytes2(DEFAULT_ARP_HARDWARE_TYPE)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	arp := &arp{
-		hardwareType:       [2]byte{0x00, 0x01},
+		hardwareType:       [2]byte(hardwareType),
 		protocolType:       ETHER_TYPE_IPv4,
 		hardwareAddrLength: 0x06,
 		protocolLength:     0x04,
@@ -98,6 +105,7 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
 	return ethernetHeader, arp, ipv4, nil
 }
 
+// TODO: rename or refactor
 func strHexToBytes(s string) ([]byte, error) {
 	n, err := strconv.ParseUint(s, 0, 48)
 	if err != nil {
@@ -107,6 +115,18 @@ func strHexToBytes(s string) ([]byte, error) {
 	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, n)
 	return buf[2:], nil
+}
+
+// TODO: rename or refactor
+func strHexToBytes2(s string) ([]byte, error) {
+	n, err := strconv.ParseUint(s, 0, 16)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, uint16(n))
+	return buf, nil
 }
 
 func strIPToBytes(s string) ([]byte, error) {
@@ -196,6 +216,21 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetF
 func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader, arp *arp) *tview.Form {
 	arpForm := tview.NewForm().
 		AddTextView("ARP", "This section generates the ARP.\nIt is still under development.", 60, 4, true, false).
+		AddInputField("Hardware Type(hex)", DEFAULT_ARP_HARDWARE_TYPE, 6, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := strHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			arp.hardwareType = [2]byte(b)
+
+			return true
+		}, nil).
 		AddButton("Send!", func() {
 			ethernetFrame := &ethernetFrame{
 				header: ethernetHeader,

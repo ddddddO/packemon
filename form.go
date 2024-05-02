@@ -19,6 +19,7 @@ var (
 
 	DEFAULT_ARP_HARDWARE_TYPE = "0x0001"
 	DEFAULT_ARP_PROTOCOL_TYPE = "0x0800"
+	DEFAULT_ARP_HARDWARE_SIZE = "0x06"
 
 	DEAFULT_IP_SOURCE      = ""
 	DEFAULT_IP_DESTINATION = ""
@@ -83,11 +84,15 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	hardwareSize, err := strHexToUint8(DEFAULT_ARP_HARDWARE_SIZE)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	arp := &arp{
 		hardwareType:       [2]byte(hardwareType),
 		protocolType:       binary.BigEndian.Uint16(protocolType),
-		hardwareAddrLength: 0x06,
+		hardwareAddrLength: hardwareSize,
 		protocolLength:     0x04,
 		operation:          [2]byte{0x00, 0x01},
 
@@ -133,6 +138,14 @@ func strHexToBytes2(s string) ([]byte, error) {
 	buf := make([]byte, 2)
 	binary.BigEndian.PutUint16(buf, uint16(n))
 	return buf, nil
+}
+
+func strHexToUint8(s string) (uint8, error) {
+	n, err := strconv.ParseUint(s, 0, 8)
+	if err != nil {
+		return 0, err
+	}
+	return uint8(n), nil
 }
 
 func strIPToBytes(s string) ([]byte, error) {
@@ -249,6 +262,21 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 				return false
 			}
 			arp.protocolType = binary.BigEndian.Uint16(b)
+
+			return true
+		}, nil).
+		AddInputField("Hardware Size(hex)", DEFAULT_ARP_HARDWARE_SIZE, 4, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 4 {
+				return true
+			} else if len(textToCheck) > 4 {
+				return false
+			}
+
+			b, err := strHexToUint8(textToCheck)
+			if err != nil {
+				return false
+			}
+			arp.hardwareAddrLength = b
 
 			return true
 		}, nil).

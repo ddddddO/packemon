@@ -35,7 +35,7 @@ func form(sendFn func(*ethernetFrame) error) error {
 	ipv4Form.SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
 	arpForm := arpForm(app, pages, sendFn, ethernetHeader, arp)
 	arpForm.SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft)
-	ethernetForm := ethernetForm(app, pages, ethernetHeader)
+	ethernetForm := ethernetForm(app, pages, sendFn, ethernetHeader)
 	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 
 	pages.
@@ -215,7 +215,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 	return arpForm
 }
 
-func ethernetForm(app *tview.Application, pages *tview.Pages, ethernetHeader *ethernetHeader) *tview.Form {
+func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader) *tview.Form {
 	ethernetForm := tview.NewForm().
 		AddTextView("Ethernet Header", "This section generates the Ethernet header.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 14, func(textToCheck string, lastChar rune) bool {
@@ -252,9 +252,24 @@ func ethernetForm(app *tview.Application, pages *tview.Pages, ethernetHeader *et
 			switch selected {
 			case "IPv4":
 				ethernetHeader.typ = ETHER_TYPE_IPv4
-				pages.SwitchToPage("IPv4")
 			case "ARP":
 				ethernetHeader.typ = ETHER_TYPE_ARP
+			}
+		}).
+		AddButton("Send!", func() {
+			ethernetFrame := &ethernetFrame{
+				header: ethernetHeader,
+				// data: 専用の口用意してユーザー自身の任意のフレームを送れるようにする？,
+			}
+			if err := sendFn(ethernetFrame); err != nil {
+				app.Stop()
+			}
+		}).
+		AddButton("Next", func() {
+			switch ethernetHeader.typ {
+			case ETHER_TYPE_IPv4:
+				pages.SwitchToPage("IPv4")
+			case ETHER_TYPE_ARP:
 				pages.SwitchToPage("ARP")
 			}
 		})

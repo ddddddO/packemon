@@ -21,6 +21,7 @@ var (
 	DEFAULT_ARP_PROTOCOL_TYPE = "0x0800"
 	DEFAULT_ARP_HARDWARE_SIZE = "0x06"
 	DEFAULT_ARP_PROTOCOL_SIZE = "0x04"
+	DEFAULT_ARP_OPERATION     = "0x0001"
 
 	DEAFULT_IP_SOURCE      = ""
 	DEFAULT_IP_DESTINATION = ""
@@ -93,13 +94,17 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	operation, err := strHexToBytes2(DEFAULT_ARP_OPERATION)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	arp := &arp{
 		hardwareType:       [2]byte(hardwareType),
 		protocolType:       binary.BigEndian.Uint16(protocolType),
 		hardwareAddrLength: hardwareSize,
 		protocolLength:     protocolSize,
-		operation:          [2]byte{0x00, 0x01},
+		operation:          [2]byte(operation),
 
 		senderHardwareAddr: [6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xff},
 		senderIPAddr:       [4]byte{0xac, 0x17, 0xf2, 0x4e},
@@ -297,6 +302,21 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 				return false
 			}
 			arp.protocolLength = b
+
+			return true
+		}, nil).
+		AddInputField("Operation Code(hex)", DEFAULT_ARP_OPERATION, 6, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := strHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			arp.operation = [2]byte(b)
 
 			return true
 		}, nil).

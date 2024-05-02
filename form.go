@@ -272,6 +272,9 @@ func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*ether
 			case ETHER_TYPE_ARP:
 				pages.SwitchToPage("ARP")
 			}
+		}).
+		AddButton("Quit", func() {
+			app.Stop()
 		})
 
 	return ethernetForm

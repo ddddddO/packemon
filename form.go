@@ -8,6 +8,7 @@ import (
 	"github.com/rivo/tview"
 )
 
+// TODO: この辺りLABELとrenameした方が分かりやすそう
 const (
 	DEFAULT_ETHER_TYPE = "IPv4"
 )
@@ -17,6 +18,7 @@ var (
 	DEFAULT_MAC_SOURCE      = ""
 
 	DEFAULT_ARP_HARDWARE_TYPE = "0x0001"
+	DEFAULT_ARP_PROTOCOL_TYPE = "0x0800"
 
 	DEAFULT_IP_SOURCE      = ""
 	DEFAULT_IP_DESTINATION = ""
@@ -77,10 +79,14 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	protocolType, err := strHexToBytes2(DEFAULT_ARP_PROTOCOL_TYPE)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	arp := &arp{
 		hardwareType:       [2]byte(hardwareType),
-		protocolType:       ETHER_TYPE_IPv4,
+		protocolType:       binary.BigEndian.Uint16(protocolType),
 		hardwareAddrLength: 0x06,
 		protocolLength:     0x04,
 		operation:          [2]byte{0x00, 0x01},
@@ -228,6 +234,21 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 				return false
 			}
 			arp.hardwareType = [2]byte(b)
+
+			return true
+		}, nil).
+		AddInputField("Protocol Type(hex)", DEFAULT_ARP_PROTOCOL_TYPE, 6, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := strHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			arp.protocolType = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).

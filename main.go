@@ -68,7 +68,7 @@ func run(wantSend bool) error {
 
 	if wantSend {
 		// arp := newARP()
-		// dst := hardwareAddr([6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0x12})
+		// dst := hardwareAddr([6]byte{0x00, 0x15, 0x5d, 0xb6, 0x16, 0xd6})
 		// src := hardwareAddr(intf.HardwareAddr)
 		// ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_ARP, arp.toBytes())
 		// return send(ethernetFrame, sock, addr)
@@ -77,6 +77,7 @@ func run(wantSend bool) error {
 		// ipv4 := newIPv4(IPv4_PROTO_ICMP)
 		// ipv4.data = icmp.toBytes()
 		// ipv4.calculateTotalLength()
+		// ipv4.calculateChecksum()
 		// dst := hardwareAddr([6]byte{0x00, 0x15, 0x5d, 0xb6, 0x16, 0xd6})
 		// src := hardwareAddr(intf.HardwareAddr)
 		// ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())

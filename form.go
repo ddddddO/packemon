@@ -27,7 +27,7 @@ var (
 	DEFAULT_ARP_TARGET_MAC    = "0x000000000000"
 	DEFAULT_ARP_TARGET_IP     = ""
 
-	DEAFULT_IP_SOURCE      = ""
+	DEFAULT_IP_SOURCE      = ""
 	DEFAULT_IP_DESTINATION = ""
 )
 
@@ -62,7 +62,7 @@ func form(sendFn func(*ethernetFrame) error) error {
 }
 
 func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
-	ip, err := strIPToBytes(DEAFULT_IP_SOURCE)
+	ip, err := strIPToBytes(DEFAULT_IP_SOURCE)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -213,7 +213,7 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetF
 
 			return true
 		}, nil).
-		AddInputField("Source IP Addr", DEAFULT_IP_SOURCE, 15, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Source IP Addr", DEFAULT_IP_SOURCE, 15, func(textToCheck string, lastChar rune) bool {
 			count := strings.Count(textToCheck, ".")
 			if count < 3 {
 				return true
@@ -454,6 +454,7 @@ func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*ether
 
 			return true
 		}, nil).
+		// TODO: 自由にフレーム作れるとするなら、ここもhexで受け付けるようにして、IP or ARPヘッダフォームへの切り替えも自由にできた方がいいかも
 		AddDropDown("Ether Type", []string{"IPv4", "ARP"}, 0, func(selected string, _ int) {
 			switch selected {
 			case "IPv4":

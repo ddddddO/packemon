@@ -50,9 +50,9 @@ func run(wantSend bool) error {
 	if err != nil {
 		return err
 	}
-	DEAFULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
-	DEFAULT_IP_DESTINATION = DEAFULT_IP_SOURCE
-	DEFAULT_ARP_SENDER_IP = DEAFULT_IP_SOURCE
+	DEFAULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
+	DEFAULT_IP_DESTINATION = DEFAULT_IP_SOURCE
+	DEFAULT_ARP_SENDER_IP = DEFAULT_IP_SOURCE
 	DEFAULT_ARP_TARGET_IP = DEFAULT_ARP_SENDER_IP
 
 	sock, err := unix.Socket(unix.AF_PACKET, unix.SOCK_RAW, int(hton(unix.ETH_P_ALL)))
@@ -201,7 +201,7 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 						dstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[16:20]),
 					}
 
-					ipOfEth0, err := strIPToBytes(DEAFULT_IP_SOURCE)
+					ipOfEth0, err := strIPToBytes(DEFAULT_IP_SOURCE)
 					if err != nil {
 						return err
 					}

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/rivo/tview"
 )
@@ -27,8 +28,14 @@ var (
 	DEFAULT_ARP_TARGET_MAC    = "0x000000000000"
 	DEFAULT_ARP_TARGET_IP     = ""
 
+	DEFAULT_IP_PROTOCOL    = "ICMP"
 	DEFAULT_IP_SOURCE      = ""
 	DEFAULT_IP_DESTINATION = ""
+
+	DEFAULT_ICMP_TYPE       = "0x08"
+	DEFAULT_ICMP_CODE       = "0x00"
+	DEFAULT_ICMP_IDENTIFIER = "0x34a1"
+	DEFAULT_ICMP_SEQUENCE   = "0x0001"
 )
 
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
@@ -37,11 +44,13 @@ func form(sendFn func(*ethernetFrame) error) error {
 	app := tview.NewApplication()
 	pages := tview.NewPages()
 	pages.Box = tview.NewBox().SetTitle(" Packemon [Make & Send packet] ").SetBorder(true)
-	ethernetHeader, arp, ipv4, err := defaultPackets()
+	ethernetHeader, arp, ipv4, icmp, err := defaultPackets()
 	if err != nil {
 		return err
 	}
 
+	icmpForm := icmpForm(app, pages, sendFn, ethernetHeader, ipv4, icmp)
+	icmpForm.SetBorder(true).SetTitle(" ICMP ").SetTitleAlign(tview.AlignLeft)
 	ipv4Form := ipv4Form(app, pages, sendFn, ethernetHeader, ipv4)
 	ipv4Form.SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
 	arpForm := arpForm(app, pages, sendFn, ethernetHeader, arp)
@@ -50,6 +59,7 @@ func form(sendFn func(*ethernetFrame) error) error {
 	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 
 	pages.
+		AddPage("ICMP", icmpForm, true, true).
 		AddPage("ARP", arpForm, true, true).
 		AddPage("IPv4", ipv4Form, true, true).
 		AddPage("Ethernet", ethernetForm, true, true)
@@ -61,10 +71,33 @@ func form(sendFn func(*ethernetFrame) error) error {
 	return nil
 }
 
-func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
+func defaultPackets() (*ethernetHeader, *arp, *ipv4, *icmp, error) {
+	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	icmpCode, err := strHexToUint8(DEFAULT_ICMP_CODE)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	icmpIdentifier, err := strHexToBytes2(DEFAULT_ICMP_IDENTIFIER)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	icmpSequence, err := strHexToBytes2(DEFAULT_ICMP_SEQUENCE)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	icmp := &icmp{
+		typ:        icmpType,
+		code:       icmpCode,
+		identifier: binary.BigEndian.Uint16(icmpIdentifier),
+		sequence:   binary.BigEndian.Uint16(icmpSequence),
+	}
+
 	ip, err := strIPToBytes(DEFAULT_IP_SOURCE)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	ipv4 := &ipv4{
@@ -73,50 +106,50 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
 		tos:            0x00,
 		totalLength:    0x14,
 		identification: 0xe31f,
-		flags:          0x0,
+		flags:          0x40,
 		fragmentOffset: 0x0,
 		ttl:            0x80,
-		protocol:       0x11,
-		headerChecksum: 0x0f55,
+		protocol:       IPv4_PROTO_ICMP,
+		headerChecksum: 0,
 		srcAddr:        binary.BigEndian.Uint32(ip),
 		dstAddr:        binary.BigEndian.Uint32(ip),
 	}
 
 	hardwareType, err := strHexToBytes2(DEFAULT_ARP_HARDWARE_TYPE)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	protocolType, err := strHexToBytes2(DEFAULT_ARP_PROTOCOL_TYPE)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	hardwareSize, err := strHexToUint8(DEFAULT_ARP_HARDWARE_SIZE)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	protocolSize, err := strHexToUint8(DEFAULT_ARP_PROTOCOL_SIZE)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	operation, err := strHexToBytes2(DEFAULT_ARP_OPERATION)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	senderMac, err := strHexToBytes(DEFAULT_ARP_SENDER_MAC)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	senderIP, err := strIPToBytes(DEFAULT_ARP_SENDER_IP)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	targetMac, err := strHexToBytes(DEFAULT_ARP_TARGET_MAC)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	targetIP, err := strIPToBytes(DEFAULT_ARP_TARGET_IP)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	arp := &arp{
@@ -135,7 +168,7 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
 
 	mac, err := strHexToBytes(DEFAULT_MAC_SOURCE)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	ethernetHeader := &ethernetHeader{
 		dst: hardwareAddr(mac),
@@ -143,7 +176,7 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
 		typ: ETHER_TYPE_IPv4,
 	}
 
-	return ethernetHeader, arp, ipv4, nil
+	return ethernetHeader, arp, ipv4, icmp, nil
 }
 
 // TODO: rename or refactor
@@ -195,6 +228,107 @@ func strIPToBytes(s string) ([]byte, error) {
 	return b, nil
 }
 
+func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader, ipv4 *ipv4, icmp *icmp) *tview.Form {
+	icmpForm := tview.NewForm().
+		AddTextView("ICMP", "This section generates the ICMP.\nIt is still under development.", 60, 4, true, false).
+		AddInputField("Type(hex)", DEFAULT_ICMP_TYPE, 4, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 4 {
+				return true
+			} else if len(textToCheck) > 4 {
+				return false
+			}
+
+			b, err := strHexToUint8(textToCheck)
+			if err != nil {
+				return false
+			}
+			icmp.typ = uint8(b)
+
+			return true
+		}, nil).
+		AddInputField("Code(hex)", DEFAULT_ICMP_CODE, 4, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 4 {
+				return true
+			} else if len(textToCheck) > 4 {
+				return false
+			}
+
+			b, err := strHexToUint8(textToCheck)
+			if err != nil {
+				return false
+			}
+			icmp.code = uint8(b)
+
+			return true
+		}, nil).
+		AddInputField("Identifier(hex)", DEFAULT_ICMP_IDENTIFIER, 6, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := strHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			icmp.identifier = binary.BigEndian.Uint16(b)
+
+			return true
+		}, nil).
+		AddInputField("Sequence(hex)", DEFAULT_ICMP_SEQUENCE, 6, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := strHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			icmp.sequence = binary.BigEndian.Uint16(b)
+
+			return true
+		}, nil).
+		AddButton("Send!", func() {
+			// TODO: timestamp関数化
+			icmp.data = func() []byte {
+				now := time.Now().Unix()
+				b := make([]byte, 4)
+				binary.LittleEndian.PutUint32(b, uint32(now))
+				return binary.LittleEndian.AppendUint32(b, 0x00000000)
+			}()
+			// 前回Send分が残ってると計算誤るため
+			icmp.checksum = 0x0
+			icmp.checksum = func() uint16 {
+				b := make([]byte, 2)
+				binary.LittleEndian.PutUint16(b, icmp.calculateChecksum())
+				return binary.BigEndian.Uint16(b)
+			}()
+			ipv4.data = icmp.toBytes()
+			ipv4.calculateTotalLength()
+			// 前回Send分が残ってると計算誤るため
+			ipv4.headerChecksum = 0x0
+			ipv4.calculateChecksum()
+			ethernetFrame := &ethernetFrame{
+				header: ethernetHeader,
+				data:   ipv4.toBytes(),
+			}
+			if err := sendFn(ethernetFrame); err != nil {
+				app.Stop()
+			}
+		}).
+		AddButton("Prev", func() {
+			pages.SwitchToPage("IPv4")
+		}).
+		AddButton("Quit", func() {
+			app.Stop()
+		})
+
+	return icmpForm
+}
+
 func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader, ipv4 *ipv4) *tview.Form {
 	ipv4Form := tview.NewForm().
 		AddTextView("IPv4 Header", "This section generates the IPv4 header.\nIt is still under development.", 60, 4, true, false).
@@ -213,6 +347,14 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetF
 
 			return true
 		}, nil).
+		AddDropDown("Protocol", []string{"ICMP", "UDP"}, 0, func(selected string, _ int) {
+			switch selected {
+			case "ICMP":
+				ipv4.protocol = IPv4_PROTO_ICMP
+			case "UDP":
+				ipv4.protocol = IPv4_PROTO_UDP
+			}
+		}).
 		AddInputField("Source IP Addr", DEFAULT_IP_SOURCE, 15, func(textToCheck string, lastChar rune) bool {
 			count := strings.Count(textToCheck, ".")
 			if count < 3 {
@@ -250,6 +392,15 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetF
 			}
 			if err := sendFn(ethernetFrame); err != nil {
 				app.Stop()
+			}
+		}).
+		AddButton("Next", func() {
+			switch ipv4.protocol {
+			case IPv4_PROTO_ICMP:
+				pages.SwitchToPage("ICMP")
+			case IPv4_PROTO_UDP:
+				// TODO:
+				// pages.SwitchToPage("UDP")
 			}
 		}).
 		AddButton("Prev", func() {

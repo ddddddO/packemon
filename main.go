@@ -86,6 +86,22 @@ func run(wantSend bool) error {
 		// ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())
 		// return send(ethernetFrame, sock, addr)
 
+		// udp := &udp{
+		// 	srcPort:  0x0401, // 1025
+		// 	dstPort:  0x0035, // 53
+		// 	length:   0x0000,
+		// 	checksum: 0x0000,
+		// }
+		// udp.len()
+		// ipv4 := newIPv4(IPv4_PROTO_UDP)
+		// ipv4.data = udp.toBytes()
+		// ipv4.calculateTotalLength()
+		// ipv4.calculateChecksum()
+		// dst := hardwareAddr([6]byte{0x00, 0x15, 0x5d, 0xb6, 0x16, 0xd6})
+		// src := hardwareAddr(intf.HardwareAddr)
+		// ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())
+		// return send(ethernetFrame, sock, addr)
+
 		return form(sendForForm(sock, addr)) // Form のアクションで 送信した方が良さそうなのでこの形
 	} else {
 		globalTviewGrid = tview.NewGrid()

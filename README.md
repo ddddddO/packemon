@@ -1,8 +1,13 @@
 # Packémon
 - Packet monitor、略して Packémon（パケモン ! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ)）
 - 開発途上で気長にやる予定
-- 現在の機能は以下
-  - 任意の Ethernet ヘッダ/ IPv4 ヘッダを楽に作れてフレームを送信できる
+- 現在の機能は以下（WIP）
+  - 任意の Ethernet ヘッダ / IPv4 ヘッダ / ARP / ICMP を楽に作れてフレームを送信できる
+  - 以下はtmuxで3分割した画面に各種ヘッダのフォーム画面を表示している。そして ICMP echo request を送信し、 echo reply が返ってきていることを Wireshark で確認した様子
+    ![](./doc/tui_ether_ip_icmp.png)
+    ![](./doc/tui_send_icmp_result1.png)
+    ![](./doc/tui_send_icmp_result2.png)
+
   - フレームを受信して詳細表示（ARPとIPv4）
     ![](./doc/tui_send_recieve.png)
 

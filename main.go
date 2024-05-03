@@ -43,6 +43,7 @@ func run(wantSend bool) error {
 	}
 	DEFAULT_MAC_DESTINATION = fmt.Sprintf("0x%s", strings.ReplaceAll(intf.HardwareAddr.String(), ":", ""))
 	DEFAULT_MAC_SOURCE = DEFAULT_MAC_DESTINATION
+	DEFAULT_ARP_SENDER_MAC = DEFAULT_MAC_SOURCE
 
 	fmt.Printf("Monitor interface: %v\n", intf)
 	ipAddr, err := intf.Addrs()
@@ -51,6 +52,8 @@ func run(wantSend bool) error {
 	}
 	DEAFULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
 	DEFAULT_IP_DESTINATION = DEAFULT_IP_SOURCE
+	DEFAULT_ARP_SENDER_IP = DEAFULT_IP_SOURCE
+	DEFAULT_ARP_TARGET_IP = DEFAULT_ARP_SENDER_IP
 
 	sock, err := unix.Socket(unix.AF_PACKET, unix.SOCK_RAW, int(hton(unix.ETH_P_ALL)))
 	if err != nil {

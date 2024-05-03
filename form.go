@@ -22,6 +22,8 @@ var (
 	DEFAULT_ARP_HARDWARE_SIZE = "0x06"
 	DEFAULT_ARP_PROTOCOL_SIZE = "0x04"
 	DEFAULT_ARP_OPERATION     = "0x0001"
+	DEFAULT_ARP_SENDER_MAC    = ""
+	DEFAULT_ARP_SENDER_IP     = ""
 
 	DEAFULT_IP_SOURCE      = ""
 	DEFAULT_IP_DESTINATION = ""
@@ -98,6 +100,14 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	senderMac, err := strHexToBytes(DEFAULT_ARP_SENDER_MAC)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	senderIP, err := strIPToBytes(DEFAULT_ARP_SENDER_IP)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	arp := &arp{
 		hardwareType:       [2]byte(hardwareType),
@@ -106,8 +116,8 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4, error) {
 		protocolLength:     protocolSize,
 		operation:          [2]byte(operation),
 
-		senderHardwareAddr: [6]byte{0x01, 0x23, 0x45, 0x67, 0x89, 0xff},
-		senderIPAddr:       [4]byte{0xac, 0x17, 0xf2, 0x4e},
+		senderHardwareAddr: [6]byte(senderMac),
+		senderIPAddr:       [4]byte(senderIP),
 
 		targetHardwareAddr: [6]uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 		targetIPAddr:       [4]byte{0x08, 0x08, 0x08, 0x08},
@@ -319,6 +329,37 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 			arp.operation = [2]byte(b)
 
 			return true
+		}, nil).
+		AddInputField("Sender Mac Addr(hex)", DEFAULT_ARP_SENDER_MAC, 14, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 14 {
+				return true
+			} else if len(textToCheck) > 14 {
+				return false
+			}
+
+			b, err := strHexToBytes(textToCheck)
+			if err != nil {
+				return false
+			}
+			arp.senderHardwareAddr = hardwareAddr(b)
+
+			return true
+		}, nil).
+		AddInputField("Sender IP Addr", DEFAULT_ARP_SENDER_IP, 15, func(textToCheck string, lastChar rune) bool {
+			count := strings.Count(textToCheck, ".")
+			if count < 3 {
+				return true
+			} else if count == 3 {
+				ip, err := strIPToBytes(textToCheck)
+				if err != nil {
+					return false
+				}
+
+				arp.senderIPAddr = [4]byte(ip)
+				return true
+			}
+
+			return false
 		}, nil).
 		AddButton("Send!", func() {
 			ethernetFrame := &ethernetFrame{

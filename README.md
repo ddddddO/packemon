@@ -28,7 +28,7 @@ $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -
 ```
 
 ```console
-$ sudo go run arp.go ethernet.go form.go icmp.go ipv4.go main.go view.go udp.go --send
+$ sudo go run arp.go ethernet.go form.go icmp.go ipv4.go main.go view.go udp.go dns.go --send
 ```
 
 ### 手軽にブロードキャスト

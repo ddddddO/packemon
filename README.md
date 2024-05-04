@@ -27,14 +27,23 @@
 $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -k -i -
 ```
 
-```console
-$ sudo go run arp.go ethernet.go form.go icmp.go ipv4.go main.go view.go udp.go dns.go tcp.go http.go --send
-```
-
-- e.g. ARP request
+- 受信画面
 
   ```console
-  $ sudo go run arp.go ethernet.go form.go icmp.go ipv4.go main.go view.go udp.go dns.go tcp.go http.go --send --proto arp
+  $ sudo go run $(find . -name \*.go -not -name *_test.go | tr "\n" " ")
+  ```
+
+
+- 送信画面
+
+  ```console
+  $ sudo go run $(find . -name \*.go -not -name *_test.go | tr "\n" " ") --send
+  ```
+
+- 単発フレーム送信コマンド（e.g. ARP request）
+
+  ```console
+  $ sudo go run $(find . -name \*.go -not -name *_test.go | tr "\n" " ") --send --proto arp
   ```
 
 ### 手軽にブロードキャスト

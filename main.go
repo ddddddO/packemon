@@ -270,75 +270,73 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 		}
 
 		for i := 0; i < fds; i++ {
-			if events[i].Fd != int32(sock) {
-				continue
-			}
-
-			recieved := make([]byte, 1500)
-			n, _, err := unix.Recvfrom(sock, recieved, 0)
-			if err != nil {
-				if n == -1 {
-					continue
+			if events[i].Fd == int32(sock) {
+				recieved := make([]byte, 1500)
+				n, _, err := unix.Recvfrom(sock, recieved, 0)
+				if err != nil {
+					if n == -1 {
+						continue
+					}
+					return err
 				}
-				return err
-			}
 
-			recievedEthernetFrame := &ethernetFrame{
-				header: &ethernetHeader{
-					dst: hardwareAddr(recieved[0:6]),
-					src: hardwareAddr(recieved[6:12]),
-					typ: binary.BigEndian.Uint16(recieved[12:14]), // タグVLANだとズレる
-				},
-				data: recieved[14:],
-			}
-
-			HARDWAREADDR_BROADCAST := [6]uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-
-			switch recievedEthernetFrame.header.typ {
-			case ETHER_TYPE_ARP:
-				switch recievedEthernetFrame.header.dst {
-				case hardwareAddr(intf.HardwareAddr), HARDWAREADDR_BROADCAST:
-					arp := &arp{
-						hardwareType:       [2]uint8(recievedEthernetFrame.data[0:2]),
-						protocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
-						hardwareAddrLength: recievedEthernetFrame.data[4],
-						protocolLength:     recievedEthernetFrame.data[5],
-						operation:          [2]uint8(recievedEthernetFrame.data[6:8]),
-
-						senderHardwareAddr: hardwareAddr(recievedEthernetFrame.data[8:14]),
-						senderIPAddr:       [4]uint8(recievedEthernetFrame.data[14:18]),
-
-						targetHardwareAddr: hardwareAddr(recievedEthernetFrame.data[18:24]),
-						targetIPAddr:       [4]uint8(recievedEthernetFrame.data[24:28]),
-					}
-
-					viewersCh <- []viewer{recievedEthernetFrame, arp}
+				recievedEthernetFrame := &ethernetFrame{
+					header: &ethernetHeader{
+						dst: hardwareAddr(recieved[0:6]),
+						src: hardwareAddr(recieved[6:12]),
+						typ: binary.BigEndian.Uint16(recieved[12:14]), // タグVLANだとズレる
+					},
+					data: recieved[14:],
 				}
-			case ETHER_TYPE_IPv4:
-				switch recievedEthernetFrame.header.dst {
-				case hardwareAddr(intf.HardwareAddr), HARDWAREADDR_BROADCAST:
-					ipv4 := &ipv4{
-						version:        recievedEthernetFrame.data[0] >> 4,
-						ihl:            recievedEthernetFrame.data[0] << 4 >> 4,
-						tos:            recievedEthernetFrame.data[1],
-						totalLength:    binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
-						identification: binary.BigEndian.Uint16(recievedEthernetFrame.data[4:6]),
-						flags:          recievedEthernetFrame.data[6],
-						fragmentOffset: binary.BigEndian.Uint16(recievedEthernetFrame.data[6:8]),
-						ttl:            recievedEthernetFrame.data[8],
-						protocol:       recievedEthernetFrame.data[9],
-						headerChecksum: binary.BigEndian.Uint16(recievedEthernetFrame.data[10:12]),
-						srcAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[12:16]),
-						dstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[16:20]),
-					}
 
-					ipOfEth0, err := strIPToBytes(DEFAULT_IP_SOURCE)
-					if err != nil {
-						return err
+				HARDWAREADDR_BROADCAST := [6]uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+
+				switch recievedEthernetFrame.header.typ {
+				case ETHER_TYPE_ARP:
+					switch recievedEthernetFrame.header.dst {
+					case hardwareAddr(intf.HardwareAddr), HARDWAREADDR_BROADCAST:
+						arp := &arp{
+							hardwareType:       [2]uint8(recievedEthernetFrame.data[0:2]),
+							protocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
+							hardwareAddrLength: recievedEthernetFrame.data[4],
+							protocolLength:     recievedEthernetFrame.data[5],
+							operation:          [2]uint8(recievedEthernetFrame.data[6:8]),
+
+							senderHardwareAddr: hardwareAddr(recievedEthernetFrame.data[8:14]),
+							senderIPAddr:       [4]uint8(recievedEthernetFrame.data[14:18]),
+
+							targetHardwareAddr: hardwareAddr(recievedEthernetFrame.data[18:24]),
+							targetIPAddr:       [4]uint8(recievedEthernetFrame.data[24:28]),
+						}
+
+						viewersCh <- []viewer{recievedEthernetFrame, arp}
 					}
-					switch ipv4.dstAddr {
-					case binary.BigEndian.Uint32(ipOfEth0):
-						viewersCh <- []viewer{recievedEthernetFrame, ipv4}
+				case ETHER_TYPE_IPv4:
+					switch recievedEthernetFrame.header.dst {
+					case hardwareAddr(intf.HardwareAddr), HARDWAREADDR_BROADCAST:
+						ipv4 := &ipv4{
+							version:        recievedEthernetFrame.data[0] >> 4,
+							ihl:            recievedEthernetFrame.data[0] << 4 >> 4,
+							tos:            recievedEthernetFrame.data[1],
+							totalLength:    binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
+							identification: binary.BigEndian.Uint16(recievedEthernetFrame.data[4:6]),
+							flags:          recievedEthernetFrame.data[6],
+							fragmentOffset: binary.BigEndian.Uint16(recievedEthernetFrame.data[6:8]),
+							ttl:            recievedEthernetFrame.data[8],
+							protocol:       recievedEthernetFrame.data[9],
+							headerChecksum: binary.BigEndian.Uint16(recievedEthernetFrame.data[10:12]),
+							srcAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[12:16]),
+							dstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.data[16:20]),
+						}
+
+						ipOfEth0, err := strIPToBytes(DEFAULT_IP_SOURCE)
+						if err != nil {
+							return err
+						}
+						switch ipv4.dstAddr {
+						case binary.BigEndian.Uint32(ipOfEth0):
+							viewersCh <- []viewer{recievedEthernetFrame, ipv4}
+						}
 					}
 				}
 			}

@@ -28,6 +28,7 @@ type ipv4 struct {
 
 const (
 	IPv4_PROTO_ICMP uint8 = 0x01
+	IPv4_PROTO_TCP  uint8 = 0x06
 	IPv4_PROTO_UDP  uint8 = 0x11
 )
 
@@ -46,7 +47,11 @@ func newIPv4(protocol uint8) *ipv4 {
 		headerChecksum: 0,
 		srcAddr:        0xac17f24e, // 172.23.242.78
 		// dstAddr:        0x141bb171, // 20.27.177.113 = github.com
-		dstAddr: 0x08080808, // 8.8.8.8 = DNSクエリ用
+		// dstAddr: 0x08080808, // 8.8.8.8 = DNSクエリ用
+
+		// 以下TCP/HTTP確認用
+		// dstAddr: 0x88bb0609, // 136.187.6.9 = research.nii.ac.jp
+		dstAddr: 0xa32b661d, // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 	}
 }
 
@@ -87,7 +92,7 @@ func (i *ipv4) calculateChecksum() {
 }
 
 // copy of https://github.com/sat0ken/go-curo/blob/main/utils.go#L18
-func (i *ipv4) checksum(packet []byte) []byte {
+func (*ipv4) checksum(packet []byte) []byte {
 	// まず16ビット毎に足す
 	sum := sumByteArr(packet)
 	// あふれた桁を足す

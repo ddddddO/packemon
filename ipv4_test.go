@@ -58,4 +58,24 @@ func Test_sandbox(t *testing.T) {
 	t.Logf("unixtime bytes(lit): %x\n", b) // これで良さそうtimestampは
 	b = binary.LittleEndian.AppendUint32(b, 0x00000000)
 	t.Logf("icmp timestamp: %x\n", b)
+
+	var buf3, buf4 bytes.Buffer
+	var p7 uint16 = 0x00a0
+	var p8 uint16 = 0x002
+	t.Logf("p7: %b", p7)
+	t.Logf("p8: %b", p8)
+	t.Logf("p7   : %b", p7)
+	t.Logf("p7'  : %b", p7<<2)
+	t.Logf("p7'' : %b", p7<<3)
+	t.Logf("p7''': %b", p7<<8)
+	b = make([]byte, 2)
+	binary.BigEndian.PutUint16(b, p7)
+	buf3.Write(b)
+	t.Logf("buf3 bytes(want: xx): %x", buf3.Bytes())
+
+	t.Logf("p7 p8: %x", p7<<8|p8)
+	b = make([]byte, 2)
+	binary.BigEndian.PutUint16(b, p7<<8|p8)
+	buf4.Write(b)
+	t.Logf("buf4 bytes(want: xx): %x", buf4.Bytes())
 }

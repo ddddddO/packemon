@@ -37,6 +37,23 @@ func newTCPSyn() *tcp {
 	}
 }
 
+// tcpパケット単発で連続で送るときは port/sequence 変えること
+func newTCPWithData(data []byte) *tcp {
+	return &tcp{
+		srcPort:        0x9e11,
+		dstPort:        0x0050, // 80
+		sequence:       0x1f6e9615,
+		acknowledgment: 0x00000000,
+		headerLength:   0x0080,
+		flags:          0x0018, // psh,ack
+		window:         0xfaf0,
+		checksum:       0x0000,
+		urgentPointer:  0x0000,
+		options:        optionsOfhttp(),
+		data:           data,
+	}
+}
+
 func (*tcp) checkSum(packet []byte) []byte {
 	return (*ipv4)(nil).checksum(packet)
 }
@@ -91,15 +108,38 @@ func (t *tcp) headerToBytes() []byte {
 	return buf.Bytes()
 }
 
+type mss struct {
+	kind   uint8
+	length uint8
+	value  uint16
+}
+
+type sackPermitted struct {
+	kind   uint8
+	length uint8
+}
+
+type timestamps struct {
+	kind      uint8
+	length    uint8
+	value     uint32
+	echoReply uint32
+}
+
+type noOperation struct {
+	kind uint8
+}
+
+type windowScale struct {
+	kind       uint8
+	length     uint8
+	shiftCount uint8
+}
+
 // synパケットの中を覗いて下
 func options() []byte {
 	var buf bytes.Buffer
 
-	type mss struct {
-		kind   uint8
-		length uint8
-		value  uint16
-	}
 	m := &mss{
 		kind:   0x02,
 		length: 0x04,
@@ -111,10 +151,6 @@ func options() []byte {
 	binary.BigEndian.PutUint16(b, m.value)
 	buf.Write(b)
 
-	type sackPermitted struct {
-		kind   uint8
-		length uint8
-	}
 	s := &sackPermitted{
 		kind:   0x04,
 		length: 0x02,
@@ -122,12 +158,6 @@ func options() []byte {
 	buf.WriteByte(s.kind)
 	buf.WriteByte(s.length)
 
-	type timestamps struct {
-		kind      uint8
-		length    uint8
-		value     uint32
-		echoReply uint32
-	}
 	t := &timestamps{
 		kind:      0x08,
 		length:    0x0a,
@@ -143,19 +173,11 @@ func options() []byte {
 	binary.BigEndian.PutUint32(b, t.echoReply)
 	buf.Write(b)
 
-	type noOperation struct {
-		kind uint8
-	}
 	n := &noOperation{
 		kind: 0x01,
 	}
 	buf.WriteByte(n.kind)
 
-	type windowScale struct {
-		kind       uint8
-		length     uint8
-		shiftCount uint8
-	}
 	w := &windowScale{
 		kind:       0x03,
 		length:     0x03,
@@ -164,6 +186,39 @@ func options() []byte {
 	buf.WriteByte(w.kind)
 	buf.WriteByte(w.length)
 	buf.WriteByte(w.shiftCount)
+
+	return buf.Bytes()
+}
+
+// http getリクエスト時のtcp optionを覗いて
+// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
+// 「オプション」フィールド：32bit単位で可変長
+func optionsOfhttp() []byte {
+	var buf bytes.Buffer
+
+	n := &noOperation{
+		kind: 0x01,
+	}
+	buf.WriteByte(n.kind)
+	buf.WriteByte(n.kind)
+
+	t := &timestamps{
+		kind:      0x08,
+		length:    0x0a,
+		value:     0x817338b5,
+		echoReply: 0x409e9657,
+	}
+	buf.WriteByte(t.kind)
+	buf.WriteByte(t.length)
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, t.value)
+	buf.Write(b)
+	b = make([]byte, 4)
+	binary.BigEndian.PutUint32(b, t.echoReply)
+	buf.Write(b)
+
+	// padding := []byte{0x00, 0x00, 0x00}
+	// buf.Write(padding)
 
 	return buf.Bytes()
 }

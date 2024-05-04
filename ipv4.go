@@ -105,6 +105,13 @@ func (*ipv4) checksum(packet []byte) []byte {
 
 func sumByteArr(packet []byte) (sum uint) {
 	for i := range packet {
+
+		// ここ足した. icmpのreply返ってきてるし大丈夫そう
+		if (i == len(packet)-2) && (len(packet)%2 != 0) {
+			sum += uint(packet[i])
+			break
+		}
+
 		if i%2 == 0 {
 			sum += uint(binary.BigEndian.Uint16(packet[i:]))
 		}

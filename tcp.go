@@ -21,11 +21,12 @@ type tcp struct {
 	data []byte
 }
 
+// tcpパケット単発で連続で送るときは port/sequence 変えること
 func newTCPSyn() *tcp {
 	return &tcp{
-		srcPort:        0x9e02, // tcpパケット単発で連続で送るときはport変えないとWiresharkに怒られてるように見える
+		srcPort:        0x9e03,
 		dstPort:        0x0050, // 80
-		sequence:       0x1f6e9496,
+		sequence:       0x1f6e9497,
 		acknowledgment: 0x00000000,
 		headerLength:   0x00a0,
 		flags:          0x002, // syn

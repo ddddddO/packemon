@@ -125,31 +125,34 @@ func run(wantSend bool) error {
 		ipv4 := newIPv4(IPv4_PROTO_TCP)
 		// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 		// 「「チェックサム」フィールド：16bit幅」
-		pseudoTCPHeader := func() []byte {
-			var buf bytes.Buffer
-			b := make([]byte, 4)
-			binary.BigEndian.PutUint32(b, ipv4.srcAddr)
-			buf.Write(b)
+		tcp.checksum = func() uint16 {
+			pseudoTCPHeader := func() []byte {
+				var buf bytes.Buffer
+				b := make([]byte, 4)
+				binary.BigEndian.PutUint32(b, ipv4.srcAddr)
+				buf.Write(b)
 
-			b = make([]byte, 4)
-			binary.BigEndian.PutUint32(b, ipv4.dstAddr)
-			buf.Write(b)
+				b = make([]byte, 4)
+				binary.BigEndian.PutUint32(b, ipv4.dstAddr)
+				buf.Write(b)
 
-			padding := byte(0x00)
-			buf.WriteByte(padding)
+				padding := byte(0x00)
+				buf.WriteByte(padding)
 
-			buf.WriteByte(ipv4.protocol)
+				buf.WriteByte(ipv4.protocol)
 
-			b = make([]byte, 2)
-			binary.BigEndian.PutUint16(b, uint16(len(tcp.toBytes())))
-			buf.Write(b)
+				b = make([]byte, 2)
+				binary.BigEndian.PutUint16(b, uint16(len(tcp.toBytes())))
+				buf.Write(b)
 
-			return buf.Bytes()
+				return buf.Bytes()
+			}()
+
+			var forTCPChecksum bytes.Buffer
+			forTCPChecksum.Write(pseudoTCPHeader)
+			forTCPChecksum.Write(tcp.toBytes())
+			return binary.BigEndian.Uint16(tcp.checkSum(forTCPChecksum.Bytes()))
 		}()
-		var forTCPChecksum bytes.Buffer
-		forTCPChecksum.Write(pseudoTCPHeader)
-		forTCPChecksum.Write(tcp.toBytes())
-		tcp.checksum = binary.BigEndian.Uint16(tcp.checkSum(forTCPChecksum.Bytes()))
 
 		ipv4.data = tcp.toBytes()
 		ipv4.calculateTotalLength()

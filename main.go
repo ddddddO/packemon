@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"flag"
 	"fmt"
@@ -14,9 +15,11 @@ import (
 func main() {
 	var wantSend bool
 	flag.BoolVar(&wantSend, "send", false, "Send packet")
+	var protocol string
+	flag.StringVar(&protocol, "proto", "", "Specify either 'arp', 'icmp', 'tcp', 'dns' or 'http'.")
 	flag.Parse()
 
-	if err := run(wantSend); err != nil {
+	if err := run(wantSend, protocol); err != nil {
 		panic(err)
 	}
 }
@@ -29,7 +32,7 @@ var (
 	globalTviewGrid *tview.Grid
 )
 
-func run(wantSend bool) error {
+func run(wantSend bool, protocol string) error {
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return err
@@ -72,126 +75,23 @@ func run(wantSend bool) error {
 	// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
 	// $ ip route
 	// $ arp xxx.xx.xxx.1
+	firsthopMACAddr := [6]byte{0x01, 0x00, 0x5e, 0x7f, 0xff, 0xfa}
+
 	if wantSend {
-		// arp := newARP()
-		// dst := hardwareAddr([6]byte{0x00, 0x15, 0x5d, 0xba, 0x46, 0x1a})
-		// src := hardwareAddr(intf.HardwareAddr)
-		// ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_ARP, arp.toBytes())
-		// return send(ethernetFrame, sock, addr)
-
-		// icmp := newICMP()
-		// ipv4 := newIPv4(IPv4_PROTO_ICMP)
-		// ipv4.data = icmp.toBytes()
-		// ipv4.calculateTotalLength()
-		// ipv4.calculateChecksum()
-		// dst := hardwareAddr([6]byte{0x00, 0x15, 0x5d, 0xba, 0x46, 0x1a})
-		// src := hardwareAddr(intf.HardwareAddr)
-		// ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())
-		// return send(ethernetFrame, sock, addr)
-
-		// dns := &dns{
-		// 	transactionID: 0x1234,
-		// 	flags:         0x0100, // standard query
-		// 	questions:     0x0001,
-		// 	answerRRs:     0x0000,
-		// 	authorityRRs:  0x0000,
-		// 	additionalRRs: 0x0000,
-		// 	queries: &queries{
-		// 		typ:   0x0001, // A
-		// 		class: 0x0001, // IN
-		// 	},
-		// }
-		// // dns.domain("github.com")
-		// dns.domain("go.dev")
-		// udp := &udp{
-		// 	srcPort:  0x0401, // 1025
-		// 	dstPort:  0x0035, // 53
-		// 	length:   0x0000,
-		// 	checksum: 0x0000,
-		// }
-		// udp.data = dns.toBytes()
-		// udp.len()
-		// ipv4 := newIPv4(IPv4_PROTO_UDP)
-		// ipv4.data = udp.toBytes()
-		// ipv4.calculateTotalLength()
-		// ipv4.calculateChecksum()
-		// dst := hardwareAddr([6]byte{0x00, 0x15, 0x5d, 0xba, 0x46, 0x1a})
-		// src := hardwareAddr(intf.HardwareAddr)
-		// ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())
-		// return send(ethernetFrame, sock, addr)
-
-		// // TCP
-		// tcp := newTCPSyn()
-		// ipv4 := newIPv4(IPv4_PROTO_TCP)
-		// // https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
-		// // 「「チェックサム」フィールド：16bit幅」
-		// tcp.checksum = func() uint16 {
-		// 	pseudoTCPHeader := func() []byte {
-		// 		var buf bytes.Buffer
-		// 		b := make([]byte, 4)
-		// 		binary.BigEndian.PutUint32(b, ipv4.srcAddr)
-		// 		buf.Write(b)
-		// 		b = make([]byte, 4)
-		// 		binary.BigEndian.PutUint32(b, ipv4.dstAddr)
-		// 		buf.Write(b)
-		// 		padding := byte(0x00)
-		// 		buf.WriteByte(padding)
-		// 		buf.WriteByte(ipv4.protocol)
-		// 		b = make([]byte, 2)
-		// 		binary.BigEndian.PutUint16(b, uint16(len(tcp.toBytes())))
-		// 		buf.Write(b)
-		// 		return buf.Bytes()
-		// 	}()
-		// 	var forTCPChecksum bytes.Buffer
-		// 	forTCPChecksum.Write(pseudoTCPHeader)
-		// 	forTCPChecksum.Write(tcp.toBytes())
-		// 	return binary.BigEndian.Uint16(tcp.checkSum(forTCPChecksum.Bytes()))
-		// }()
-		// ipv4.data = tcp.toBytes()
-		// ipv4.calculateTotalLength()
-		// ipv4.calculateChecksum()
-		// dst := hardwareAddr([6]byte{0x00, 0x15, 0x5d, 0xba, 0x46, 0x1a})
-		// src := hardwareAddr(intf.HardwareAddr)
-		// ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())
-		// return send(ethernetFrame, sock, addr)
-
-		// // HTTP
-		// http := newHTTP()
-		// tcp := newTCPWithData(http.toBytes())
-		// ipv4 := newIPv4(IPv4_PROTO_TCP)
-		// // https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
-		// // 「「チェックサム」フィールド：16bit幅」
-		// tcp.checksum = func() uint16 {
-		// 	pseudoTCPHeader := func() []byte {
-		// 		var buf bytes.Buffer
-		// 		b := make([]byte, 4)
-		// 		binary.BigEndian.PutUint32(b, ipv4.srcAddr)
-		// 		buf.Write(b)
-		// 		b = make([]byte, 4)
-		// 		binary.BigEndian.PutUint32(b, ipv4.dstAddr)
-		// 		buf.Write(b)
-		// 		padding := byte(0x00)
-		// 		buf.WriteByte(padding)
-		// 		buf.WriteByte(ipv4.protocol)
-		// 		b = make([]byte, 2)
-		// 		binary.BigEndian.PutUint16(b, uint16(len(tcp.toBytes())))
-		// 		buf.Write(b)
-		// 		return buf.Bytes()
-		// 	}()
-		// 	var forTCPChecksum bytes.Buffer
-		// 	forTCPChecksum.Write(pseudoTCPHeader)
-		// 	forTCPChecksum.Write(tcp.toBytes())
-		// 	return binary.BigEndian.Uint16(tcp.checkSum(forTCPChecksum.Bytes()))
-		// }()
-		// ipv4.data = tcp.toBytes()
-		// ipv4.calculateTotalLength()
-		// ipv4.calculateChecksum()
-		// dst := hardwareAddr([6]byte{0x00, 0x15, 0x5d, 0xba, 0x46, 0x1a})
-		// src := hardwareAddr(intf.HardwareAddr)
-		// ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())
-		// return send(ethernetFrame, sock, addr)
-
-		return form(sendForForm(sock, addr)) // Form のアクションで 送信した方が良さそうなのでこの形
+		switch protocol {
+		case "arp":
+			return sendARPrequest(sock, addr, intf, firsthopMACAddr)
+		case "icmp":
+			return sendICMPechoRequest(sock, addr, intf, firsthopMACAddr)
+		case "tcp":
+			return sendTCPsyn(sock, addr, intf, firsthopMACAddr)
+		case "dns":
+			return sendDNSquery(sock, addr, intf, firsthopMACAddr)
+		case "http":
+			return sendHTTPget(sock, addr, intf, firsthopMACAddr)
+		default:
+			return form(sendForForm(sock, addr)) // Form のアクションで 送信した方が良さそうなのでこの形
+		}
 	} else {
 		globalTviewGrid = tview.NewGrid()
 		globalTviewGrid.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon ")
@@ -206,6 +106,132 @@ func run(wantSend bool) error {
 
 func hton(i uint16) uint16 {
 	return (i<<8)&0xff00 | i>>8
+}
+
+func sendARPrequest(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
+	arp := newARP()
+	dst := hardwareAddr(firsthopMACAddr)
+	src := hardwareAddr(intf.HardwareAddr)
+	ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_ARP, arp.toBytes())
+	return send(ethernetFrame, sock, addr)
+}
+
+func sendICMPechoRequest(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
+	icmp := newICMP()
+	ipv4 := newIPv4(IPv4_PROTO_ICMP)
+	ipv4.data = icmp.toBytes()
+	ipv4.calculateTotalLength()
+	ipv4.calculateChecksum()
+	dst := hardwareAddr(firsthopMACAddr)
+	src := hardwareAddr(intf.HardwareAddr)
+	ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())
+	return send(ethernetFrame, sock, addr)
+}
+
+func sendDNSquery(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
+	dns := &dns{
+		transactionID: 0x1234,
+		flags:         0x0100, // standard query
+		questions:     0x0001,
+		answerRRs:     0x0000,
+		authorityRRs:  0x0000,
+		additionalRRs: 0x0000,
+		queries: &queries{
+			typ:   0x0001, // A
+			class: 0x0001, // IN
+		},
+	}
+	// dns.domain("github.com")
+	dns.domain("go.dev")
+	udp := &udp{
+		srcPort:  0x0401, // 1025
+		dstPort:  0x0035, // 53
+		length:   0x0000,
+		checksum: 0x0000,
+	}
+	udp.data = dns.toBytes()
+	udp.len()
+	ipv4 := newIPv4(IPv4_PROTO_UDP)
+	ipv4.data = udp.toBytes()
+	ipv4.calculateTotalLength()
+	ipv4.calculateChecksum()
+	dst := hardwareAddr(firsthopMACAddr)
+	src := hardwareAddr(intf.HardwareAddr)
+	ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())
+	return send(ethernetFrame, sock, addr)
+}
+
+func sendTCPsyn(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
+	tcp := newTCPSyn()
+	ipv4 := newIPv4(IPv4_PROTO_TCP)
+	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
+	// 「「チェックサム」フィールド：16bit幅」
+	tcp.checksum = func() uint16 {
+		pseudoTCPHeader := func() []byte {
+			var buf bytes.Buffer
+			b := make([]byte, 4)
+			binary.BigEndian.PutUint32(b, ipv4.srcAddr)
+			buf.Write(b)
+			b = make([]byte, 4)
+			binary.BigEndian.PutUint32(b, ipv4.dstAddr)
+			buf.Write(b)
+			padding := byte(0x00)
+			buf.WriteByte(padding)
+			buf.WriteByte(ipv4.protocol)
+			b = make([]byte, 2)
+			binary.BigEndian.PutUint16(b, uint16(len(tcp.toBytes())))
+			buf.Write(b)
+			return buf.Bytes()
+		}()
+		var forTCPChecksum bytes.Buffer
+		forTCPChecksum.Write(pseudoTCPHeader)
+		forTCPChecksum.Write(tcp.toBytes())
+		return binary.BigEndian.Uint16(tcp.checkSum(forTCPChecksum.Bytes()))
+	}()
+	ipv4.data = tcp.toBytes()
+	ipv4.calculateTotalLength()
+	ipv4.calculateChecksum()
+	dst := hardwareAddr(firsthopMACAddr)
+	src := hardwareAddr(intf.HardwareAddr)
+	ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())
+	return send(ethernetFrame, sock, addr)
+}
+
+func sendHTTPget(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
+	http := newHTTP()
+	tcp := newTCPWithData(http.toBytes())
+	ipv4 := newIPv4(IPv4_PROTO_TCP)
+	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
+	// 「「チェックサム」フィールド：16bit幅」
+	tcp.checksum = func() uint16 {
+		pseudoTCPHeader := func() []byte {
+			var buf bytes.Buffer
+			b := make([]byte, 4)
+			binary.BigEndian.PutUint32(b, ipv4.srcAddr)
+			buf.Write(b)
+			b = make([]byte, 4)
+			binary.BigEndian.PutUint32(b, ipv4.dstAddr)
+			buf.Write(b)
+			padding := byte(0x00)
+			buf.WriteByte(padding)
+			buf.WriteByte(ipv4.protocol)
+			b = make([]byte, 2)
+			binary.BigEndian.PutUint16(b, uint16(len(tcp.toBytes())))
+			buf.Write(b)
+			return buf.Bytes()
+		}()
+		var forTCPChecksum bytes.Buffer
+		forTCPChecksum.Write(pseudoTCPHeader)
+		forTCPChecksum.Write(tcp.toBytes())
+		return binary.BigEndian.Uint16(tcp.checkSum(forTCPChecksum.Bytes()))
+	}()
+	ipv4.data = tcp.toBytes()
+	ipv4.calculateTotalLength()
+	ipv4.calculateChecksum()
+	dst := hardwareAddr(firsthopMACAddr)
+	src := hardwareAddr(intf.HardwareAddr)
+	ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.toBytes())
+	return send(ethernetFrame, sock, addr)
 }
 
 func sendForForm(sock int, addr unix.SockaddrLinklayer) func(*ethernetFrame) error {

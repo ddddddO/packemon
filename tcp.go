@@ -24,9 +24,9 @@ type tcp struct {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func newTCPSyn() *tcp {
 	return &tcp{
-		srcPort:        0x9e03,
+		srcPort:        0x9e10,
 		dstPort:        0x0050, // 80
-		sequence:       0x1f6e9497,
+		sequence:       0x1f6e9499,
 		acknowledgment: 0x00000000,
 		headerLength:   0x00a0,
 		flags:          0x002, // syn
@@ -40,9 +40,9 @@ func newTCPSyn() *tcp {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func newTCPWithData(data []byte) *tcp {
 	return &tcp{
-		srcPort:        0x9e11,
+		srcPort:        0x9e12,
 		dstPort:        0x0050, // 80
-		sequence:       0x1f6e9615,
+		sequence:       0x1f6e9616,
 		acknowledgment: 0x00000000,
 		headerLength:   0x0080,
 		flags:          0x0018, // psh,ack

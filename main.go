@@ -118,7 +118,7 @@ func sendARPrequest(sock int, addr unix.SockaddrLinklayer, intf net.Interface, f
 
 func sendICMPechoRequest(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
 	icmp := newICMP()
-	ipv4 := newIPv4(IPv4_PROTO_ICMP)
+	ipv4 := newIPv4(IPv4_PROTO_ICMP, 0xa32b661d) // dst: 163.43.102.29 = tools.m-bsys.com
 	ipv4.data = icmp.toBytes()
 	ipv4.calculateTotalLength()
 	ipv4.calculateChecksum()
@@ -151,7 +151,7 @@ func sendDNSquery(sock int, addr unix.SockaddrLinklayer, intf net.Interface, fir
 	}
 	udp.data = dns.toBytes()
 	udp.len()
-	ipv4 := newIPv4(IPv4_PROTO_UDP)
+	ipv4 := newIPv4(IPv4_PROTO_UDP, 0x08080808) // 8.8.8.8 = DNSクエリ用
 	ipv4.data = udp.toBytes()
 	ipv4.calculateTotalLength()
 	ipv4.calculateChecksum()
@@ -163,7 +163,7 @@ func sendDNSquery(sock int, addr unix.SockaddrLinklayer, intf net.Interface, fir
 
 func sendTCPsyn(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
 	tcp := newTCPSyn()
-	ipv4 := newIPv4(IPv4_PROTO_TCP)
+	ipv4 := newIPv4(IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 	// 「「チェックサム」フィールド：16bit幅」
 	tcp.checksum = func() uint16 {
@@ -200,7 +200,7 @@ func sendTCPsyn(sock int, addr unix.SockaddrLinklayer, intf net.Interface, first
 func sendHTTPget(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
 	http := newHTTP()
 	tcp := newTCPWithData(http.toBytes())
-	ipv4 := newIPv4(IPv4_PROTO_TCP)
+	ipv4 := newIPv4(IPv4_PROTO_TCP, 0x88bb0609) // 136.187.6.9 = research.nii.ac.jp
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 	// 「「チェックサム」フィールド：16bit幅」
 	tcp.checksum = func() uint16 {

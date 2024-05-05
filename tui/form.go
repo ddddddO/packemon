@@ -61,6 +61,36 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 		AddPage("IPv4", ipv4Form, true, true).
 		AddPage("Ethernet", ethernetForm, true, true)
 
+	t.list.
+		AddItem("ICMP", "", '1', func() {
+			t.pages.SwitchToPage("ICMP")
+			t.app.SetFocus(t.pages)
+		}).
+		AddItem("IPv4", "", '2', func() {
+			t.pages.SwitchToPage("IPv4")
+			t.app.SetFocus(t.pages)
+		}).
+		AddItem("ARP", "", '3', func() {
+			t.pages.SwitchToPage("ARP")
+			t.app.SetFocus(t.pages)
+		}).
+		AddItem("Ethernet", "", '4', func() {
+			t.pages.SwitchToPage("Ethernet")
+			t.app.SetFocus(t.pages)
+		})
+
+	t.grid.
+		SetRows(1, 0).
+		SetColumns(30, 0)
+	// TODO: 見切れちゃう
+	// Layout for screens narrower than 100 cells (menu and side bar are hidden).
+	t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 0, true).
+		AddItem(t.pages, 1, 1, 1, 1, 0, 0, false)
+
+	// Layout for screens wider than 100 cells.
+	t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 100, true).
+		AddItem(t.pages, 1, 1, 1, 1, 0, 100, false)
+
 	return nil
 }
 

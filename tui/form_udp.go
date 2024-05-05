@@ -51,6 +51,7 @@ func (t *tui) udpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			t.app.SetFocus(t.list)
 		}).
 		AddButton("Send!", func() {
+			udp.Len()
 			ipv4.Data = udp.Bytes()
 			ipv4.CalculateTotalLength()
 			// 前回Send分が残ってると計算誤るため
@@ -67,7 +68,7 @@ func (t *tui) udpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 		AddButton("Under layer", func() {
 			t.pages.SwitchToPage("IPv4")
 		}).
-		// TODO: 上のレイヤーどれにするか選択肢
+		// TODO: 上のレイヤーどれにするか選択肢あったほうが？
 		AddButton("Quit", func() {
 			t.app.Stop()
 		})

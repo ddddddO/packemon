@@ -40,16 +40,29 @@ var (
 	DEFAULT_UDP_PORT_SOURCE      = "12345"
 	DEFAULT_UDP_PORT_DESTINATION = "53"
 	DEFAULT_UDP_LENGTH           = "0x0030"
+
+	DEFAULT_DNS_TRANSACTION    = "0x1234"
+	DEFAULT_DNS_FLAGS          = "0x0100"
+	DEFAULT_DNS_QUESTIONS      = "0x0001"
+	DEFAULT_DNS_ANSWERS_RRs    = "0x0000"
+	DEFAULT_DNS_AUTHORITYR_Rs  = "0x0000"
+	DEFAULT_DNS_ADDITIONAL_RRs = "0x0000"
+	DEFAULT_DNS_QUERIES_DOMAIN = "go.dev"
+	DEFAULT_DNS_QUERIES_TYPE   = "0x0001"
+	DEFAULT_DNS_QUERIES_CLASS  = "0x0001"
 )
 
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
 // とすると、高レイヤーの入力から埋めて進めていくようにしないといけなさそう. ユーザーが選べるようにするのがいいかも
 func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
-	ethernetHeader, arp, ipv4, icmp, udp, err := defaultPackets()
+	d, err := defaultPackets()
 	if err != nil {
 		return err
 	}
+	ethernetHeader, arp, ipv4, icmp, udp, dns := d.e, d.a, d.ip, d.ic, d.u, d.d
 
+	dnsForm := t.dnsForm(sendFn, ethernetHeader, ipv4, udp, dns)
+	dnsForm.SetBorder(true).SetTitle(" DNS ").SetTitleAlign(tview.AlignLeft)
 	udpForm := t.udpForm(sendFn, ethernetHeader, ipv4, udp)
 	udpForm.SetBorder(true).SetTitle(" UDP ").SetTitleAlign(tview.AlignLeft)
 	icmpForm := t.icmpForm(sendFn, ethernetHeader, ipv4, icmp)
@@ -62,6 +75,7 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 
 	t.pages.
+		AddPage("DNS", dnsForm, true, true).
 		AddPage("UDP", udpForm, true, true).
 		AddPage("ICMP", icmpForm, true, true).
 		AddPage("ARP", arpForm, true, true).
@@ -88,6 +102,10 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 		AddItem("UDP", "", '5', func() {
 			t.pages.SwitchToPage("UDP")
 			t.app.SetFocus(t.pages)
+		}).
+		AddItem("DNS", "", '6', func() {
+			t.pages.SwitchToPage("DNS")
+			t.app.SetFocus(t.pages)
 		})
 
 	t.grid.
@@ -105,40 +123,96 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 	return nil
 }
 
-func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, *packemon.ICMP, *packemon.UDP, error) {
+type defaults struct {
+	e  *packemon.EthernetHeader
+	a  *packemon.ARP
+	ip *packemon.IPv4
+	ic *packemon.ICMP
+	u  *packemon.UDP
+	d  *packemon.DNS
+}
+
+func defaultPackets() (*defaults, error) {
+	dns := &packemon.DNS{}
+	dnsTransactionID, err := strHexToBytes2(DEFAULT_DNS_TRANSACTION)
+	if err != nil {
+		return nil, err
+	}
+	dns.TransactionID = binary.BigEndian.Uint16(dnsTransactionID)
+	dnsFlags, err := strHexToBytes2(DEFAULT_DNS_FLAGS)
+	if err != nil {
+		return nil, err
+	}
+	dns.Flags = binary.BigEndian.Uint16(dnsFlags)
+	dnsQuestions, err := strHexToBytes2(DEFAULT_DNS_QUESTIONS)
+	if err != nil {
+		return nil, err
+	}
+	dns.Questions = binary.BigEndian.Uint16(dnsQuestions)
+	dnsAnswerRRs, err := strHexToBytes2(DEFAULT_DNS_ANSWERS_RRs)
+	if err != nil {
+		return nil, err
+	}
+	dns.AnswerRRs = binary.BigEndian.Uint16(dnsAnswerRRs)
+	dnsAuthorityRRs, err := strHexToBytes2(DEFAULT_DNS_AUTHORITYR_Rs)
+	if err != nil {
+		return nil, err
+	}
+	dns.AuthorityRRs = binary.BigEndian.Uint16(dnsAuthorityRRs)
+	dnsAdditionalRRs, err := strHexToBytes2(DEFAULT_DNS_ADDITIONAL_RRs)
+	if err != nil {
+		return nil, err
+	}
+	dns.AdditionalRRs = binary.BigEndian.Uint16(dnsAdditionalRRs)
+	dnsQueriesType, err := strHexToBytes2(DEFAULT_DNS_QUERIES_TYPE)
+	if err != nil {
+		return nil, err
+	}
+	dnsQueriesClass, err := strHexToBytes2(DEFAULT_DNS_QUERIES_CLASS)
+	if err != nil {
+		return nil, err
+	}
+	queries := &packemon.Queries{
+		Typ:   binary.BigEndian.Uint16(dnsQueriesType),
+		Class: binary.BigEndian.Uint16(dnsQueriesClass),
+	}
+	dns.Queries = queries
+	dns.Domain("go.dev")
+
 	udpSrcPort, err := strIntToUint16(DEFAULT_UDP_PORT_SOURCE)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	udpDstPort, err := strIntToUint16(DEFAULT_UDP_PORT_DESTINATION)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	udpLength, err := strHexToBytes2(DEFAULT_UDP_LENGTH)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	udp := &packemon.UDP{
 		SrcPort: udpSrcPort,
 		DstPort: udpDstPort,
 		Length:  binary.BigEndian.Uint16(udpLength),
 	}
+	udp.Len()
 
 	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	icmpCode, err := strHexToUint8(DEFAULT_ICMP_CODE)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	icmpIdentifier, err := strHexToBytes2(DEFAULT_ICMP_IDENTIFIER)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	icmpSequence, err := strHexToBytes2(DEFAULT_ICMP_SEQUENCE)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	icmp := &packemon.ICMP{
 		Typ:        icmpType,
@@ -149,7 +223,7 @@ func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, 
 
 	ip, err := strIPToBytes(DEFAULT_IP_SOURCE)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	ipv4 := &packemon.IPv4{
@@ -169,39 +243,39 @@ func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, 
 
 	hardwareType, err := strHexToBytes2(DEFAULT_ARP_HARDWARE_TYPE)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	protocolType, err := strHexToBytes2(DEFAULT_ARP_PROTOCOL_TYPE)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	hardwareSize, err := strHexToUint8(DEFAULT_ARP_HARDWARE_SIZE)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	protocolSize, err := strHexToUint8(DEFAULT_ARP_PROTOCOL_SIZE)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	operation, err := strHexToBytes2(DEFAULT_ARP_OPERATION)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	senderMac, err := strHexToBytes(DEFAULT_ARP_SENDER_MAC)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	senderIP, err := strIPToBytes(DEFAULT_ARP_SENDER_IP)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	targetMac, err := strHexToBytes(DEFAULT_ARP_TARGET_MAC)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	targetIP, err := strIPToBytes(DEFAULT_ARP_TARGET_IP)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	arp := &packemon.ARP{
@@ -220,7 +294,7 @@ func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, 
 
 	mac, err := strHexToBytes(DEFAULT_MAC_SOURCE)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, err
 	}
 	ethernetHeader := &packemon.EthernetHeader{
 		Dst: packemon.HardwareAddr(mac),
@@ -228,7 +302,14 @@ func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, 
 		Typ: packemon.ETHER_TYPE_IPv4,
 	}
 
-	return ethernetHeader, arp, ipv4, icmp, udp, nil
+	return &defaults{
+		e:  ethernetHeader,
+		a:  arp,
+		ip: ipv4,
+		ic: icmp,
+		u:  udp,
+		d:  dns,
+	}, nil
 }
 
 // TODO: rename or refactor

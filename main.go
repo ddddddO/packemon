@@ -143,16 +143,16 @@ func sendDNSquery(sock int, addr unix.SockaddrLinklayer, intf net.Interface, fir
 	}
 	// dns.domain("github.com")
 	dns.Domain("go.dev")
-	udp := &udp{
-		srcPort:  0x0401, // 1025
-		dstPort:  0x0035, // 53
-		length:   0x0000,
-		checksum: 0x0000,
+	udp := &UDP{
+		SrcPort:  0x0401, // 1025
+		DstPort:  0x0035, // 53
+		Length:   0x0000,
+		Checksum: 0x0000,
 	}
-	udp.data = dns.Bytes()
-	udp.len()
+	udp.Data = dns.Bytes()
+	udp.Len()
 	ipv4 := NewIPv4(IPv4_PROTO_UDP, 0x08080808) // 8.8.8.8 = DNSクエリ用
-	ipv4.Data = udp.toBytes()
+	ipv4.Data = udp.Bytes()
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
 	dst := HardwareAddr(firsthopMACAddr)

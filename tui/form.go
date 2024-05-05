@@ -55,6 +55,13 @@ var (
 	DEFAULT_TCP_PORT_DESTINATION = "80"
 	DEFAULT_TCP_SEQUENCE         = "0x1f6e9499"
 	DEFAULT_TCP_FLAGS            = "0x002"
+
+	DEFAULT_HTTP_METHOD     = "GET"
+	DEFAULT_HTTP_URI        = "/"
+	DEFAULT_HTTP_VERSION    = "HTTP/1.1"
+	DEFAULT_HTTP_HOST       = "github.com"
+	DEFAULT_HTTP_USER_AGENT = "packemon"
+	DEFAULT_HTTP_ACCEPT     = "*/*"
 )
 
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
@@ -64,8 +71,10 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 	if err != nil {
 		return err
 	}
-	ethernetHeader, arp, ipv4, icmp, udp, tcp, dns := d.e, d.a, d.ip, d.ic, d.u, d.t, d.d
+	ethernetHeader, arp, ipv4, icmp, udp, tcp, dns, http := d.e, d.a, d.ip, d.ic, d.u, d.t, d.d, d.h
 
+	httpForm := t.httpForm(sendFn, ethernetHeader, ipv4, tcp, http)
+	httpForm.SetBorder(true).SetTitle(" HTTP ").SetTitleAlign(tview.AlignLeft)
 	dnsForm := t.dnsForm(sendFn, ethernetHeader, ipv4, udp, dns)
 	dnsForm.SetBorder(true).SetTitle(" DNS ").SetTitleAlign(tview.AlignLeft)
 	tcpForm := t.tcpForm(sendFn, ethernetHeader, ipv4, tcp)
@@ -82,6 +91,7 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 
 	t.pages.
+		AddPage("HTTP", httpForm, true, true).
 		AddPage("DNS", dnsForm, true, true).
 		AddPage("UDP", udpForm, true, true).
 		AddPage("TCP", tcpForm, true, true).
@@ -118,6 +128,10 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 		AddItem("DNS", "", '7', func() {
 			t.pages.SwitchToPage("DNS")
 			t.app.SetFocus(t.pages)
+		}).
+		AddItem("HTTP", "", '8', func() {
+			t.pages.SwitchToPage("HTTP")
+			t.app.SetFocus(t.pages)
 		})
 
 	t.grid.
@@ -143,9 +157,19 @@ type defaults struct {
 	t  *packemon.TCP
 	u  *packemon.UDP
 	d  *packemon.DNS
+	h  *packemon.HTTP
 }
 
 func defaultPackets() (*defaults, error) {
+	http := &packemon.HTTP{
+		Method:    DEFAULT_HTTP_METHOD,
+		Uri:       DEFAULT_HTTP_URI,
+		Version:   DEFAULT_HTTP_VERSION,
+		Host:      DEFAULT_HTTP_HOST,
+		UserAgent: DEFAULT_HTTP_USER_AGENT,
+		Accept:    DEFAULT_HTTP_ACCEPT,
+	}
+
 	dns := &packemon.DNS{}
 	dnsTransactionID, err := strHexToBytes2(DEFAULT_DNS_TRANSACTION)
 	if err != nil {
@@ -352,6 +376,7 @@ func defaultPackets() (*defaults, error) {
 		u:  udp,
 		t:  tcp,
 		d:  dns,
+		h:  http,
 	}, nil
 }
 

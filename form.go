@@ -71,7 +71,7 @@ func form(sendFn func(*ethernetFrame) error) error {
 	return nil
 }
 
-func defaultPackets() (*ethernetHeader, *arp, *ipv4, *icmp, error) {
+func defaultPackets() (*ethernetHeader, *ARP, *ipv4, *icmp, error) {
 	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -152,18 +152,18 @@ func defaultPackets() (*ethernetHeader, *arp, *ipv4, *icmp, error) {
 		return nil, nil, nil, nil, err
 	}
 
-	arp := &arp{
-		hardwareType:       [2]byte(hardwareType),
-		protocolType:       binary.BigEndian.Uint16(protocolType),
-		hardwareAddrLength: hardwareSize,
-		protocolLength:     protocolSize,
-		operation:          [2]byte(operation),
+	arp := &ARP{
+		HardwareType:       [2]byte(hardwareType),
+		ProtocolType:       binary.BigEndian.Uint16(protocolType),
+		HardwareAddrLength: hardwareSize,
+		ProtocolLength:     protocolSize,
+		Operation:          [2]byte(operation),
 
-		senderHardwareAddr: [6]byte(senderMac),
-		senderIPAddr:       [4]byte(senderIP),
+		SenderHardwareAddr: [6]byte(senderMac),
+		SenderIPAddr:       [4]byte(senderIP),
 
-		targetHardwareAddr: [6]byte(targetMac),
-		targetIPAddr:       [4]byte(targetIP),
+		TargetHardwareAddr: [6]byte(targetMac),
+		TargetIPAddr:       [4]byte(targetIP),
 	}
 
 	mac, err := strHexToBytes(DEFAULT_MAC_SOURCE)
@@ -413,7 +413,7 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetF
 	return ipv4Form
 }
 
-func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader, arp *arp) *tview.Form {
+func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader, arp *ARP) *tview.Form {
 	arpForm := tview.NewForm().
 		AddTextView("ARP", "This section generates the ARP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Hardware Type(hex)", DEFAULT_ARP_HARDWARE_TYPE, 6, func(textToCheck string, lastChar rune) bool {
@@ -427,7 +427,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 			if err != nil {
 				return false
 			}
-			arp.hardwareType = [2]byte(b)
+			arp.HardwareType = [2]byte(b)
 
 			return true
 		}, nil).
@@ -442,7 +442,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 			if err != nil {
 				return false
 			}
-			arp.protocolType = binary.BigEndian.Uint16(b)
+			arp.ProtocolType = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -457,7 +457,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 			if err != nil {
 				return false
 			}
-			arp.hardwareAddrLength = b
+			arp.HardwareAddrLength = b
 
 			return true
 		}, nil).
@@ -472,7 +472,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 			if err != nil {
 				return false
 			}
-			arp.protocolLength = b
+			arp.ProtocolLength = b
 
 			return true
 		}, nil).
@@ -487,7 +487,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 			if err != nil {
 				return false
 			}
-			arp.operation = [2]byte(b)
+			arp.Operation = [2]byte(b)
 
 			return true
 		}, nil).
@@ -502,7 +502,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 			if err != nil {
 				return false
 			}
-			arp.senderHardwareAddr = hardwareAddr(b)
+			arp.SenderHardwareAddr = hardwareAddr(b)
 
 			return true
 		}, nil).
@@ -516,7 +516,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 					return false
 				}
 
-				arp.senderIPAddr = [4]byte(ip)
+				arp.SenderIPAddr = [4]byte(ip)
 				return true
 			}
 
@@ -533,7 +533,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 			if err != nil {
 				return false
 			}
-			arp.targetHardwareAddr = hardwareAddr(b)
+			arp.TargetHardwareAddr = hardwareAddr(b)
 
 			return true
 		}, nil).
@@ -547,7 +547,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 					return false
 				}
 
-				arp.targetIPAddr = [4]byte(ip)
+				arp.TargetIPAddr = [4]byte(ip)
 				return true
 			}
 
@@ -556,7 +556,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 		AddButton("Send!", func() {
 			ethernetFrame := &ethernetFrame{
 				header: ethernetHeader,
-				data:   arp.toBytes(),
+				data:   arp.Bytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
 				app.Stop()

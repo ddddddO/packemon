@@ -109,10 +109,10 @@ func hton(i uint16) uint16 {
 }
 
 func sendARPrequest(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
-	arp := newARP()
+	arp := NewARP()
 	dst := hardwareAddr(firsthopMACAddr)
 	src := hardwareAddr(intf.HardwareAddr)
-	ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_ARP, arp.toBytes())
+	ethernetFrame := newEthernetFrame(dst, src, ETHER_TYPE_ARP, arp.Bytes())
 	return send(ethernetFrame, sock, addr)
 }
 
@@ -295,18 +295,18 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 				case ETHER_TYPE_ARP:
 					switch recievedEthernetFrame.header.dst {
 					case hardwareAddr(intf.HardwareAddr), HARDWAREADDR_BROADCAST:
-						arp := &arp{
-							hardwareType:       [2]uint8(recievedEthernetFrame.data[0:2]),
-							protocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
-							hardwareAddrLength: recievedEthernetFrame.data[4],
-							protocolLength:     recievedEthernetFrame.data[5],
-							operation:          [2]uint8(recievedEthernetFrame.data[6:8]),
+						arp := &ARP{
+							HardwareType:       [2]uint8(recievedEthernetFrame.data[0:2]),
+							ProtocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.data[2:4]),
+							HardwareAddrLength: recievedEthernetFrame.data[4],
+							ProtocolLength:     recievedEthernetFrame.data[5],
+							Operation:          [2]uint8(recievedEthernetFrame.data[6:8]),
 
-							senderHardwareAddr: hardwareAddr(recievedEthernetFrame.data[8:14]),
-							senderIPAddr:       [4]uint8(recievedEthernetFrame.data[14:18]),
+							SenderHardwareAddr: hardwareAddr(recievedEthernetFrame.data[8:14]),
+							SenderIPAddr:       [4]uint8(recievedEthernetFrame.data[14:18]),
 
-							targetHardwareAddr: hardwareAddr(recievedEthernetFrame.data[18:24]),
-							targetIPAddr:       [4]uint8(recievedEthernetFrame.data[24:28]),
+							TargetHardwareAddr: hardwareAddr(recievedEthernetFrame.data[18:24]),
+							TargetIPAddr:       [4]uint8(recievedEthernetFrame.data[24:28]),
 						}
 
 						viewersCh <- []viewer{recievedEthernetFrame, arp}

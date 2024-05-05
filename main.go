@@ -162,11 +162,11 @@ func sendDNSquery(sock int, addr unix.SockaddrLinklayer, intf net.Interface, fir
 }
 
 func sendTCPsyn(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
-	tcp := newTCPSyn()
+	tcp := NewTCPSyn()
 	ipv4 := NewIPv4(IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 	// 「「チェックサム」フィールド：16bit幅」
-	tcp.checksum = func() uint16 {
+	tcp.Checksum = func() uint16 {
 		pseudoTCPHeader := func() []byte {
 			var buf bytes.Buffer
 			b := make([]byte, 4)
@@ -179,16 +179,16 @@ func sendTCPsyn(sock int, addr unix.SockaddrLinklayer, intf net.Interface, first
 			buf.WriteByte(padding)
 			buf.WriteByte(ipv4.Protocol)
 			b = make([]byte, 2)
-			binary.BigEndian.PutUint16(b, uint16(len(tcp.toBytes())))
+			binary.BigEndian.PutUint16(b, uint16(len(tcp.Bytes())))
 			buf.Write(b)
 			return buf.Bytes()
 		}()
 		var forTCPChecksum bytes.Buffer
 		forTCPChecksum.Write(pseudoTCPHeader)
-		forTCPChecksum.Write(tcp.toBytes())
-		return binary.BigEndian.Uint16(tcp.checkSum(forTCPChecksum.Bytes()))
+		forTCPChecksum.Write(tcp.Bytes())
+		return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
 	}()
-	ipv4.Data = tcp.toBytes()
+	ipv4.Data = tcp.Bytes()
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
 	dst := HardwareAddr(firsthopMACAddr)
@@ -199,11 +199,11 @@ func sendTCPsyn(sock int, addr unix.SockaddrLinklayer, intf net.Interface, first
 
 func sendHTTPget(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
 	http := NewHTTP()
-	tcp := newTCPWithData(http.Bytes())
+	tcp := NewTCPWithData(http.Bytes())
 	ipv4 := NewIPv4(IPv4_PROTO_TCP, 0x88bb0609) // 136.187.6.9 = research.nii.ac.jp
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 	// 「「チェックサム」フィールド：16bit幅」
-	tcp.checksum = func() uint16 {
+	tcp.Checksum = func() uint16 {
 		pseudoTCPHeader := func() []byte {
 			var buf bytes.Buffer
 			b := make([]byte, 4)
@@ -216,16 +216,16 @@ func sendHTTPget(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firs
 			buf.WriteByte(padding)
 			buf.WriteByte(ipv4.Protocol)
 			b = make([]byte, 2)
-			binary.BigEndian.PutUint16(b, uint16(len(tcp.toBytes())))
+			binary.BigEndian.PutUint16(b, uint16(len(tcp.Bytes())))
 			buf.Write(b)
 			return buf.Bytes()
 		}()
 		var forTCPChecksum bytes.Buffer
 		forTCPChecksum.Write(pseudoTCPHeader)
-		forTCPChecksum.Write(tcp.toBytes())
-		return binary.BigEndian.Uint16(tcp.checkSum(forTCPChecksum.Bytes()))
+		forTCPChecksum.Write(tcp.Bytes())
+		return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
 	}()
-	ipv4.Data = tcp.toBytes()
+	ipv4.Data = tcp.Bytes()
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
 	dst := HardwareAddr(firsthopMACAddr)

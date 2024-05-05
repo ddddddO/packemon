@@ -5,187 +5,187 @@ import (
 	"encoding/binary"
 )
 
-type tcp struct {
-	srcPort        uint16
-	dstPort        uint16
-	sequence       uint32
-	acknowledgment uint32
-	// headerLength uint8
-	headerLength  uint16
-	flags         uint16 // flagsをセットする用の関数あったほうがいいかも？
-	window        uint16
-	checksum      uint16
-	urgentPointer uint16
-	options       []byte // optionsをセットする用の関数あった方がいいかも？
+type TCP struct {
+	SrcPort        uint16
+	DstPort        uint16
+	Sequence       uint32
+	Acknowledgment uint32
+	// HeaderLength uint8
+	HeaderLength  uint16
+	Flags         uint16 // flagsをセットする用の関数あったほうがいいかも？
+	Window        uint16
+	Checksum      uint16
+	UrgentPointer uint16
+	Options       []byte // optionsをセットする用の関数あった方がいいかも？
 
-	data []byte
+	Data []byte
 }
 
 // tcpパケット単発で連続で送るときは port/sequence 変えること
-func newTCPSyn() *tcp {
-	return &tcp{
-		srcPort:        0x9e10,
-		dstPort:        0x0050, // 80
-		sequence:       0x1f6e9499,
-		acknowledgment: 0x00000000,
-		headerLength:   0x00a0,
-		flags:          0x002, // syn
-		window:         0xfaf0,
-		checksum:       0x0000,
-		urgentPointer:  0x0000,
-		options:        options(),
+func NewTCPSyn() *TCP {
+	return &TCP{
+		SrcPort:        0x9e10,
+		DstPort:        0x0050, // 80
+		Sequence:       0x1f6e9499,
+		Acknowledgment: 0x00000000,
+		HeaderLength:   0x00a0,
+		Flags:          0x002, // syn
+		Window:         0xfaf0,
+		Checksum:       0x0000,
+		UrgentPointer:  0x0000,
+		Options:        Options(),
 	}
 }
 
 // tcpパケット単発で連続で送るときは port/sequence 変えること
-func newTCPWithData(data []byte) *tcp {
-	return &tcp{
-		srcPort:        0x9e12,
-		dstPort:        0x0050, // 80
-		sequence:       0x1f6e9616,
-		acknowledgment: 0x00000000,
-		headerLength:   0x0080,
-		flags:          0x0018, // psh,ack
-		window:         0xfaf0,
-		checksum:       0x0000,
-		urgentPointer:  0x0000,
-		options:        optionsOfhttp(),
-		data:           data,
+func NewTCPWithData(data []byte) *TCP {
+	return &TCP{
+		SrcPort:        0x9e12,
+		DstPort:        0x0050, // 80
+		Sequence:       0x1f6e9616,
+		Acknowledgment: 0x00000000,
+		HeaderLength:   0x0080,
+		Flags:          0x0018, // psh,ack
+		Window:         0xfaf0,
+		Checksum:       0x0000,
+		UrgentPointer:  0x0000,
+		Options:        OptionsOfhttp(),
+		Data:           data,
 	}
 }
 
-func (*tcp) checkSum(packet []byte) []byte {
+func (*TCP) CheckSum(packet []byte) []byte {
 	return (*IPv4)(nil).Checksum(packet)
 }
 
 // https://www.infraexpert.com/study/tcpip8.html
-func (t *tcp) toBytes() []byte {
+func (t *TCP) Bytes() []byte {
 	var buf bytes.Buffer
-	buf.Write(t.headerToBytes())
-	buf.Write(t.data)
+	buf.Write(t.HeaderToBytes())
+	buf.Write(t.Data)
 
 	return buf.Bytes()
 }
 
-func (t *tcp) headerToBytes() []byte {
+func (t *TCP) HeaderToBytes() []byte {
 	var buf bytes.Buffer
 	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.srcPort)
+	binary.BigEndian.PutUint16(b, t.SrcPort)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.dstPort)
+	binary.BigEndian.PutUint16(b, t.DstPort)
 	buf.Write(b)
 
 	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.sequence)
+	binary.BigEndian.PutUint32(b, t.Sequence)
 	buf.Write(b)
 
 	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.acknowledgment)
+	binary.BigEndian.PutUint32(b, t.Acknowledgment)
 	buf.Write(b)
 
 	// t.headerLengthは、フォーマットでは「データオフセット」で4bit
 	// t.flagsは、フォーマット的には、「予約」+「コントロールフラグ」
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.headerLength<<8|t.flags)
+	binary.BigEndian.PutUint16(b, t.HeaderLength<<8|t.Flags)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.window)
+	binary.BigEndian.PutUint16(b, t.Window)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.checksum)
+	binary.BigEndian.PutUint16(b, t.Checksum)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.urgentPointer)
+	binary.BigEndian.PutUint16(b, t.UrgentPointer)
 	buf.Write(b)
 
-	buf.Write(t.options)
+	buf.Write(t.Options)
 
 	return buf.Bytes()
 }
 
-type mss struct {
-	kind   uint8
-	length uint8
-	value  uint16
+type Mss struct {
+	Kind   uint8
+	Length uint8
+	Value  uint16
 }
 
-type sackPermitted struct {
-	kind   uint8
-	length uint8
+type SackPermitted struct {
+	Kind   uint8
+	Length uint8
 }
 
-type timestamps struct {
-	kind      uint8
-	length    uint8
-	value     uint32
-	echoReply uint32
+type Timestamps struct {
+	Kind      uint8
+	Length    uint8
+	Value     uint32
+	EchoReply uint32
 }
 
-type noOperation struct {
-	kind uint8
+type NoOperation struct {
+	Kind uint8
 }
 
-type windowScale struct {
-	kind       uint8
-	length     uint8
-	shiftCount uint8
+type WindowScale struct {
+	Kind       uint8
+	Length     uint8
+	ShiftCount uint8
 }
 
 // synパケットの中を覗いて下
-func options() []byte {
+func Options() []byte {
 	var buf bytes.Buffer
 
-	m := &mss{
-		kind:   0x02,
-		length: 0x04,
-		value:  0x05b4, // 1460
+	m := &Mss{
+		Kind:   0x02,
+		Length: 0x04,
+		Value:  0x05b4, // 1460
 	}
-	buf.WriteByte(m.kind)
-	buf.WriteByte(m.length)
+	buf.WriteByte(m.Kind)
+	buf.WriteByte(m.Length)
 	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, m.value)
+	binary.BigEndian.PutUint16(b, m.Value)
 	buf.Write(b)
 
-	s := &sackPermitted{
-		kind:   0x04,
-		length: 0x02,
+	s := &SackPermitted{
+		Kind:   0x04,
+		Length: 0x02,
 	}
-	buf.WriteByte(s.kind)
-	buf.WriteByte(s.length)
+	buf.WriteByte(s.Kind)
+	buf.WriteByte(s.Length)
 
-	t := &timestamps{
-		kind:      0x08,
-		length:    0x0a,
-		value:     0x73297ad7,
-		echoReply: 0x00000000,
+	t := &Timestamps{
+		Kind:      0x08,
+		Length:    0x0a,
+		Value:     0x73297ad7,
+		EchoReply: 0x00000000,
 	}
-	buf.WriteByte(t.kind)
-	buf.WriteByte(t.length)
+	buf.WriteByte(t.Kind)
+	buf.WriteByte(t.Length)
 	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.value)
+	binary.BigEndian.PutUint32(b, t.Value)
 	buf.Write(b)
 	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.echoReply)
+	binary.BigEndian.PutUint32(b, t.EchoReply)
 	buf.Write(b)
 
-	n := &noOperation{
-		kind: 0x01,
+	n := &NoOperation{
+		Kind: 0x01,
 	}
-	buf.WriteByte(n.kind)
+	buf.WriteByte(n.Kind)
 
-	w := &windowScale{
-		kind:       0x03,
-		length:     0x03,
-		shiftCount: 0x07,
+	w := &WindowScale{
+		Kind:       0x03,
+		Length:     0x03,
+		ShiftCount: 0x07,
 	}
-	buf.WriteByte(w.kind)
-	buf.WriteByte(w.length)
-	buf.WriteByte(w.shiftCount)
+	buf.WriteByte(w.Kind)
+	buf.WriteByte(w.Length)
+	buf.WriteByte(w.ShiftCount)
 
 	return buf.Bytes()
 }
@@ -193,28 +193,28 @@ func options() []byte {
 // http getリクエスト時のtcp optionを覗いて
 // https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 // 「オプション」フィールド：32bit単位で可変長
-func optionsOfhttp() []byte {
+func OptionsOfhttp() []byte {
 	var buf bytes.Buffer
 
-	n := &noOperation{
-		kind: 0x01,
+	n := &NoOperation{
+		Kind: 0x01,
 	}
-	buf.WriteByte(n.kind)
-	buf.WriteByte(n.kind)
+	buf.WriteByte(n.Kind)
+	buf.WriteByte(n.Kind)
 
-	t := &timestamps{
-		kind:      0x08,
-		length:    0x0a,
-		value:     0x817338b5,
-		echoReply: 0x409e9657,
+	t := &Timestamps{
+		Kind:      0x08,
+		Length:    0x0a,
+		Value:     0x817338b5,
+		EchoReply: 0x409e9657,
 	}
-	buf.WriteByte(t.kind)
-	buf.WriteByte(t.length)
+	buf.WriteByte(t.Kind)
+	buf.WriteByte(t.Length)
 	b := make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.value)
+	binary.BigEndian.PutUint32(b, t.Value)
 	buf.Write(b)
 	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.echoReply)
+	binary.BigEndian.PutUint32(b, t.EchoReply)
 	buf.Write(b)
 
 	// padding := []byte{0x00, 0x00, 0x00}

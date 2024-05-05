@@ -117,9 +117,9 @@ func sendARPrequest(sock int, addr unix.SockaddrLinklayer, intf net.Interface, f
 }
 
 func sendICMPechoRequest(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
-	icmp := newICMP()
+	icmp := NewICMP()
 	ipv4 := newIPv4(IPv4_PROTO_ICMP, 0xa32b661d) // dst: 163.43.102.29 = tools.m-bsys.com
-	ipv4.data = icmp.toBytes()
+	ipv4.data = icmp.Bytes()
 	ipv4.calculateTotalLength()
 	ipv4.calculateChecksum()
 	dst := HardwareAddr(firsthopMACAddr)

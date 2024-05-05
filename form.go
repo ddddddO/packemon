@@ -71,7 +71,7 @@ func form(sendFn func(*EthernetFrame) error) error {
 	return nil
 }
 
-func defaultPackets() (*EthernetHeader, *ARP, *ipv4, *icmp, error) {
+func defaultPackets() (*EthernetHeader, *ARP, *ipv4, *ICMP, error) {
 	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -88,11 +88,11 @@ func defaultPackets() (*EthernetHeader, *ARP, *ipv4, *icmp, error) {
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	icmp := &icmp{
-		typ:        icmpType,
-		code:       icmpCode,
-		identifier: binary.BigEndian.Uint16(icmpIdentifier),
-		sequence:   binary.BigEndian.Uint16(icmpSequence),
+	icmp := &ICMP{
+		Typ:        icmpType,
+		Code:       icmpCode,
+		Identifier: binary.BigEndian.Uint16(icmpIdentifier),
+		Sequence:   binary.BigEndian.Uint16(icmpSequence),
 	}
 
 	ip, err := strIPToBytes(DEFAULT_IP_SOURCE)
@@ -228,7 +228,7 @@ func strIPToBytes(s string) ([]byte, error) {
 	return b, nil
 }
 
-func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, ipv4 *ipv4, icmp *icmp) *tview.Form {
+func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, ipv4 *ipv4, icmp *ICMP) *tview.Form {
 	icmpForm := tview.NewForm().
 		AddTextView("ICMP", "This section generates the ICMP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Type(hex)", DEFAULT_ICMP_TYPE, 4, func(textToCheck string, lastChar rune) bool {
@@ -242,7 +242,7 @@ func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 			if err != nil {
 				return false
 			}
-			icmp.typ = uint8(b)
+			icmp.Typ = uint8(b)
 
 			return true
 		}, nil).
@@ -257,7 +257,7 @@ func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 			if err != nil {
 				return false
 			}
-			icmp.code = uint8(b)
+			icmp.Code = uint8(b)
 
 			return true
 		}, nil).
@@ -272,7 +272,7 @@ func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 			if err != nil {
 				return false
 			}
-			icmp.identifier = binary.BigEndian.Uint16(b)
+			icmp.Identifier = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -287,26 +287,26 @@ func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 			if err != nil {
 				return false
 			}
-			icmp.sequence = binary.BigEndian.Uint16(b)
+			icmp.Sequence = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
 		AddButton("Send!", func() {
 			// TODO: timestamp関数化
-			icmp.data = func() []byte {
+			icmp.Data = func() []byte {
 				now := time.Now().Unix()
 				b := make([]byte, 4)
 				binary.LittleEndian.PutUint32(b, uint32(now))
 				return binary.LittleEndian.AppendUint32(b, 0x00000000)
 			}()
 			// 前回Send分が残ってると計算誤るため
-			icmp.checksum = 0x0
-			icmp.checksum = func() uint16 {
+			icmp.Checksum = 0x0
+			icmp.Checksum = func() uint16 {
 				b := make([]byte, 2)
-				binary.LittleEndian.PutUint16(b, icmp.calculateChecksum())
+				binary.LittleEndian.PutUint16(b, icmp.CalculateChecksum())
 				return binary.BigEndian.Uint16(b)
 			}()
-			ipv4.data = icmp.toBytes()
+			ipv4.data = icmp.Bytes()
 			ipv4.calculateTotalLength()
 			// 前回Send分が残ってると計算誤るため
 			ipv4.headerChecksum = 0x0

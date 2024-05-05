@@ -1,41 +1,28 @@
-package main
+package packemon
 
 import (
 	"bytes"
 	"encoding/binary"
-	"flag"
-	"fmt"
 	"net"
+	"strconv"
 	"strings"
 
-	"github.com/rivo/tview"
 	"golang.org/x/sys/unix"
 )
 
-func main() {
-	var wantSend bool
-	flag.BoolVar(&wantSend, "send", false, "Send packet")
-	var protocol string
-	flag.StringVar(&protocol, "proto", "", "Specify either 'arp', 'icmp', 'tcp', 'dns' or 'http'.")
-	flag.Parse()
+type NetworkInterface struct {
+	Intf       net.Interface
+	Socket     int // file discripter
+	SocketAddr unix.SockaddrLinklayer
+	IPAdder    string // refactor
 
-	if err := run(wantSend, protocol); err != nil {
-		panic(err)
-	}
+	PassiveCh chan Passive
 }
 
-// TODO:
-// - 以下グローバルなところ何とかしたい
-// - 外部ライブラリへの依存は局所的にしたい
-var (
-	globalTviewApp  *tview.Application
-	globalTviewGrid *tview.Grid
-)
-
-func run(wantSend bool, protocol string) error {
+func NewNetworkInterface() (*NetworkInterface, error) {
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var intf net.Interface
@@ -44,23 +31,16 @@ func run(wantSend bool, protocol string) error {
 			intf = interfaces[i]
 		}
 	}
-	DEFAULT_MAC_DESTINATION = fmt.Sprintf("0x%s", strings.ReplaceAll(intf.HardwareAddr.String(), ":", ""))
-	DEFAULT_MAC_SOURCE = DEFAULT_MAC_DESTINATION
-	DEFAULT_ARP_SENDER_MAC = DEFAULT_MAC_SOURCE
 
-	fmt.Printf("Monitor interface: %v\n", intf)
-	ipAddr, err := intf.Addrs()
+	ipAddrs, err := intf.Addrs()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	DEFAULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
-	DEFAULT_IP_DESTINATION = DEFAULT_IP_SOURCE
-	DEFAULT_ARP_SENDER_IP = DEFAULT_IP_SOURCE
-	DEFAULT_ARP_TARGET_IP = DEFAULT_ARP_SENDER_IP
+	ipAddr := strings.Split(ipAddrs[0].String(), "/")[0]
 
 	sock, err := unix.Socket(unix.AF_PACKET, unix.SOCK_RAW, int(hton(unix.ETH_P_ALL)))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	addr := unix.SockaddrLinklayer{
@@ -69,66 +49,45 @@ func run(wantSend bool, protocol string) error {
 	}
 
 	if err := unix.Bind(sock, &addr); err != nil {
-		return err
+		return nil, err
 	}
 
-	// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
-	// $ ip route
-	// $ arp xxx.xx.xxx.1
-	firsthopMACAddr := [6]byte{0x01, 0x00, 0x5e, 0x7f, 0xff, 0xfa}
+	return &NetworkInterface{
+		Intf:       intf,
+		Socket:     sock,
+		SocketAddr: addr,
+		IPAdder:    ipAddr,
 
-	if wantSend {
-		switch protocol {
-		case "arp":
-			return sendARPrequest(sock, addr, intf, firsthopMACAddr)
-		case "icmp":
-			return sendICMPechoRequest(sock, addr, intf, firsthopMACAddr)
-		case "tcp":
-			return sendTCPsyn(sock, addr, intf, firsthopMACAddr)
-		case "dns":
-			return sendDNSquery(sock, addr, intf, firsthopMACAddr)
-		case "http":
-			return sendHTTPget(sock, addr, intf, firsthopMACAddr)
-		default:
-			return form(sendForForm(sock, addr)) // Form のアクションで 送信した方が良さそうなのでこの形
-		}
-	} else {
-		globalTviewGrid = tview.NewGrid()
-		globalTviewGrid.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon ")
-		globalTviewApp = tview.NewApplication()
-		viewersCh := make(chan []viewer, 10)
-
-		go updateView(viewersCh)
-		go recieve(sock, intf, viewersCh)
-		return globalTviewApp.SetRoot(globalTviewGrid, true).Run()
-	}
+		PassiveCh: make(chan Passive, 10),
+	}, nil
 }
 
 func hton(i uint16) uint16 {
 	return (i<<8)&0xff00 | i>>8
 }
 
-func sendARPrequest(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
+// TODO: この辺りのsendXxxは、debugのためにあるからinternal/debugとか掘ってそこに置いとくのがいいかも
+func (nw *NetworkInterface) SendARPrequest(firsthopMACAddr [6]byte) error {
 	arp := NewARP()
 	dst := HardwareAddr(firsthopMACAddr)
-	src := HardwareAddr(intf.HardwareAddr)
+	src := HardwareAddr(nw.Intf.HardwareAddr)
 	ethernetFrame := NewEthernetFrame(dst, src, ETHER_TYPE_ARP, arp.Bytes())
-	return send(ethernetFrame, sock, addr)
+	return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
 }
 
-func sendICMPechoRequest(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
+func (nw *NetworkInterface) SendICMPechoRequest(firsthopMACAddr [6]byte) error {
 	icmp := NewICMP()
 	ipv4 := NewIPv4(IPv4_PROTO_ICMP, 0xa32b661d) // dst: 163.43.102.29 = tools.m-bsys.com
 	ipv4.Data = icmp.Bytes()
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
 	dst := HardwareAddr(firsthopMACAddr)
-	src := HardwareAddr(intf.HardwareAddr)
+	src := HardwareAddr(nw.Intf.HardwareAddr)
 	ethernetFrame := NewEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.Bytes())
-	return send(ethernetFrame, sock, addr)
+	return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
 }
 
-func sendDNSquery(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
+func (nw *NetworkInterface) SendDNSquery(firsthopMACAddr [6]byte) error {
 	dns := &DNS{
 		TransactionID: 0x1234,
 		Flags:         0x0100, // standard query
@@ -156,12 +115,12 @@ func sendDNSquery(sock int, addr unix.SockaddrLinklayer, intf net.Interface, fir
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
 	dst := HardwareAddr(firsthopMACAddr)
-	src := HardwareAddr(intf.HardwareAddr)
+	src := HardwareAddr(nw.Intf.HardwareAddr)
 	ethernetFrame := NewEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.Bytes())
-	return send(ethernetFrame, sock, addr)
+	return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
 }
 
-func sendTCPsyn(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
+func (nw *NetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 	tcp := NewTCPSyn()
 	ipv4 := NewIPv4(IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
@@ -192,12 +151,12 @@ func sendTCPsyn(sock int, addr unix.SockaddrLinklayer, intf net.Interface, first
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
 	dst := HardwareAddr(firsthopMACAddr)
-	src := HardwareAddr(intf.HardwareAddr)
+	src := HardwareAddr(nw.Intf.HardwareAddr)
 	ethernetFrame := NewEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.Bytes())
-	return send(ethernetFrame, sock, addr)
+	return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
 }
 
-func sendHTTPget(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
+func (nw *NetworkInterface) SendHTTPget(firsthopMACAddr [6]byte) error {
 	http := NewHTTP()
 	tcp := NewTCPWithData(http.Bytes())
 	ipv4 := NewIPv4(IPv4_PROTO_TCP, 0x88bb0609) // 136.187.6.9 = research.nii.ac.jp
@@ -229,22 +188,33 @@ func sendHTTPget(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firs
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
 	dst := HardwareAddr(firsthopMACAddr)
-	src := HardwareAddr(intf.HardwareAddr)
+	src := HardwareAddr(nw.Intf.HardwareAddr)
 	ethernetFrame := NewEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.Bytes())
-	return send(ethernetFrame, sock, addr)
+	return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
 }
 
-func sendForForm(sock int, addr unix.SockaddrLinklayer) func(*EthernetFrame) error {
+func (nw *NetworkInterface) SendForForm() func(*EthernetFrame) error {
 	return func(ethernetFrame *EthernetFrame) error {
-		return send(ethernetFrame, sock, addr)
+		return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
 	}
 }
 
-func send(ethernetFrame *EthernetFrame, sock int, addr unix.SockaddrLinklayer) error {
+func (nw *NetworkInterface) Send(ethernetFrame *EthernetFrame, sock int, addr unix.SockaddrLinklayer) error {
 	return unix.Sendto(sock, ethernetFrame.Bytes(), 0, &addr)
 }
 
-func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
+type Passive struct {
+	http          *HTTP
+	DNS           *DNS
+	TCP           *TCP
+	UDP           *UDP
+	ICMP          *ICMP
+	ARP           *ARP
+	IPv4          *IPv4
+	EthernetFrame *EthernetFrame
+}
+
+func (nw *NetworkInterface) Recieve() error {
 	epollfd, err := unix.EpollCreate1(0)
 	if err != nil {
 		return err
@@ -253,10 +223,10 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 	if err := unix.EpollCtl(
 		epollfd,
 		unix.EPOLL_CTL_ADD,
-		sock,
+		nw.Socket,
 		&unix.EpollEvent{
 			Events: unix.EPOLLIN,
-			Fd:     int32(sock),
+			Fd:     int32(nw.Socket),
 		},
 	); err != nil {
 		return err
@@ -270,9 +240,9 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 		}
 
 		for i := 0; i < fds; i++ {
-			if events[i].Fd == int32(sock) {
+			if events[i].Fd == int32(nw.Socket) {
 				recieved := make([]byte, 1500)
-				n, _, err := unix.Recvfrom(sock, recieved, 0)
+				n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
 				if err != nil {
 					if n == -1 {
 						continue
@@ -294,7 +264,7 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 				switch recievedEthernetFrame.Header.Typ {
 				case ETHER_TYPE_ARP:
 					switch recievedEthernetFrame.Header.Dst {
-					case HardwareAddr(intf.HardwareAddr), HARDWAREADDR_BROADCAST:
+					case HardwareAddr(nw.Intf.HardwareAddr), HARDWAREADDR_BROADCAST:
 						arp := &ARP{
 							HardwareType:       [2]uint8(recievedEthernetFrame.Data[0:2]),
 							ProtocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.Data[2:4]),
@@ -309,11 +279,14 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 							TargetIPAddr:       [4]uint8(recievedEthernetFrame.Data[24:28]),
 						}
 
-						viewersCh <- []viewer{recievedEthernetFrame, arp}
+						nw.PassiveCh <- Passive{
+							EthernetFrame: recievedEthernetFrame,
+							ARP:           arp,
+						}
 					}
 				case ETHER_TYPE_IPv4:
 					switch recievedEthernetFrame.Header.Dst {
-					case HardwareAddr(intf.HardwareAddr), HARDWAREADDR_BROADCAST:
+					case HardwareAddr(nw.Intf.HardwareAddr), HARDWAREADDR_BROADCAST:
 						ipv4 := &IPv4{
 							Version:        recievedEthernetFrame.Data[0] >> 4,
 							Ihl:            recievedEthernetFrame.Data[0] << 4 >> 4,
@@ -329,13 +302,16 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 							DstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[16:20]),
 						}
 
-						ipOfEth0, err := strIPToBytes(DEFAULT_IP_SOURCE)
+						ipOfEth0, err := strIPToBytes(nw.IPAdder)
 						if err != nil {
 							return err
 						}
 						switch ipv4.DstAddr {
 						case binary.BigEndian.Uint32(ipOfEth0):
-							viewersCh <- []viewer{recievedEthernetFrame, ipv4}
+							nw.PassiveCh <- Passive{
+								EthernetFrame: recievedEthernetFrame,
+								IPv4:          ipv4,
+							}
 						}
 					}
 				}
@@ -344,4 +320,21 @@ func recieve(sock int, intf net.Interface, viewersCh chan<- []viewer) error {
 	}
 
 	return nil
+}
+
+func strIPToBytes(s string) ([]byte, error) {
+	b := make([]byte, 4)
+	src := strings.Split(s, ".")
+
+	for i := range src {
+		if len(src[i]) == 0 {
+			continue
+		}
+		ip, err := strconv.ParseUint(src[i], 10, 8)
+		if err != nil {
+			return nil, err
+		}
+		b[i] = byte(ip)
+	}
+	return b, nil
 }

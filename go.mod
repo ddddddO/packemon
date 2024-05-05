@@ -1,4 +1,4 @@
-module github.com/ddddddO/packetmon
+module github.com/ddddddO/packemon
 
 go 1.22.0
 

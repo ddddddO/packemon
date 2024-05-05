@@ -1,4 +1,4 @@
-package main
+package tui
 
 import (
 	"encoding/binary"
@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
 )
 
@@ -40,38 +41,31 @@ var (
 
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
 // とすると、高レイヤーの入力から埋めて進めていくようにしないといけなさそう. ユーザーが選べるようにするのがいいかも
-func form(sendFn func(*EthernetFrame) error) error {
-	app := tview.NewApplication()
-	pages := tview.NewPages()
-	pages.Box = tview.NewBox().SetTitle(" Packemon [Make & Send packet] ").SetBorder(true)
+func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 	ethernetHeader, arp, ipv4, icmp, err := defaultPackets()
 	if err != nil {
 		return err
 	}
 
-	icmpForm := icmpForm(app, pages, sendFn, ethernetHeader, ipv4, icmp)
+	icmpForm := t.icmpForm(sendFn, ethernetHeader, ipv4, icmp)
 	icmpForm.SetBorder(true).SetTitle(" ICMP ").SetTitleAlign(tview.AlignLeft)
-	ipv4Form := ipv4Form(app, pages, sendFn, ethernetHeader, ipv4)
+	ipv4Form := t.ipv4Form(sendFn, ethernetHeader, ipv4)
 	ipv4Form.SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
-	arpForm := arpForm(app, pages, sendFn, ethernetHeader, arp)
+	arpForm := t.arpForm(sendFn, ethernetHeader, arp)
 	arpForm.SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft)
-	ethernetForm := ethernetForm(app, pages, sendFn, ethernetHeader)
+	ethernetForm := t.ethernetForm(sendFn, ethernetHeader)
 	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 
-	pages.
+	t.pages.
 		AddPage("ICMP", icmpForm, true, true).
 		AddPage("ARP", arpForm, true, true).
 		AddPage("IPv4", ipv4Form, true, true).
 		AddPage("Ethernet", ethernetForm, true, true)
 
-	if err := app.SetRoot(pages, true).EnableMouse(true).Run(); err != nil {
-		return err
-	}
-
 	return nil
 }
 
-func defaultPackets() (*EthernetHeader, *ARP, *IPv4, *ICMP, error) {
+func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, *packemon.ICMP, error) {
 	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -88,19 +82,19 @@ func defaultPackets() (*EthernetHeader, *ARP, *IPv4, *ICMP, error) {
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	icmp := &ICMP{
+	icmp := &packemon.ICMP{
 		Typ:        icmpType,
 		Code:       icmpCode,
 		Identifier: binary.BigEndian.Uint16(icmpIdentifier),
 		Sequence:   binary.BigEndian.Uint16(icmpSequence),
 	}
 
-	ip, err := strIPToBytes(DEFAULT_IP_SOURCE)
+	ip, err := StrIPToBytes(DEFAULT_IP_SOURCE)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	ipv4 := &IPv4{
+	ipv4 := &packemon.IPv4{
 		Version:        0x04,
 		Ihl:            0x05,
 		Tos:            0x00,
@@ -109,7 +103,7 @@ func defaultPackets() (*EthernetHeader, *ARP, *IPv4, *ICMP, error) {
 		Flags:          0x40,
 		FragmentOffset: 0x0,
 		Ttl:            0x80,
-		Protocol:       IPv4_PROTO_ICMP,
+		Protocol:       packemon.IPv4_PROTO_ICMP,
 		HeaderChecksum: 0,
 		SrcAddr:        binary.BigEndian.Uint32(ip),
 		DstAddr:        binary.BigEndian.Uint32(ip),
@@ -139,7 +133,7 @@ func defaultPackets() (*EthernetHeader, *ARP, *IPv4, *ICMP, error) {
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	senderIP, err := strIPToBytes(DEFAULT_ARP_SENDER_IP)
+	senderIP, err := StrIPToBytes(DEFAULT_ARP_SENDER_IP)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -147,12 +141,12 @@ func defaultPackets() (*EthernetHeader, *ARP, *IPv4, *ICMP, error) {
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	targetIP, err := strIPToBytes(DEFAULT_ARP_TARGET_IP)
+	targetIP, err := StrIPToBytes(DEFAULT_ARP_TARGET_IP)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	arp := &ARP{
+	arp := &packemon.ARP{
 		HardwareType:       [2]byte(hardwareType),
 		ProtocolType:       binary.BigEndian.Uint16(protocolType),
 		HardwareAddrLength: hardwareSize,
@@ -170,10 +164,10 @@ func defaultPackets() (*EthernetHeader, *ARP, *IPv4, *ICMP, error) {
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	ethernetHeader := &EthernetHeader{
-		Dst: HardwareAddr(mac),
-		Src: HardwareAddr(mac),
-		Typ: ETHER_TYPE_IPv4,
+	ethernetHeader := &packemon.EthernetHeader{
+		Dst: packemon.HardwareAddr(mac),
+		Src: packemon.HardwareAddr(mac),
+		Typ: packemon.ETHER_TYPE_IPv4,
 	}
 
 	return ethernetHeader, arp, ipv4, icmp, nil
@@ -211,7 +205,7 @@ func strHexToUint8(s string) (uint8, error) {
 	return uint8(n), nil
 }
 
-func strIPToBytes(s string) ([]byte, error) {
+func StrIPToBytes(s string) ([]byte, error) {
 	b := make([]byte, 4)
 	src := strings.Split(s, ".")
 
@@ -228,7 +222,7 @@ func strIPToBytes(s string) ([]byte, error) {
 	return b, nil
 }
 
-func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, ipv4 *IPv4, icmp *ICMP) *tview.Form {
+func (t *tui) icmpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, icmp *packemon.ICMP) *tview.Form {
 	icmpForm := tview.NewForm().
 		AddTextView("ICMP", "This section generates the ICMP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Type(hex)", DEFAULT_ICMP_TYPE, 4, func(textToCheck string, lastChar rune) bool {
@@ -311,25 +305,25 @@ func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 			// 前回Send分が残ってると計算誤るため
 			ipv4.HeaderChecksum = 0x0
 			ipv4.CalculateChecksum()
-			ethernetFrame := &EthernetFrame{
+			ethernetFrame := &packemon.EthernetFrame{
 				Header: ethernetHeader,
 				Data:   ipv4.Bytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
-				app.Stop()
+				t.app.Stop()
 			}
 		}).
 		AddButton("Prev", func() {
-			pages.SwitchToPage("IPv4")
+			t.pages.SwitchToPage("IPv4")
 		}).
 		AddButton("Quit", func() {
-			app.Stop()
+			t.app.Stop()
 		})
 
 	return icmpForm
 }
 
-func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, ipv4 *IPv4) *tview.Form {
+func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4) *tview.Form {
 	ipv4Form := tview.NewForm().
 		AddTextView("IPv4 Header", "This section generates the IPv4 header.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Version(hex)", "0x04", 4, func(textToCheck string, lastChar rune) bool {
@@ -350,9 +344,9 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 		AddDropDown("Protocol", []string{"ICMP", "UDP"}, 0, func(selected string, _ int) {
 			switch selected {
 			case "ICMP":
-				ipv4.Protocol = IPv4_PROTO_ICMP
+				ipv4.Protocol = packemon.IPv4_PROTO_ICMP
 			case "UDP":
-				ipv4.Protocol = IPv4_PROTO_UDP
+				ipv4.Protocol = packemon.IPv4_PROTO_UDP
 			}
 		}).
 		AddInputField("Source IP Addr", DEFAULT_IP_SOURCE, 15, func(textToCheck string, lastChar rune) bool {
@@ -360,7 +354,7 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 			if count < 3 {
 				return true
 			} else if count == 3 {
-				ip, err := strIPToBytes(textToCheck)
+				ip, err := StrIPToBytes(textToCheck)
 				if err != nil {
 					return false
 				}
@@ -375,7 +369,7 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 			if count < 3 {
 				return true
 			} else if count == 3 {
-				ip, err := strIPToBytes(textToCheck)
+				ip, err := StrIPToBytes(textToCheck)
 				if err != nil {
 					return false
 				}
@@ -386,34 +380,34 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 			return false
 		}, nil).
 		AddButton("Send!", func() {
-			ethernetFrame := &EthernetFrame{
+			ethernetFrame := &packemon.EthernetFrame{
 				Header: ethernetHeader,
 				Data:   ipv4.Bytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
-				app.Stop()
+				t.app.Stop()
 			}
 		}).
 		AddButton("Next", func() {
 			switch ipv4.Protocol {
-			case IPv4_PROTO_ICMP:
-				pages.SwitchToPage("ICMP")
-			case IPv4_PROTO_UDP:
+			case packemon.IPv4_PROTO_ICMP:
+				t.pages.SwitchToPage("ICMP")
+			case packemon.IPv4_PROTO_UDP:
 				// TODO:
 				// pages.SwitchToPage("UDP")
 			}
 		}).
 		AddButton("Prev", func() {
-			pages.SwitchToPage("Ethernet")
+			t.pages.SwitchToPage("Ethernet")
 		}).
 		AddButton("Quit", func() {
-			app.Stop()
+			t.app.Stop()
 		})
 
 	return ipv4Form
 }
 
-func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, arp *ARP) *tview.Form {
+func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, arp *packemon.ARP) *tview.Form {
 	arpForm := tview.NewForm().
 		AddTextView("ARP", "This section generates the ARP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Hardware Type(hex)", DEFAULT_ARP_HARDWARE_TYPE, 6, func(textToCheck string, lastChar rune) bool {
@@ -502,7 +496,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFr
 			if err != nil {
 				return false
 			}
-			arp.SenderHardwareAddr = HardwareAddr(b)
+			arp.SenderHardwareAddr = packemon.HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -511,7 +505,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFr
 			if count < 3 {
 				return true
 			} else if count == 3 {
-				ip, err := strIPToBytes(textToCheck)
+				ip, err := StrIPToBytes(textToCheck)
 				if err != nil {
 					return false
 				}
@@ -533,7 +527,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFr
 			if err != nil {
 				return false
 			}
-			arp.TargetHardwareAddr = HardwareAddr(b)
+			arp.TargetHardwareAddr = packemon.HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -542,7 +536,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFr
 			if count < 3 {
 				return true
 			} else if count == 3 {
-				ip, err := strIPToBytes(textToCheck)
+				ip, err := StrIPToBytes(textToCheck)
 				if err != nil {
 					return false
 				}
@@ -554,25 +548,25 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFr
 			return false
 		}, nil).
 		AddButton("Send!", func() {
-			ethernetFrame := &EthernetFrame{
+			ethernetFrame := &packemon.EthernetFrame{
 				Header: ethernetHeader,
 				Data:   arp.Bytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
-				app.Stop()
+				t.app.Stop()
 			}
 		}).
 		AddButton("Prev", func() {
-			pages.SwitchToPage("Ethernet")
+			t.pages.SwitchToPage("Ethernet")
 		}).
 		AddButton("Quit", func() {
-			app.Stop()
+			t.app.Stop()
 		})
 
 	return arpForm
 }
 
-func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader) *tview.Form {
+func (t *tui) ethernetForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader) *tview.Form {
 	ethernetForm := tview.NewForm().
 		AddTextView("Ethernet Header", "This section generates the Ethernet header.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 14, func(textToCheck string, lastChar rune) bool {
@@ -586,7 +580,7 @@ func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*Ether
 			if err != nil {
 				return false
 			}
-			ethernetHeader.Dst = HardwareAddr(b)
+			ethernetHeader.Dst = packemon.HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -601,7 +595,7 @@ func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*Ether
 			if err != nil {
 				return false
 			}
-			ethernetHeader.Src = HardwareAddr(b)
+			ethernetHeader.Src = packemon.HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -609,30 +603,30 @@ func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*Ether
 		AddDropDown("Ether Type", []string{"IPv4", "ARP"}, 0, func(selected string, _ int) {
 			switch selected {
 			case "IPv4":
-				ethernetHeader.Typ = ETHER_TYPE_IPv4
+				ethernetHeader.Typ = packemon.ETHER_TYPE_IPv4
 			case "ARP":
-				ethernetHeader.Typ = ETHER_TYPE_ARP
+				ethernetHeader.Typ = packemon.ETHER_TYPE_ARP
 			}
 		}).
 		AddButton("Send!", func() {
-			ethernetFrame := &EthernetFrame{
+			ethernetFrame := &packemon.EthernetFrame{
 				Header: ethernetHeader,
 				// data: 専用の口用意してユーザー自身の任意のフレームを送れるようにする？,
 			}
 			if err := sendFn(ethernetFrame); err != nil {
-				app.Stop()
+				t.app.Stop()
 			}
 		}).
 		AddButton("Next", func() {
 			switch ethernetHeader.Typ {
-			case ETHER_TYPE_IPv4:
-				pages.SwitchToPage("IPv4")
-			case ETHER_TYPE_ARP:
-				pages.SwitchToPage("ARP")
+			case packemon.ETHER_TYPE_IPv4:
+				t.pages.SwitchToPage("IPv4")
+			case packemon.ETHER_TYPE_ARP:
+				t.pages.SwitchToPage("ARP")
 			}
 		}).
 		AddButton("Quit", func() {
-			app.Stop()
+			t.app.Stop()
 		})
 
 	return ethernetForm

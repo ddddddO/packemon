@@ -36,16 +36,22 @@ var (
 	DEFAULT_ICMP_CODE       = "0x00"
 	DEFAULT_ICMP_IDENTIFIER = "0x34a1"
 	DEFAULT_ICMP_SEQUENCE   = "0x0001"
+
+	DEFAULT_UDP_PORT_SOURCE      = "12345"
+	DEFAULT_UDP_PORT_DESTINATION = "53"
+	DEFAULT_UDP_LENGTH           = "0x0030"
 )
 
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
 // とすると、高レイヤーの入力から埋めて進めていくようにしないといけなさそう. ユーザーが選べるようにするのがいいかも
 func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
-	ethernetHeader, arp, ipv4, icmp, err := defaultPackets()
+	ethernetHeader, arp, ipv4, icmp, udp, err := defaultPackets()
 	if err != nil {
 		return err
 	}
 
+	udpForm := t.udpForm(sendFn, ethernetHeader, ipv4, udp)
+	udpForm.SetBorder(true).SetTitle(" UDP ").SetTitleAlign(tview.AlignLeft)
 	icmpForm := t.icmpForm(sendFn, ethernetHeader, ipv4, icmp)
 	icmpForm.SetBorder(true).SetTitle(" ICMP ").SetTitleAlign(tview.AlignLeft)
 	ipv4Form := t.ipv4Form(sendFn, ethernetHeader, ipv4)
@@ -56,14 +62,15 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 
 	t.pages.
+		AddPage("UDP", udpForm, true, true).
 		AddPage("ICMP", icmpForm, true, true).
 		AddPage("ARP", arpForm, true, true).
 		AddPage("IPv4", ipv4Form, true, true).
 		AddPage("Ethernet", ethernetForm, true, true)
 
 	t.list.
-		AddItem("ICMP", "", '1', func() {
-			t.pages.SwitchToPage("ICMP")
+		AddItem("Ethernet", "", '1', func() {
+			t.pages.SwitchToPage("Ethernet")
 			t.app.SetFocus(t.pages)
 		}).
 		AddItem("IPv4", "", '2', func() {
@@ -74,8 +81,12 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 			t.pages.SwitchToPage("ARP")
 			t.app.SetFocus(t.pages)
 		}).
-		AddItem("Ethernet", "", '4', func() {
-			t.pages.SwitchToPage("Ethernet")
+		AddItem("ICMP", "", '4', func() {
+			t.pages.SwitchToPage("ICMP")
+			t.app.SetFocus(t.pages)
+		}).
+		AddItem("UDP", "", '5', func() {
+			t.pages.SwitchToPage("UDP")
 			t.app.SetFocus(t.pages)
 		})
 
@@ -94,22 +105,40 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 	return nil
 }
 
-func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, *packemon.ICMP, error) {
+func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, *packemon.ICMP, *packemon.UDP, error) {
+	udpSrcPort, err := strIntToUint16(DEFAULT_UDP_PORT_SOURCE)
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+	udpDstPort, err := strIntToUint16(DEFAULT_UDP_PORT_DESTINATION)
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+	udpLength, err := strHexToBytes2(DEFAULT_UDP_LENGTH)
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+	udp := &packemon.UDP{
+		SrcPort: udpSrcPort,
+		DstPort: udpDstPort,
+		Length:  binary.BigEndian.Uint16(udpLength),
+	}
+
 	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	icmpCode, err := strHexToUint8(DEFAULT_ICMP_CODE)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	icmpIdentifier, err := strHexToBytes2(DEFAULT_ICMP_IDENTIFIER)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	icmpSequence, err := strHexToBytes2(DEFAULT_ICMP_SEQUENCE)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	icmp := &packemon.ICMP{
 		Typ:        icmpType,
@@ -120,7 +149,7 @@ func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, 
 
 	ip, err := strIPToBytes(DEFAULT_IP_SOURCE)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	ipv4 := &packemon.IPv4{
@@ -140,39 +169,39 @@ func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, 
 
 	hardwareType, err := strHexToBytes2(DEFAULT_ARP_HARDWARE_TYPE)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	protocolType, err := strHexToBytes2(DEFAULT_ARP_PROTOCOL_TYPE)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	hardwareSize, err := strHexToUint8(DEFAULT_ARP_HARDWARE_SIZE)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	protocolSize, err := strHexToUint8(DEFAULT_ARP_PROTOCOL_SIZE)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	operation, err := strHexToBytes2(DEFAULT_ARP_OPERATION)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	senderMac, err := strHexToBytes(DEFAULT_ARP_SENDER_MAC)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	senderIP, err := strIPToBytes(DEFAULT_ARP_SENDER_IP)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	targetMac, err := strHexToBytes(DEFAULT_ARP_TARGET_MAC)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	targetIP, err := strIPToBytes(DEFAULT_ARP_TARGET_IP)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	arp := &packemon.ARP{
@@ -191,7 +220,7 @@ func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, 
 
 	mac, err := strHexToBytes(DEFAULT_MAC_SOURCE)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	ethernetHeader := &packemon.EthernetHeader{
 		Dst: packemon.HardwareAddr(mac),
@@ -199,7 +228,7 @@ func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, 
 		Typ: packemon.ETHER_TYPE_IPv4,
 	}
 
-	return ethernetHeader, arp, ipv4, icmp, nil
+	return ethernetHeader, arp, ipv4, icmp, udp, nil
 }
 
 // TODO: rename or refactor
@@ -224,6 +253,14 @@ func strHexToBytes2(s string) ([]byte, error) {
 	buf := make([]byte, 2)
 	binary.BigEndian.PutUint16(buf, uint16(n))
 	return buf, nil
+}
+
+func strIntToUint16(s string) (uint16, error) {
+	n, err := strconv.ParseUint(s, 0, 16)
+	if err != nil {
+		return 0, err
+	}
+	return uint16(n), nil
 }
 
 func strHexToUint8(s string) (uint8, error) {

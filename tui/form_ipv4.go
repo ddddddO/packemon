@@ -84,8 +84,7 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 			case packemon.IPv4_PROTO_ICMP:
 				t.pages.SwitchToPage("ICMP")
 			case packemon.IPv4_PROTO_UDP:
-				// TODO:
-				// pages.SwitchToPage("UDP")
+				t.pages.SwitchToPage("UDP")
 			}
 		}).
 		AddButton("Quit", func() {

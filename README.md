@@ -1,6 +1,6 @@
 # Packémon
 
-Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ)）<br>
+Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ) <br>
 
 TUI tool and Go library for monitoring packets on specific network interfaces and sending packets of arbitrary input.
 

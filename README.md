@@ -1,8 +1,8 @@
 # Packémon
 
-Packet moniter, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ)）<br>
+Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ)）<br>
 
-TUI tool for monitoring packets on specific network interfaces and sending packets of arbitrary input.
+TUI tool and Go library for monitoring packets on specific network interfaces and sending packets of arbitrary input.
 
 
 - 開発途上で気長にやる予定

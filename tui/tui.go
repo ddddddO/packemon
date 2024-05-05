@@ -49,6 +49,5 @@ func (t *tui) Generator(sendFn func(*packemon.EthernetFrame) error) error {
 	if err := t.form(sendFn); err != nil {
 		return err
 	}
-	// return t.app.SetRoot(t.pages, true).EnableMouse(true).Run()
-	return t.app.SetRoot(t.grid, true).SetFocus(t.grid).Run()
+	return t.app.SetRoot(t.grid, true).EnableMouse(true).SetFocus(t.grid).Run()
 }

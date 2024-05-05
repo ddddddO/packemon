@@ -21,7 +21,7 @@ This TUI tool has two major functions: packet generation and packet monitoring.
   - [x] Ethernet
   - [x] ARP
   - [ ] IPv4 (WIP)
-  - [x] ICMP
+  - [ ] ICMP (WIP)
   - [ ] TCP (WIP)
   - [ ] UDP (WIP)
   - [ ] DNS (WIP)

@@ -198,8 +198,8 @@ func sendTCPsyn(sock int, addr unix.SockaddrLinklayer, intf net.Interface, first
 }
 
 func sendHTTPget(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
-	http := newHTTP()
-	tcp := newTCPWithData(http.toBytes())
+	http := NewHTTP()
+	tcp := newTCPWithData(http.Bytes())
 	ipv4 := newIPv4(IPv4_PROTO_TCP, 0x88bb0609) // 136.187.6.9 = research.nii.ac.jp
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 	// 「「チェックサム」フィールド：16bit幅」

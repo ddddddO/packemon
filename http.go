@@ -5,35 +5,35 @@ import (
 	"fmt"
 )
 
-type http struct {
-	method    string
-	uri       string
-	version   string
-	host      string
-	userAgent string
-	accept    string
+type HTTP struct {
+	Method    string
+	Uri       string
+	Version   string
+	Host      string
+	UserAgent string
+	Accept    string
 
-	body string
+	Body string
 }
 
-func newHTTP() *http {
-	return &http{
-		method:    "GET",
-		uri:       "/",
-		version:   "HTTP/1.1",
-		host:      "tools.m-bsys.com",
-		userAgent: "packemon",
-		accept:    "*/*",
+func NewHTTP() *HTTP {
+	return &HTTP{
+		Method:    "GET",
+		Uri:       "/",
+		Version:   "HTTP/1.1",
+		Host:      "tools.m-bsys.com",
+		UserAgent: "packemon",
+		Accept:    "*/*",
 	}
 }
 
-func (h *http) toBytes() []byte {
+func (h *HTTP) Bytes() []byte {
 	var buf bytes.Buffer
-	line := fmt.Sprintf("%s %s %s\r\n", h.method, h.uri, h.version)
+	line := fmt.Sprintf("%s %s %s\r\n", h.Method, h.Uri, h.Version)
 	buf.WriteString(line)
-	buf.WriteString(fmt.Sprintf("Host: %s\r\n", h.host))
-	buf.WriteString(fmt.Sprintf("User-Agent: %s\r\n", h.userAgent))
-	buf.WriteString(fmt.Sprintf("Accept: %s\r\n", h.accept))
+	buf.WriteString(fmt.Sprintf("Host: %s\r\n", h.Host))
+	buf.WriteString(fmt.Sprintf("User-Agent: %s\r\n", h.UserAgent))
+	buf.WriteString(fmt.Sprintf("Accept: %s\r\n", h.Accept))
 	buf.WriteString("\r\n")
 	return buf.Bytes()
 }

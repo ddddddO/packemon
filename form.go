@@ -40,7 +40,7 @@ var (
 
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
 // とすると、高レイヤーの入力から埋めて進めていくようにしないといけなさそう. ユーザーが選べるようにするのがいいかも
-func form(sendFn func(*ethernetFrame) error) error {
+func form(sendFn func(*EthernetFrame) error) error {
 	app := tview.NewApplication()
 	pages := tview.NewPages()
 	pages.Box = tview.NewBox().SetTitle(" Packemon [Make & Send packet] ").SetBorder(true)
@@ -71,7 +71,7 @@ func form(sendFn func(*ethernetFrame) error) error {
 	return nil
 }
 
-func defaultPackets() (*ethernetHeader, *ARP, *ipv4, *icmp, error) {
+func defaultPackets() (*EthernetHeader, *ARP, *ipv4, *icmp, error) {
 	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -170,10 +170,10 @@ func defaultPackets() (*ethernetHeader, *ARP, *ipv4, *icmp, error) {
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	ethernetHeader := &ethernetHeader{
-		dst: hardwareAddr(mac),
-		src: hardwareAddr(mac),
-		typ: ETHER_TYPE_IPv4,
+	ethernetHeader := &EthernetHeader{
+		Dst: HardwareAddr(mac),
+		Src: HardwareAddr(mac),
+		Typ: ETHER_TYPE_IPv4,
 	}
 
 	return ethernetHeader, arp, ipv4, icmp, nil
@@ -228,7 +228,7 @@ func strIPToBytes(s string) ([]byte, error) {
 	return b, nil
 }
 
-func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader, ipv4 *ipv4, icmp *icmp) *tview.Form {
+func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, ipv4 *ipv4, icmp *icmp) *tview.Form {
 	icmpForm := tview.NewForm().
 		AddTextView("ICMP", "This section generates the ICMP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Type(hex)", DEFAULT_ICMP_TYPE, 4, func(textToCheck string, lastChar rune) bool {
@@ -311,9 +311,9 @@ func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetF
 			// 前回Send分が残ってると計算誤るため
 			ipv4.headerChecksum = 0x0
 			ipv4.calculateChecksum()
-			ethernetFrame := &ethernetFrame{
-				header: ethernetHeader,
-				data:   ipv4.toBytes(),
+			ethernetFrame := &EthernetFrame{
+				Header: ethernetHeader,
+				Data:   ipv4.toBytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
 				app.Stop()
@@ -329,7 +329,7 @@ func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetF
 	return icmpForm
 }
 
-func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader, ipv4 *ipv4) *tview.Form {
+func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, ipv4 *ipv4) *tview.Form {
 	ipv4Form := tview.NewForm().
 		AddTextView("IPv4 Header", "This section generates the IPv4 header.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Version(hex)", "0x04", 4, func(textToCheck string, lastChar rune) bool {
@@ -386,9 +386,9 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetF
 			return false
 		}, nil).
 		AddButton("Send!", func() {
-			ethernetFrame := &ethernetFrame{
-				header: ethernetHeader,
-				data:   ipv4.toBytes(),
+			ethernetFrame := &EthernetFrame{
+				Header: ethernetHeader,
+				Data:   ipv4.toBytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
 				app.Stop()
@@ -413,7 +413,7 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetF
 	return ipv4Form
 }
 
-func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader, arp *ARP) *tview.Form {
+func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, arp *ARP) *tview.Form {
 	arpForm := tview.NewForm().
 		AddTextView("ARP", "This section generates the ARP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Hardware Type(hex)", DEFAULT_ARP_HARDWARE_TYPE, 6, func(textToCheck string, lastChar rune) bool {
@@ -502,7 +502,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 			if err != nil {
 				return false
 			}
-			arp.SenderHardwareAddr = hardwareAddr(b)
+			arp.SenderHardwareAddr = HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -533,7 +533,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 			if err != nil {
 				return false
 			}
-			arp.TargetHardwareAddr = hardwareAddr(b)
+			arp.TargetHardwareAddr = HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -554,9 +554,9 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 			return false
 		}, nil).
 		AddButton("Send!", func() {
-			ethernetFrame := &ethernetFrame{
-				header: ethernetHeader,
-				data:   arp.Bytes(),
+			ethernetFrame := &EthernetFrame{
+				Header: ethernetHeader,
+				Data:   arp.Bytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
 				app.Stop()
@@ -572,7 +572,7 @@ func arpForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFr
 	return arpForm
 }
 
-func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*ethernetFrame) error, ethernetHeader *ethernetHeader) *tview.Form {
+func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader) *tview.Form {
 	ethernetForm := tview.NewForm().
 		AddTextView("Ethernet Header", "This section generates the Ethernet header.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 14, func(textToCheck string, lastChar rune) bool {
@@ -586,7 +586,7 @@ func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*ether
 			if err != nil {
 				return false
 			}
-			ethernetHeader.dst = hardwareAddr(b)
+			ethernetHeader.Dst = HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -601,7 +601,7 @@ func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*ether
 			if err != nil {
 				return false
 			}
-			ethernetHeader.src = hardwareAddr(b)
+			ethernetHeader.Src = HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -609,14 +609,14 @@ func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*ether
 		AddDropDown("Ether Type", []string{"IPv4", "ARP"}, 0, func(selected string, _ int) {
 			switch selected {
 			case "IPv4":
-				ethernetHeader.typ = ETHER_TYPE_IPv4
+				ethernetHeader.Typ = ETHER_TYPE_IPv4
 			case "ARP":
-				ethernetHeader.typ = ETHER_TYPE_ARP
+				ethernetHeader.Typ = ETHER_TYPE_ARP
 			}
 		}).
 		AddButton("Send!", func() {
-			ethernetFrame := &ethernetFrame{
-				header: ethernetHeader,
+			ethernetFrame := &EthernetFrame{
+				Header: ethernetHeader,
 				// data: 専用の口用意してユーザー自身の任意のフレームを送れるようにする？,
 			}
 			if err := sendFn(ethernetFrame); err != nil {
@@ -624,7 +624,7 @@ func ethernetForm(app *tview.Application, pages *tview.Pages, sendFn func(*ether
 			}
 		}).
 		AddButton("Next", func() {
-			switch ethernetHeader.typ {
+			switch ethernetHeader.Typ {
 			case ETHER_TYPE_IPv4:
 				pages.SwitchToPage("IPv4")
 			case ETHER_TYPE_ARP:

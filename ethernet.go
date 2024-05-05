@@ -5,42 +5,42 @@ import (
 	"encoding/binary"
 )
 
-func newEthernetFrame(dst hardwareAddr, src hardwareAddr, typ uint16, payload []byte) *ethernetFrame {
-	return &ethernetFrame{
-		header: &ethernetHeader{
-			dst: dst,
-			src: src,
-			typ: typ,
+func NewEthernetFrame(dst HardwareAddr, src HardwareAddr, typ uint16, payload []byte) *EthernetFrame {
+	return &EthernetFrame{
+		Header: &EthernetHeader{
+			Dst: dst,
+			Src: src,
+			Typ: typ,
 		},
-		data: payload,
+		Data: payload,
 	}
 }
 
-func (ef *ethernetFrame) toBytes() []byte {
+func (ef *EthernetFrame) Bytes() []byte {
 	var buf bytes.Buffer
-	buf.Write(ef.header.dst[:])
-	buf.Write(ef.header.src[:])
+	buf.Write(ef.Header.Dst[:])
+	buf.Write(ef.Header.Src[:])
 
 	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, ef.header.typ)
+	binary.BigEndian.PutUint16(b, ef.Header.Typ)
 	buf.Write(b)
 
-	buf.Write(ef.data)
+	buf.Write(ef.Data)
 	return buf.Bytes()
 }
 
-type ethernetFrame struct {
-	header *ethernetHeader
-	data   []byte
+type EthernetFrame struct {
+	Header *EthernetHeader
+	Data   []byte
 }
 
-type ethernetHeader struct {
-	dst hardwareAddr
-	src hardwareAddr
-	typ uint16
+type EthernetHeader struct {
+	Dst HardwareAddr
+	Src HardwareAddr
+	Typ uint16
 }
 
-type hardwareAddr [6]uint8
+type HardwareAddr [6]uint8
 
 const ETHER_TYPE_IPv4 uint16 = 0x0800
 const ETHER_TYPE_IPv6 uint16 = 0x86dd

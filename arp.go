@@ -13,10 +13,10 @@ type ARP struct {
 	ProtocolLength     uint8
 	Operation          [2]uint8
 
-	SenderHardwareAddr hardwareAddr
+	SenderHardwareAddr HardwareAddr
 	SenderIPAddr       [4]uint8
 
-	TargetHardwareAddr hardwareAddr
+	TargetHardwareAddr HardwareAddr
 	TargetIPAddr       [4]uint8
 }
 

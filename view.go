@@ -32,26 +32,26 @@ func updateView(viewersCh <-chan []viewer) {
 	}
 }
 
-func (*ethernetFrame) rows() int {
+func (*EthernetFrame) rows() int {
 	return 10
 }
 
-func (*ethernetFrame) columns() int {
+func (*EthernetFrame) columns() int {
 	return 20
 }
 
-func (ef *ethernetFrame) viewTable() *tview.Table {
+func (ef *EthernetFrame) viewTable() *tview.Table {
 	ethTable := tview.NewTable().SetBorders(true)
 	ethTable.Box = tview.NewBox().SetBorder(true).SetTitle(" Ethernet Header ")
 
 	ethTable.SetCell(0, 0, tview.NewTableCell(padding("Destination MAC Addr")))
-	ethTable.SetCell(0, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.header.dst))))
+	ethTable.SetCell(0, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.Header.Dst))))
 
 	ethTable.SetCell(1, 0, tview.NewTableCell(padding("Source MAC Addr")))
-	ethTable.SetCell(1, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.header.src))))
+	ethTable.SetCell(1, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.Header.Src))))
 
 	ethTable.SetCell(2, 0, tview.NewTableCell(padding("Type")))
-	ethTable.SetCell(2, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.header.typ))))
+	ethTable.SetCell(2, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.Header.Typ))))
 
 	return ethTable
 }

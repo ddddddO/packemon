@@ -16,7 +16,7 @@ func NewTUI(wantSend bool) *tui {
 
 	if wantSend {
 		pages := tview.NewPages()
-		pages.Box = tview.NewBox().SetTitle(" Packemon [Make & Send packet] ").SetBorder(true)
+		pages.Box = tview.NewBox().SetTitle(" Packemon <Generator> ").SetBorder(true)
 		return &tui{
 			app:   app,
 			pages: pages,
@@ -24,7 +24,7 @@ func NewTUI(wantSend bool) *tui {
 	}
 
 	grid := tview.NewGrid()
-	grid.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon ")
+	grid.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon <Monitor> ")
 	return &tui{
 		app:  tview.NewApplication(),
 		grid: grid,
@@ -33,14 +33,12 @@ func NewTUI(wantSend bool) *tui {
 
 func (t *tui) Monitor(passiveCh chan packemon.Passive) error {
 	go t.updateView(passiveCh)
-	// go t.netIF.Recieve(t.viewersCh)
-
 	return t.app.SetRoot(t.grid, true).Run()
 }
 
-func (t *tui) Generator() error {
-	// if err := t.form(t.netIF.SendForForm); err != nil {
-	// 	return err
-	// }
+func (t *tui) Generator(sendFn func(*packemon.EthernetFrame) error) error {
+	if err := t.form(sendFn); err != nil {
+		return err
+	}
 	return t.app.SetRoot(t.pages, true).EnableMouse(true).Run()
 }

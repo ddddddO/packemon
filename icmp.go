@@ -1,4 +1,4 @@
-package main
+package packemon
 
 import (
 	"bytes"
@@ -8,13 +8,13 @@ import (
 
 // https://www.infraexpert.com/study/tcpip4.html
 // https://inc0x0.com/icmp-ip-packets-ping-manually-create-and-send-icmp-ip-packets/
-type icmp struct {
-	typ        uint8
-	code       uint8
-	checksum   uint16
-	identifier uint16
-	sequence   uint16
-	data       []byte
+type ICMP struct {
+	Typ        uint8
+	Code       uint8
+	Checksum   uint16
+	Identifier uint16
+	Sequence   uint16
+	Data       []byte
 }
 
 const (
@@ -22,12 +22,12 @@ const (
 )
 
 // icmp request
-func newICMP() *icmp {
-	icmp := &icmp{
-		typ:        ICMP_TYPE_REQUEST,
-		code:       0,
-		identifier: 0x34a1,
-		sequence:   0x0001,
+func NewICMP() *ICMP {
+	icmp := &ICMP{
+		Typ:        ICMP_TYPE_REQUEST,
+		Code:       0,
+		Identifier: 0x34a1,
+		Sequence:   0x0001,
 	}
 
 	// pingのecho requestのpacketを観察すると以下で良さそう
@@ -38,11 +38,11 @@ func newICMP() *icmp {
 		return binary.LittleEndian.AppendUint32(b, 0x00000000)
 	}()
 
-	icmp.data = timestamp
+	icmp.Data = timestamp
 
-	icmp.checksum = func() uint16 {
+	icmp.Checksum = func() uint16 {
 		b := make([]byte, 2)
-		binary.LittleEndian.PutUint16(b, icmp.calculateChecksum())
+		binary.LittleEndian.PutUint16(b, icmp.CalculateChecksum())
 		return binary.BigEndian.Uint16(b)
 	}()
 
@@ -50,8 +50,8 @@ func newICMP() *icmp {
 }
 
 // copy from https://cs.opensource.google/go/x/net/+/master:icmp/message.go
-func (i *icmp) calculateChecksum() uint16 {
-	b := i.toBytes()
+func (i *ICMP) CalculateChecksum() uint16 {
+	b := i.Bytes()
 	csumcv := len(b) - 1 // checksum coverage
 	s := uint32(0)
 	for i := 0; i < csumcv; i += 2 {
@@ -65,24 +65,24 @@ func (i *icmp) calculateChecksum() uint16 {
 	return ^uint16(s)
 }
 
-func (i *icmp) toBytes() []byte {
+func (i *ICMP) Bytes() []byte {
 	var buf bytes.Buffer
-	buf.WriteByte(i.typ)
-	buf.WriteByte(i.code)
+	buf.WriteByte(i.Typ)
+	buf.WriteByte(i.Code)
 
 	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, i.checksum)
+	binary.BigEndian.PutUint16(b, i.Checksum)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, i.identifier)
+	binary.BigEndian.PutUint16(b, i.Identifier)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, i.sequence)
+	binary.BigEndian.PutUint16(b, i.Sequence)
 	buf.Write(b)
 
-	buf.Write(i.data)
+	buf.Write(i.Data)
 
 	return buf.Bytes()
 }

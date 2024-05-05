@@ -1,5 +1,5 @@
 # Packémon
-- Packet monitor、略して Packémon（パケモン ! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ)）
+- Packet monster、略して Packémon（パケモン ! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ)）
 - 開発途上で気長にやる予定
 - 現在の機能は以下（WIP）
   - 任意の Ethernet ヘッダ / IPv4 ヘッダ / ARP / ICMP を楽に作れてフレームを送信できる
@@ -30,20 +30,20 @@ $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -
 - 受信画面
 
   ```console
-  $ sudo go run $(find . -name \*.go -not -name *_test.go | tr "\n" " ")
+  $ sudo go run cmd/packemon/main.go
   ```
 
 
 - 送信画面
 
   ```console
-  $ sudo go run $(find . -name \*.go -not -name *_test.go | tr "\n" " ") --send
+  $ sudo go run cmd/packemon/main.go --send
   ```
 
 - 単発フレーム送信コマンド（e.g. ARP request）
 
   ```console
-  $ sudo go run $(find . -name \*.go -not -name *_test.go | tr "\n" " ") --send --proto arp
+  $ sudo go run cmd/packemon/main.go --send --proto arp
   ```
 
 ### 手軽にブロードキャスト

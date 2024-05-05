@@ -1,4 +1,4 @@
-package main
+package packemon
 
 import (
 	"bytes"
@@ -8,23 +8,23 @@ import (
 
 // https://atmarkit.itmedia.co.jp/ait/articles/1601/29/news014.html
 // 上記とパケットキャプチャ見てイメージがつく、domain
-type dns struct {
-	transactionID uint16
-	flags         uint16
-	questions     uint16
-	answerRRs     uint16
-	authorityRRs  uint16
-	additionalRRs uint16
-	queries       *queries
+type DNS struct {
+	TransactionID uint16
+	Flags         uint16
+	Questions     uint16
+	AnswerRRs     uint16
+	AuthorityRRs  uint16
+	AdditionalRRs uint16
+	Queries       *Queries
 }
 
-type queries struct {
-	domain []uint8
-	typ    uint16
-	class  uint16
+type Queries struct {
+	Domain []uint8
+	Typ    uint16
+	Class  uint16
 }
 
-func (d *dns) domain(domain string) {
+func (d *DNS) Domain(domain string) {
 	splited := strings.Split(domain, ".")
 	buf := make([]uint8, len(domain)+2)
 
@@ -39,43 +39,43 @@ func (d *dns) domain(domain string) {
 	}
 
 	buf[len(domain)+1] = 0x00
-	d.queries.domain = buf
+	d.Queries.Domain = buf
 }
 
-func (d *dns) toBytes() []byte {
+func (d *DNS) Bytes() []byte {
 	var buf bytes.Buffer
 	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.transactionID)
+	binary.BigEndian.PutUint16(b, d.TransactionID)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.flags)
+	binary.BigEndian.PutUint16(b, d.Flags)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.questions)
+	binary.BigEndian.PutUint16(b, d.Questions)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.answerRRs)
+	binary.BigEndian.PutUint16(b, d.AnswerRRs)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.authorityRRs)
+	binary.BigEndian.PutUint16(b, d.AuthorityRRs)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.additionalRRs)
+	binary.BigEndian.PutUint16(b, d.AdditionalRRs)
 	buf.Write(b)
 
-	buf.Write(d.queries.domain)
+	buf.Write(d.Queries.Domain)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.queries.typ)
+	binary.BigEndian.PutUint16(b, d.Queries.Typ)
 	buf.Write(b)
 
 	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.queries.class)
+	binary.BigEndian.PutUint16(b, d.Queries.Class)
 	buf.Write(b)
 
 	return buf.Bytes()

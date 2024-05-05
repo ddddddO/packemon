@@ -129,27 +129,27 @@ func sendICMPechoRequest(sock int, addr unix.SockaddrLinklayer, intf net.Interfa
 }
 
 func sendDNSquery(sock int, addr unix.SockaddrLinklayer, intf net.Interface, firsthopMACAddr [6]byte) error {
-	dns := &dns{
-		transactionID: 0x1234,
-		flags:         0x0100, // standard query
-		questions:     0x0001,
-		answerRRs:     0x0000,
-		authorityRRs:  0x0000,
-		additionalRRs: 0x0000,
-		queries: &queries{
-			typ:   0x0001, // A
-			class: 0x0001, // IN
+	dns := &DNS{
+		TransactionID: 0x1234,
+		Flags:         0x0100, // standard query
+		Questions:     0x0001,
+		AnswerRRs:     0x0000,
+		AuthorityRRs:  0x0000,
+		AdditionalRRs: 0x0000,
+		Queries: &Queries{
+			Typ:   0x0001, // A
+			Class: 0x0001, // IN
 		},
 	}
 	// dns.domain("github.com")
-	dns.domain("go.dev")
+	dns.Domain("go.dev")
 	udp := &udp{
 		srcPort:  0x0401, // 1025
 		dstPort:  0x0035, // 53
 		length:   0x0000,
 		checksum: 0x0000,
 	}
-	udp.data = dns.toBytes()
+	udp.data = dns.Bytes()
 	udp.len()
 	ipv4 := newIPv4(IPv4_PROTO_UDP, 0x08080808) // 8.8.8.8 = DNSクエリ用
 	ipv4.data = udp.toBytes()

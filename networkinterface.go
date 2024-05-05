@@ -72,7 +72,7 @@ func (nw *NetworkInterface) SendARPrequest(firsthopMACAddr [6]byte) error {
 	dst := HardwareAddr(firsthopMACAddr)
 	src := HardwareAddr(nw.Intf.HardwareAddr)
 	ethernetFrame := NewEthernetFrame(dst, src, ETHER_TYPE_ARP, arp.Bytes())
-	return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
+	return nw.Send(ethernetFrame)
 }
 
 func (nw *NetworkInterface) SendICMPechoRequest(firsthopMACAddr [6]byte) error {
@@ -84,7 +84,7 @@ func (nw *NetworkInterface) SendICMPechoRequest(firsthopMACAddr [6]byte) error {
 	dst := HardwareAddr(firsthopMACAddr)
 	src := HardwareAddr(nw.Intf.HardwareAddr)
 	ethernetFrame := NewEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.Bytes())
-	return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
+	return nw.Send(ethernetFrame)
 }
 
 func (nw *NetworkInterface) SendDNSquery(firsthopMACAddr [6]byte) error {
@@ -117,7 +117,7 @@ func (nw *NetworkInterface) SendDNSquery(firsthopMACAddr [6]byte) error {
 	dst := HardwareAddr(firsthopMACAddr)
 	src := HardwareAddr(nw.Intf.HardwareAddr)
 	ethernetFrame := NewEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.Bytes())
-	return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
+	return nw.Send(ethernetFrame)
 }
 
 func (nw *NetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
@@ -153,7 +153,7 @@ func (nw *NetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 	dst := HardwareAddr(firsthopMACAddr)
 	src := HardwareAddr(nw.Intf.HardwareAddr)
 	ethernetFrame := NewEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.Bytes())
-	return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
+	return nw.Send(ethernetFrame)
 }
 
 func (nw *NetworkInterface) SendHTTPget(firsthopMACAddr [6]byte) error {
@@ -190,21 +190,15 @@ func (nw *NetworkInterface) SendHTTPget(firsthopMACAddr [6]byte) error {
 	dst := HardwareAddr(firsthopMACAddr)
 	src := HardwareAddr(nw.Intf.HardwareAddr)
 	ethernetFrame := NewEthernetFrame(dst, src, ETHER_TYPE_IPv4, ipv4.Bytes())
-	return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
+	return nw.Send(ethernetFrame)
 }
 
-func (nw *NetworkInterface) SendForForm() func(*EthernetFrame) error {
-	return func(ethernetFrame *EthernetFrame) error {
-		return nw.Send(ethernetFrame, nw.Socket, nw.SocketAddr)
-	}
-}
-
-func (nw *NetworkInterface) Send(ethernetFrame *EthernetFrame, sock int, addr unix.SockaddrLinklayer) error {
-	return unix.Sendto(sock, ethernetFrame.Bytes(), 0, &addr)
+func (nw *NetworkInterface) Send(ethernetFrame *EthernetFrame) error {
+	return unix.Sendto(nw.Socket, ethernetFrame.Bytes(), 0, &nw.SocketAddr)
 }
 
 type Passive struct {
-	http          *HTTP
+	HTTP          *HTTP
 	DNS           *DNS
 	TCP           *TCP
 	UDP           *UDP

@@ -61,13 +61,13 @@ func (*TCP) CheckSum(packet []byte) []byte {
 // https://www.infraexpert.com/study/tcpip8.html
 func (t *TCP) Bytes() []byte {
 	var buf bytes.Buffer
-	buf.Write(t.HeaderToBytes())
+	buf.Write(t.headerToBytes())
 	buf.Write(t.Data)
 
 	return buf.Bytes()
 }
 
-func (t *TCP) HeaderToBytes() []byte {
+func (t *TCP) headerToBytes() []byte {
 	var buf bytes.Buffer
 	b := make([]byte, 2)
 	binary.BigEndian.PutUint16(b, t.SrcPort)

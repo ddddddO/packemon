@@ -89,7 +89,7 @@ func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, 
 		Sequence:   binary.BigEndian.Uint16(icmpSequence),
 	}
 
-	ip, err := StrIPToBytes(DEFAULT_IP_SOURCE)
+	ip, err := strIPToBytes(DEFAULT_IP_SOURCE)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -133,7 +133,7 @@ func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, 
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	senderIP, err := StrIPToBytes(DEFAULT_ARP_SENDER_IP)
+	senderIP, err := strIPToBytes(DEFAULT_ARP_SENDER_IP)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -141,7 +141,7 @@ func defaultPackets() (*packemon.EthernetHeader, *packemon.ARP, *packemon.IPv4, 
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
-	targetIP, err := StrIPToBytes(DEFAULT_ARP_TARGET_IP)
+	targetIP, err := strIPToBytes(DEFAULT_ARP_TARGET_IP)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -205,7 +205,7 @@ func strHexToUint8(s string) (uint8, error) {
 	return uint8(n), nil
 }
 
-func StrIPToBytes(s string) ([]byte, error) {
+func strIPToBytes(s string) ([]byte, error) {
 	b := make([]byte, 4)
 	src := strings.Split(s, ".")
 
@@ -354,7 +354,7 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 			if count < 3 {
 				return true
 			} else if count == 3 {
-				ip, err := StrIPToBytes(textToCheck)
+				ip, err := strIPToBytes(textToCheck)
 				if err != nil {
 					return false
 				}
@@ -369,7 +369,7 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 			if count < 3 {
 				return true
 			} else if count == 3 {
-				ip, err := StrIPToBytes(textToCheck)
+				ip, err := strIPToBytes(textToCheck)
 				if err != nil {
 					return false
 				}
@@ -505,7 +505,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if count < 3 {
 				return true
 			} else if count == 3 {
-				ip, err := StrIPToBytes(textToCheck)
+				ip, err := strIPToBytes(textToCheck)
 				if err != nil {
 					return false
 				}
@@ -536,7 +536,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if count < 3 {
 				return true
 			} else if count == 3 {
-				ip, err := StrIPToBytes(textToCheck)
+				ip, err := strIPToBytes(textToCheck)
 				if err != nil {
 					return false
 				}

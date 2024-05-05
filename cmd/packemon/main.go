@@ -61,7 +61,7 @@ func run(wantSend bool, protocol string) error {
 			return netIF.SendHTTPget(firsthopMACAddr)
 		default:
 			tui := tui.NewTUI(wantSend)
-			return tui.Generator(netIF.SendForForm())
+			return tui.Generator(netIF.Send)
 		}
 	} else {
 		tui := tui.NewTUI(wantSend)

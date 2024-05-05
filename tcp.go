@@ -55,7 +55,7 @@ func newTCPWithData(data []byte) *tcp {
 }
 
 func (*tcp) checkSum(packet []byte) []byte {
-	return (*ipv4)(nil).checksum(packet)
+	return (*IPv4)(nil).Checksum(packet)
 }
 
 // https://www.infraexpert.com/study/tcpip8.html

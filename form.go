@@ -71,7 +71,7 @@ func form(sendFn func(*EthernetFrame) error) error {
 	return nil
 }
 
-func defaultPackets() (*EthernetHeader, *ARP, *ipv4, *ICMP, error) {
+func defaultPackets() (*EthernetHeader, *ARP, *IPv4, *ICMP, error) {
 	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -100,19 +100,19 @@ func defaultPackets() (*EthernetHeader, *ARP, *ipv4, *ICMP, error) {
 		return nil, nil, nil, nil, err
 	}
 
-	ipv4 := &ipv4{
-		version:        0x04,
-		ihl:            0x05,
-		tos:            0x00,
-		totalLength:    0x14,
-		identification: 0xe31f,
-		flags:          0x40,
-		fragmentOffset: 0x0,
-		ttl:            0x80,
-		protocol:       IPv4_PROTO_ICMP,
-		headerChecksum: 0,
-		srcAddr:        binary.BigEndian.Uint32(ip),
-		dstAddr:        binary.BigEndian.Uint32(ip),
+	ipv4 := &IPv4{
+		Version:        0x04,
+		Ihl:            0x05,
+		Tos:            0x00,
+		TotalLength:    0x14,
+		Identification: 0xe31f,
+		Flags:          0x40,
+		FragmentOffset: 0x0,
+		Ttl:            0x80,
+		Protocol:       IPv4_PROTO_ICMP,
+		HeaderChecksum: 0,
+		SrcAddr:        binary.BigEndian.Uint32(ip),
+		DstAddr:        binary.BigEndian.Uint32(ip),
 	}
 
 	hardwareType, err := strHexToBytes2(DEFAULT_ARP_HARDWARE_TYPE)
@@ -228,7 +228,7 @@ func strIPToBytes(s string) ([]byte, error) {
 	return b, nil
 }
 
-func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, ipv4 *ipv4, icmp *ICMP) *tview.Form {
+func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, ipv4 *IPv4, icmp *ICMP) *tview.Form {
 	icmpForm := tview.NewForm().
 		AddTextView("ICMP", "This section generates the ICMP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Type(hex)", DEFAULT_ICMP_TYPE, 4, func(textToCheck string, lastChar rune) bool {
@@ -306,14 +306,14 @@ func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 				binary.LittleEndian.PutUint16(b, icmp.CalculateChecksum())
 				return binary.BigEndian.Uint16(b)
 			}()
-			ipv4.data = icmp.Bytes()
-			ipv4.calculateTotalLength()
+			ipv4.Data = icmp.Bytes()
+			ipv4.CalculateTotalLength()
 			// 前回Send分が残ってると計算誤るため
-			ipv4.headerChecksum = 0x0
-			ipv4.calculateChecksum()
+			ipv4.HeaderChecksum = 0x0
+			ipv4.CalculateChecksum()
 			ethernetFrame := &EthernetFrame{
 				Header: ethernetHeader,
-				Data:   ipv4.toBytes(),
+				Data:   ipv4.Bytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
 				app.Stop()
@@ -329,7 +329,7 @@ func icmpForm(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 	return icmpForm
 }
 
-func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, ipv4 *ipv4) *tview.Form {
+func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetFrame) error, ethernetHeader *EthernetHeader, ipv4 *IPv4) *tview.Form {
 	ipv4Form := tview.NewForm().
 		AddTextView("IPv4 Header", "This section generates the IPv4 header.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Version(hex)", "0x04", 4, func(textToCheck string, lastChar rune) bool {
@@ -343,16 +343,16 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 			if err != nil {
 				return false
 			}
-			ipv4.version = uint8(binary.BigEndian.Uint16(b))
+			ipv4.Version = uint8(binary.BigEndian.Uint16(b))
 
 			return true
 		}, nil).
 		AddDropDown("Protocol", []string{"ICMP", "UDP"}, 0, func(selected string, _ int) {
 			switch selected {
 			case "ICMP":
-				ipv4.protocol = IPv4_PROTO_ICMP
+				ipv4.Protocol = IPv4_PROTO_ICMP
 			case "UDP":
-				ipv4.protocol = IPv4_PROTO_UDP
+				ipv4.Protocol = IPv4_PROTO_UDP
 			}
 		}).
 		AddInputField("Source IP Addr", DEFAULT_IP_SOURCE, 15, func(textToCheck string, lastChar rune) bool {
@@ -364,7 +364,7 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 				if err != nil {
 					return false
 				}
-				ipv4.srcAddr = binary.BigEndian.Uint32(ip)
+				ipv4.SrcAddr = binary.BigEndian.Uint32(ip)
 				return true
 			}
 
@@ -379,7 +379,7 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 				if err != nil {
 					return false
 				}
-				ipv4.dstAddr = binary.BigEndian.Uint32(ip)
+				ipv4.DstAddr = binary.BigEndian.Uint32(ip)
 				return true
 			}
 
@@ -388,14 +388,14 @@ func ipv4Form(app *tview.Application, pages *tview.Pages, sendFn func(*EthernetF
 		AddButton("Send!", func() {
 			ethernetFrame := &EthernetFrame{
 				Header: ethernetHeader,
-				Data:   ipv4.toBytes(),
+				Data:   ipv4.Bytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
 				app.Stop()
 			}
 		}).
 		AddButton("Next", func() {
-			switch ipv4.protocol {
+			switch ipv4.Protocol {
 			case IPv4_PROTO_ICMP:
 				pages.SwitchToPage("ICMP")
 			case IPv4_PROTO_UDP:

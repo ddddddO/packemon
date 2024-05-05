@@ -26,12 +26,14 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 
 			return true
 		}, nil).
-		AddDropDown("Protocol", []string{"ICMP", "UDP"}, 0, func(selected string, _ int) {
+		AddDropDown("Protocol", []string{"ICMP", "UDP", "TCP"}, 0, func(selected string, _ int) {
 			switch selected {
 			case "ICMP":
 				ipv4.Protocol = packemon.IPv4_PROTO_ICMP
 			case "UDP":
 				ipv4.Protocol = packemon.IPv4_PROTO_UDP
+			case "TCP":
+				ipv4.Protocol = packemon.IPv4_PROTO_TCP
 			}
 		}).
 		AddInputField("Source IP Addr", DEFAULT_IP_SOURCE, 15, func(textToCheck string, lastChar rune) bool {
@@ -85,6 +87,8 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 				t.pages.SwitchToPage("ICMP")
 			case packemon.IPv4_PROTO_UDP:
 				t.pages.SwitchToPage("UDP")
+			case packemon.IPv4_PROTO_TCP:
+				t.pages.SwitchToPage("TCP")
 			}
 		}).
 		AddButton("Quit", func() {

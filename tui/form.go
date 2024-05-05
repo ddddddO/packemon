@@ -50,6 +50,11 @@ var (
 	DEFAULT_DNS_QUERIES_DOMAIN = "go.dev"
 	DEFAULT_DNS_QUERIES_TYPE   = "0x0001"
 	DEFAULT_DNS_QUERIES_CLASS  = "0x0001"
+
+	DEFAULT_TCP_PORT_SOURCE      = "12345"
+	DEFAULT_TCP_PORT_DESTINATION = "80"
+	DEFAULT_TCP_SEQUENCE         = "0x1f6e9499"
+	DEFAULT_TCP_FLAGS            = "0x002"
 )
 
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
@@ -59,10 +64,12 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 	if err != nil {
 		return err
 	}
-	ethernetHeader, arp, ipv4, icmp, udp, dns := d.e, d.a, d.ip, d.ic, d.u, d.d
+	ethernetHeader, arp, ipv4, icmp, udp, tcp, dns := d.e, d.a, d.ip, d.ic, d.u, d.t, d.d
 
 	dnsForm := t.dnsForm(sendFn, ethernetHeader, ipv4, udp, dns)
 	dnsForm.SetBorder(true).SetTitle(" DNS ").SetTitleAlign(tview.AlignLeft)
+	tcpForm := t.tcpForm(sendFn, ethernetHeader, ipv4, tcp)
+	tcpForm.SetBorder(true).SetTitle(" TCP ").SetTitleAlign(tview.AlignLeft)
 	udpForm := t.udpForm(sendFn, ethernetHeader, ipv4, udp)
 	udpForm.SetBorder(true).SetTitle(" UDP ").SetTitleAlign(tview.AlignLeft)
 	icmpForm := t.icmpForm(sendFn, ethernetHeader, ipv4, icmp)
@@ -77,6 +84,7 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 	t.pages.
 		AddPage("DNS", dnsForm, true, true).
 		AddPage("UDP", udpForm, true, true).
+		AddPage("TCP", tcpForm, true, true).
 		AddPage("ICMP", icmpForm, true, true).
 		AddPage("ARP", arpForm, true, true).
 		AddPage("IPv4", ipv4Form, true, true).
@@ -99,11 +107,15 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 			t.pages.SwitchToPage("ICMP")
 			t.app.SetFocus(t.pages)
 		}).
-		AddItem("UDP", "", '5', func() {
+		AddItem("TCP", "", '5', func() {
+			t.pages.SwitchToPage("TCP")
+			t.app.SetFocus(t.pages)
+		}).
+		AddItem("UDP", "", '6', func() {
 			t.pages.SwitchToPage("UDP")
 			t.app.SetFocus(t.pages)
 		}).
-		AddItem("DNS", "", '6', func() {
+		AddItem("DNS", "", '7', func() {
 			t.pages.SwitchToPage("DNS")
 			t.app.SetFocus(t.pages)
 		})
@@ -128,6 +140,7 @@ type defaults struct {
 	a  *packemon.ARP
 	ip *packemon.IPv4
 	ic *packemon.ICMP
+	t  *packemon.TCP
 	u  *packemon.UDP
 	d  *packemon.DNS
 }
@@ -197,6 +210,35 @@ func defaultPackets() (*defaults, error) {
 		Length:  binary.BigEndian.Uint16(udpLength),
 	}
 	udp.Len()
+
+	tcp := &packemon.TCP{
+		Acknowledgment: 0x00000000,
+		HeaderLength:   0x00a0,
+		Window:         0xfaf0,
+		Checksum:       0x0000,
+		UrgentPointer:  0x0000,
+		Options:        packemon.Options(),
+	}
+	tcpSrcPort, err := strIntToUint16(DEFAULT_TCP_PORT_SOURCE)
+	if err != nil {
+		return nil, err
+	}
+	tcp.SrcPort = tcpSrcPort
+	tcpDstPort, err := strIntToUint16(DEFAULT_TCP_PORT_DESTINATION)
+	if err != nil {
+		return nil, err
+	}
+	tcp.DstPort = tcpDstPort
+	tcpSequence, err := strHexToBytes3(DEFAULT_TCP_SEQUENCE)
+	if err != nil {
+		return nil, err
+	}
+	tcp.Sequence = binary.BigEndian.Uint32(tcpSequence)
+	tcpFlags, err := strHexToBytes2(DEFAULT_TCP_FLAGS)
+	if err != nil {
+		return nil, err
+	}
+	tcp.Flags = binary.BigEndian.Uint16(tcpFlags)
 
 	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
 	if err != nil {
@@ -308,6 +350,7 @@ func defaultPackets() (*defaults, error) {
 		ip: ipv4,
 		ic: icmp,
 		u:  udp,
+		t:  tcp,
 		d:  dns,
 	}, nil
 }
@@ -333,6 +376,18 @@ func strHexToBytes2(s string) ([]byte, error) {
 
 	buf := make([]byte, 2)
 	binary.BigEndian.PutUint16(buf, uint16(n))
+	return buf, nil
+}
+
+// TODO: rename or refactor
+func strHexToBytes3(s string) ([]byte, error) {
+	n, err := strconv.ParseUint(s, 0, 32)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := make([]byte, 4)
+	binary.BigEndian.PutUint32(buf, uint32(n))
 	return buf, nil
 }
 

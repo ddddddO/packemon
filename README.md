@@ -1,5 +1,10 @@
 # Packémon
-- Packet monster、略して Packémon（パケモン ! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ)）
+
+Packet moniter, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ)）<br>
+
+TUI tool for monitoring packets on specific network interfaces and sending packets of arbitrary input.
+
+
 - 開発途上で気長にやる予定
 - 現在の機能は以下（WIP）
   - 任意の Ethernet ヘッダ / IPv4 ヘッダ / ARP / ICMP を楽に作れてフレームを送信できる

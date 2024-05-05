@@ -96,8 +96,8 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 		AddPage("UDP", udpForm, true, true).
 		AddPage("TCP", tcpForm, true, true).
 		AddPage("ICMP", icmpForm, true, true).
-		AddPage("ARP", arpForm, true, true).
 		AddPage("IPv4", ipv4Form, true, true).
+		AddPage("ARP", arpForm, true, true).
 		AddPage("Ethernet", ethernetForm, true, true)
 
 	t.list.
@@ -105,12 +105,12 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 			t.pages.SwitchToPage("Ethernet")
 			t.app.SetFocus(t.pages)
 		}).
-		AddItem("IPv4", "", '2', func() {
-			t.pages.SwitchToPage("IPv4")
+		AddItem("ARP", "", '2', func() {
+			t.pages.SwitchToPage("ARP")
 			t.app.SetFocus(t.pages)
 		}).
-		AddItem("ARP", "", '3', func() {
-			t.pages.SwitchToPage("ARP")
+		AddItem("IPv4", "", '3', func() {
+			t.pages.SwitchToPage("IPv4")
 			t.app.SetFocus(t.pages)
 		}).
 		AddItem("ICMP", "", '4', func() {

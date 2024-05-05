@@ -64,6 +64,9 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 
 			return false
 		}, nil).
+		AddButton("List", func() {
+			t.app.SetFocus(t.list)
+		}).
 		AddButton("Send!", func() {
 			ethernetFrame := &packemon.EthernetFrame{
 				Header: ethernetHeader,
@@ -73,7 +76,10 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 				t.app.Stop()
 			}
 		}).
-		AddButton("Next", func() {
+		AddButton("Under layer", func() {
+			t.pages.SwitchToPage("Ethernet")
+		}).
+		AddButton("Over layer", func() {
 			switch ipv4.Protocol {
 			case packemon.IPv4_PROTO_ICMP:
 				t.pages.SwitchToPage("ICMP")
@@ -81,9 +87,6 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 				// TODO:
 				// pages.SwitchToPage("UDP")
 			}
-		}).
-		AddButton("Prev", func() {
-			t.pages.SwitchToPage("Ethernet")
 		}).
 		AddButton("Quit", func() {
 			t.app.Stop()

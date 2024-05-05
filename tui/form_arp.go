@@ -148,6 +148,9 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 
 			return false
 		}, nil).
+		AddButton("List", func() {
+			t.app.SetFocus(t.list)
+		}).
 		AddButton("Send!", func() {
 			ethernetFrame := &packemon.EthernetFrame{
 				Header: ethernetHeader,
@@ -157,7 +160,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 				t.app.Stop()
 			}
 		}).
-		AddButton("Prev", func() {
+		AddButton("Under layer", func() {
 			t.pages.SwitchToPage("Ethernet")
 		}).
 		AddButton("Quit", func() {

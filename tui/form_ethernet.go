@@ -47,6 +47,9 @@ func (t *tui) ethernetForm(sendFn func(*packemon.EthernetFrame) error, ethernetH
 				ethernetHeader.Typ = packemon.ETHER_TYPE_ARP
 			}
 		}).
+		AddButton("List", func() {
+			t.app.SetFocus(t.list)
+		}).
 		AddButton("Send!", func() {
 			ethernetFrame := &packemon.EthernetFrame{
 				Header: ethernetHeader,
@@ -56,7 +59,7 @@ func (t *tui) ethernetForm(sendFn func(*packemon.EthernetFrame) error, ethernetH
 				t.app.Stop()
 			}
 		}).
-		AddButton("Next", func() {
+		AddButton("Over layer", func() {
 			switch ethernetHeader.Typ {
 			case packemon.ETHER_TYPE_IPv4:
 				t.pages.SwitchToPage("IPv4")

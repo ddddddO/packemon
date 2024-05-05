@@ -71,6 +71,9 @@ func (t *tui) icmpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 
 			return true
 		}, nil).
+		AddButton("List", func() {
+			t.app.SetFocus(t.list)
+		}).
 		AddButton("Send!", func() {
 			// TODO: timestamp関数化
 			icmp.Data = func() []byte {
@@ -99,7 +102,7 @@ func (t *tui) icmpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 				t.app.Stop()
 			}
 		}).
-		AddButton("Prev", func() {
+		AddButton("Under layer", func() {
 			t.pages.SwitchToPage("IPv4")
 		}).
 		AddButton("Quit", func() {

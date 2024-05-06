@@ -3,6 +3,7 @@ package packemon
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"net"
 	"strconv"
 	"strings"
@@ -19,7 +20,7 @@ type NetworkInterface struct {
 	PassiveCh chan Passive
 }
 
-func NewNetworkInterface() (*NetworkInterface, error) {
+func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
@@ -27,9 +28,12 @@ func NewNetworkInterface() (*NetworkInterface, error) {
 
 	var intf *net.Interface
 	for i := range interfaces {
-		if interfaces[i].Name == "eth0" {
+		if interfaces[i].Name == nwInterface {
 			intf = &interfaces[i]
 		}
+	}
+	if intf == nil {
+		return nil, errors.New("specified interface did not exist")
 	}
 
 	ipAddrs, err := intf.Addrs()

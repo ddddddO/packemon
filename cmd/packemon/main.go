@@ -9,23 +9,32 @@ import (
 	"github.com/ddddddO/packemon/tui"
 )
 
+const DEFAULT_TARGET_NW_INTERFACE = "eth0"
+
 func main() {
+	var nwInterface string
+	flag.StringVar(&nwInterface, "interface", DEFAULT_TARGET_NW_INTERFACE, "Specify name of network interface to be sent/received. Default is 'eth0'.")
 	var wantSend bool
-	flag.BoolVar(&wantSend, "send", false, "Send packet")
+	flag.BoolVar(&wantSend, "send", false, "Monitor mode.")
 	var protocol string
 	flag.StringVar(&protocol, "proto", "", "Specify either 'arp', 'icmp', 'tcp', 'dns' or 'http'.")
 	flag.Parse()
 
-	if err := run(wantSend, protocol); err != nil {
+	if err := run(nwInterface, wantSend, protocol); err != nil {
 		panic(err)
 	}
 }
 
-func run(wantSend bool, protocol string) error {
-	netIF, err := packemon.NewNetworkInterface()
+func run(nwInterface string, wantSend bool, protocol string) error {
+	netIF, err := packemon.NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("AAAAA")
+	fmt.Println(nwInterface)
+	fmt.Println(netIF.IPAdder)
+	fmt.Println(netIF.Intf.HardwareAddr)
 
 	// TODO: 以降要refactor
 	tui.DEFAULT_MAC_DESTINATION = fmt.Sprintf("0x%s", strings.ReplaceAll(netIF.Intf.HardwareAddr.String(), ":", ""))

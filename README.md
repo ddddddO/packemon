@@ -2,7 +2,7 @@
 
 Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ) <br>
 
-TUI tool and Go library for sending packets of arbitrary input and monitoring packets on specific network interface (`eth0`). **This tool is not available for Windows and MacOS.**<br>
+TUI tool and Go library for sending packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows and MacOS.**<br>
 
 I intend to develop it patiently🌴
 
@@ -14,8 +14,8 @@ This TUI tool has two major functions: packet generation and packet monitoring.
 
 ![](./doc/tui_overview_generator.png)
 
-- [ ] Send generated packets to any network interface.
-  - Currently, it can be sent only to specific network interface(`eth0`).
+- [x] Send generated packets to any network interfaces.
+  - You can specify network interface with `--interface` flag. Default is `eth0`.
 
 - The following types of packets are covered.
   - [x] Ethernet
@@ -32,8 +32,8 @@ This TUI tool has two major functions: packet generation and packet monitoring.
 
 ![](./doc/tui_overview_monitor.png)
 
-- [ ] Monitor any network interface.
-  - Currently, only certain network interface (`eth0`) can be monitored.
+- [x] Monitor any network interfaces.
+  - You can specify network interface with `--interface` flag. Default is `eth0`.
 
 - The following types of packets are covered.
   - [x] Ethernet header

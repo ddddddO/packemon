@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"strings"
@@ -54,30 +55,39 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 	// $ arp xxx.xx.xxx.1
 	firsthopMACAddr := [6]byte{0x01, 0x00, 0x5e, 0x7f, 0xff, 0xfa}
 
-	if wantSend {
-		if !debug {
-			tui := tui.NewTUI(wantSend)
-			return tui.Generator(netIf.Send)
-		}
+	if debug {
+		return debugMode(wantSend, protocol, netIf, firsthopMACAddr)
+	}
 
-		debugNetIf := debugging.NewDebugNetworkInterface(netIf)
-		switch protocol {
-		case "arp":
-			return debugNetIf.SendARPrequest(firsthopMACAddr)
-		case "icmp":
-			return debugNetIf.SendICMPechoRequest(firsthopMACAddr)
-		case "tcp":
-			return debugNetIf.SendTCPsyn(firsthopMACAddr)
-		case "dns":
-			return debugNetIf.SendDNSquery(firsthopMACAddr)
-		case "http":
-			return debugNetIf.SendHTTPget(firsthopMACAddr)
-		default:
-			panic("not supported protocol")
-		}
+	if wantSend {
+		tui := tui.NewTUI(wantSend)
+		return tui.Generator(netIf.Send)
 	} else {
 		tui := tui.NewTUI(wantSend)
 		go netIf.Recieve()
 		return tui.Monitor(netIf.PassiveCh)
 	}
+}
+
+func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface, dstMacAddr [6]byte) error {
+	debugNetIf := debugging.NewDebugNetworkInterface(netIf)
+
+	if wantSend {
+		switch protocol {
+		case "arp":
+			return debugNetIf.SendARPrequest(dstMacAddr)
+		case "icmp":
+			return debugNetIf.SendICMPechoRequest(dstMacAddr)
+		case "tcp":
+			return debugNetIf.SendTCPsyn(dstMacAddr)
+		case "dns":
+			return debugNetIf.SendDNSquery(dstMacAddr)
+		case "http":
+			return debugNetIf.SendHTTPget(dstMacAddr)
+		default:
+			return errors.New("not supported protocol")
+		}
+	}
+
+	return debugNetIf.Recieve()
 }

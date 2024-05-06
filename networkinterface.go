@@ -14,7 +14,7 @@ type NetworkInterface struct {
 	Intf       *net.Interface
 	Socket     int // file discripter
 	SocketAddr unix.SockaddrLinklayer
-	IPAdder    string // refactor
+	IPAdder    uint32
 
 	PassiveCh chan Passive
 }
@@ -39,7 +39,10 @@ func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 	if err != nil {
 		return nil, err
 	}
-	ipAddr := strings.Split(ipAddrs[0].String(), "/")[0]
+	ipAddr, err := strIPToBytes(strings.Split(ipAddrs[0].String(), "/")[0])
+	if err != nil {
+		return nil, err
+	}
 
 	sock, err := unix.Socket(unix.AF_PACKET, unix.SOCK_RAW, int(hton(unix.ETH_P_ALL)))
 	if err != nil {
@@ -59,7 +62,7 @@ func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 		Intf:       intf,
 		Socket:     sock,
 		SocketAddr: addr,
-		IPAdder:    ipAddr,
+		IPAdder:    binary.BigEndian.Uint32(ipAddr),
 
 		PassiveCh: make(chan Passive, 10),
 	}, nil
@@ -172,12 +175,8 @@ func (nw *NetworkInterface) Recieve() error {
 							DstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[16:20]),
 						}
 
-						ipOfEth0, err := strIPToBytes(nw.IPAdder)
-						if err != nil {
-							return err
-						}
 						switch ipv4.DstAddr {
-						case binary.BigEndian.Uint32(ipOfEth0):
+						case nw.IPAdder:
 							nw.PassiveCh <- Passive{
 								EthernetFrame: recievedEthernetFrame,
 								IPv4:          ipv4,
@@ -192,6 +191,7 @@ func (nw *NetworkInterface) Recieve() error {
 	return nil
 }
 
+// stringのIPv4アドレスをbytesに変換
 func strIPToBytes(s string) ([]byte, error) {
 	b := make([]byte, 4)
 	src := strings.Split(s, ".")

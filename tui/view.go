@@ -27,7 +27,11 @@ func (t *tui) updateView(passiveCh <-chan packemon.Passive) {
 			viewers = append(viewers, &IPv4{passive.IPv4})
 		}
 
-		t.app.QueueUpdateDraw(func() {
+		go func() {
+			t.app.QueueUpdate(func() {
+				t.grid.Clear()
+			})
+
 			rows := make([]int, len(viewers))
 			columns := make([]int, len(viewers))
 			for i := range viewers {
@@ -38,7 +42,8 @@ func (t *tui) updateView(passiveCh <-chan packemon.Passive) {
 			for i := range viewers {
 				t.grid.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false)
 			}
-		})
+			t.app.Draw()
+		}()
 	}
 }
 

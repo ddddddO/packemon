@@ -50,12 +50,11 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 	tui.DEFAULT_ARP_SENDER_IP = tui.DEFAULT_IP_SOURCE
 	tui.DEFAULT_ARP_TARGET_IP = tui.DEFAULT_ARP_SENDER_IP
 
-	// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
-	// $ ip route
-	// $ arp xxx.xx.xxx.1
-	firsthopMACAddr := [6]byte{0x01, 0x00, 0x5e, 0x7f, 0xff, 0xfa}
-
 	if debug {
+		// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
+		// $ ip route
+		// $ arp xxx.xx.xxx.1
+		firsthopMACAddr := [6]byte{0x00, 0x15, 0x5d, 0x2d, 0x82, 0xcb}
 		return debugMode(wantSend, protocol, netIf, firsthopMACAddr)
 	}
 

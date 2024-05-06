@@ -167,10 +167,14 @@ func (dnw *debugNetworkInterface) Recieve() error {
 
 	events := make([]unix.EpollEvent, 10)
 	for {
+		log.Println("in loop")
+
 		fds, err := unix.EpollWait(epollfd, events, -1)
 		if err != nil {
 			return err
 		}
+
+		log.Printf("fds length: %d\n", fds)
 
 		for i := 0; i < fds; i++ {
 			if events[i].Fd == int32(dnw.Socket) {
@@ -178,10 +182,13 @@ func (dnw *debugNetworkInterface) Recieve() error {
 				n, _, err := unix.Recvfrom(dnw.Socket, recieved, 0)
 				if err != nil {
 					if n == -1 {
+						log.Println("-1 unix.Recvfrom")
 						continue
 					}
 					return err
 				}
+
+				log.Println("recieved")
 
 				recievedEthernetFrame := &p.EthernetFrame{
 					Header: &p.EthernetHeader{
@@ -198,6 +205,8 @@ func (dnw *debugNetworkInterface) Recieve() error {
 				case p.ETHER_TYPE_ARP:
 					switch recievedEthernetFrame.Header.Dst {
 					case p.HardwareAddr(dnw.Intf.HardwareAddr), HARDWAREADDR_BROADCAST:
+						log.Println("recieved ARP")
+
 						arp := &p.ARP{
 							HardwareType:       [2]uint8(recievedEthernetFrame.Data[0:2]),
 							ProtocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.Data[2:4]),
@@ -212,14 +221,17 @@ func (dnw *debugNetworkInterface) Recieve() error {
 							TargetIPAddr:       [4]uint8(recievedEthernetFrame.Data[24:28]),
 						}
 
-						dnw.PassiveCh <- p.Passive{
-							EthernetFrame: recievedEthernetFrame,
-							ARP:           arp,
-						}
+						// dnw.PassiveCh <- p.Passive{
+						// 	EthernetFrame: recievedEthernetFrame,
+						// 	ARP:           arp,
+						// }
+						_ = arp
 					}
 				case p.ETHER_TYPE_IPv4:
 					switch recievedEthernetFrame.Header.Dst {
 					case p.HardwareAddr(dnw.Intf.HardwareAddr), HARDWAREADDR_BROADCAST:
+						log.Println("recieved IPv4")
+
 						ipv4 := &p.IPv4{
 							Version:        recievedEthernetFrame.Data[0] >> 4,
 							Ihl:            recievedEthernetFrame.Data[0] << 4 >> 4,
@@ -235,15 +247,18 @@ func (dnw *debugNetworkInterface) Recieve() error {
 							DstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[16:20]),
 						}
 
-						switch ipv4.DstAddr {
-						case dnw.IPAdder:
-							dnw.PassiveCh <- p.Passive{
-								EthernetFrame: recievedEthernetFrame,
-								IPv4:          ipv4,
-							}
-						}
+						// switch ipv4.DstAddr {
+						// case dnw.IPAdder:
+						// 	dnw.PassiveCh <- p.Passive{
+						// 		EthernetFrame: recievedEthernetFrame,
+						// 		IPv4:          ipv4,
+						// 	}
+						// }
+						_ = ipv4
 					}
 				}
+
+				log.Println("end inner loop")
 			}
 		}
 	}

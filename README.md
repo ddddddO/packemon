@@ -59,6 +59,18 @@ $ go install github.com/ddddddO/packemon/cmd/packemon
   $ sudo packemon --send
   ```
 
+## Related tools
+- netcat
+- [Nmap](https://nmap.org/)
+
+## Acknowledgment
+- [rivo/tview](https://github.com/rivo/tview)
+  - Packemon is using this TUI library.
+
+- [Golangで作るソフトウェアルータ](https://booth.pm/ja/items/5290391)
+  - The way Go handles syscalls, packet checksum logic, etc. was helpful. This is a book in Japanese.
+
+
 ## Links
 - 「Golangで作るソフトウェアルータ」
   - その実装コード: https://github.com/sat0ken/go-curo

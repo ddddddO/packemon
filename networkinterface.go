@@ -64,7 +64,7 @@ func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 		SocketAddr: addr,
 		IPAdder:    binary.BigEndian.Uint32(ipAddr),
 
-		PassiveCh: make(chan Passive, 10),
+		PassiveCh: make(chan Passive, 100),
 	}, nil
 }
 

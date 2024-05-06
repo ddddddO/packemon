@@ -11,7 +11,7 @@ import (
 )
 
 type NetworkInterface struct {
-	Intf       net.Interface
+	Intf       *net.Interface
 	Socket     int // file discripter
 	SocketAddr unix.SockaddrLinklayer
 	IPAdder    string // refactor
@@ -25,10 +25,10 @@ func NewNetworkInterface() (*NetworkInterface, error) {
 		return nil, err
 	}
 
-	var intf net.Interface
+	var intf *net.Interface
 	for i := range interfaces {
 		if interfaces[i].Name == "eth0" {
-			intf = interfaces[i]
+			intf = &interfaces[i]
 		}
 	}
 

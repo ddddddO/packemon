@@ -6,13 +6,16 @@ TUI tool and Go library for sending packets of arbitrary input and monitoring pa
 
 I intend to develop it patiently🌴
 
+
 ## Feature
 
 This TUI tool has two major functions: packet generation and packet monitoring.
 
-### Packet Generator
+![](./doc/tui_gen_mon_1.png)
+![](./doc/tui_gen_mon_2.png)
 
-![](./doc/tui_overview_generator.png)
+
+### Packet Generator
 
 - [x] Send generated packets to any network interfaces.
   - You can specify network interface with `--interface` flag. Default is `eth0`.
@@ -30,8 +33,6 @@ This TUI tool has two major functions: packet generation and packet monitoring.
 
 ### Packet Monitor
 
-![](./doc/tui_overview_monitor.png)
-
 - [x] Monitor any network interfaces.
   - You can specify network interface with `--interface` flag. Default is `eth0`.
 
@@ -44,19 +45,19 @@ This TUI tool has two major functions: packet generation and packet monitoring.
 ## Installation
 
 ```console
-$ go install github.com/ddddddO/packemon/cmd/packemon
+go install github.com/ddddddO/packemon/cmd/packemon
 ```
 
 ## Usage
 
-- Packet Monitor
-  ```console
-  $ sudo packemon
-  ```
-
 - Packet Generator
   ```console
-  $ sudo packemon --send
+  sudo packemon --send
+  ```
+
+- Packet Monitor
+  ```console
+  sudo packemon
   ```
 
 ## Related tools
@@ -71,6 +72,10 @@ $ go install github.com/ddddddO/packemon/cmd/packemon
   - The way Go handles syscalls, packet checksum logic, etc. was helpful. This is a book in Japanese.
 
 
+## Log (japanese)
+
+<details><summary>xxx</summary>
+
 ## Links
 - 「Golangで作るソフトウェアルータ」
   - その実装コード: https://github.com/sat0ken/go-curo
@@ -78,10 +83,6 @@ $ go install github.com/ddddddO/packemon/cmd/packemon
 - 動作確認用コマンドの参考
   - https://zenn.dev/takai404/articles/76d47e944d8e18
 - [Scrapboxメモ書き](https://scrapbox.io/ddddddo/%E3%83%8D%E3%83%83%E3%83%88%E3%83%AF%E3%83%BC%E3%82%AF%E7%B3%BB%E8%AA%AD%E3%81%BF%E7%89%A9)
-
-## Log (japanese)
-
-<details><summary>xxx</summary>
 
 - WSL2のDebianで動作した。
 
@@ -126,7 +127,7 @@ $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -
 - 単発フレーム送信コマンド（e.g. ARP request）
 
   ```console
-  $ sudo go run cmd/packemon/main.go --send --proto arp
+  $ sudo go run cmd/packemon/main.go --debug --send --proto arp
   ```
 
 #### 手軽にブロードキャスト

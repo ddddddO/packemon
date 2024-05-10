@@ -132,56 +132,45 @@ func (nw *NetworkInterface) Recieve() error {
 					Data: recieved[14:],
 				}
 
-				HARDWAREADDR_BROADCAST := [6]uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
-
 				switch recievedEthernetFrame.Header.Typ {
 				case ETHER_TYPE_ARP:
-					switch recievedEthernetFrame.Header.Dst {
-					case HardwareAddr(nw.Intf.HardwareAddr), HARDWAREADDR_BROADCAST:
-						arp := &ARP{
-							HardwareType:       [2]uint8(recievedEthernetFrame.Data[0:2]),
-							ProtocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.Data[2:4]),
-							HardwareAddrLength: recievedEthernetFrame.Data[4],
-							ProtocolLength:     recievedEthernetFrame.Data[5],
-							Operation:          [2]uint8(recievedEthernetFrame.Data[6:8]),
+					arp := &ARP{
+						HardwareType:       [2]uint8(recievedEthernetFrame.Data[0:2]),
+						ProtocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.Data[2:4]),
+						HardwareAddrLength: recievedEthernetFrame.Data[4],
+						ProtocolLength:     recievedEthernetFrame.Data[5],
+						Operation:          [2]uint8(recievedEthernetFrame.Data[6:8]),
 
-							SenderHardwareAddr: HardwareAddr(recievedEthernetFrame.Data[8:14]),
-							SenderIPAddr:       [4]uint8(recievedEthernetFrame.Data[14:18]),
+						SenderHardwareAddr: HardwareAddr(recievedEthernetFrame.Data[8:14]),
+						SenderIPAddr:       [4]uint8(recievedEthernetFrame.Data[14:18]),
 
-							TargetHardwareAddr: HardwareAddr(recievedEthernetFrame.Data[18:24]),
-							TargetIPAddr:       [4]uint8(recievedEthernetFrame.Data[24:28]),
-						}
+						TargetHardwareAddr: HardwareAddr(recievedEthernetFrame.Data[18:24]),
+						TargetIPAddr:       [4]uint8(recievedEthernetFrame.Data[24:28]),
+					}
 
-						nw.PassiveCh <- Passive{
-							EthernetFrame: recievedEthernetFrame,
-							ARP:           arp,
-						}
+					nw.PassiveCh <- Passive{
+						EthernetFrame: recievedEthernetFrame,
+						ARP:           arp,
 					}
 				case ETHER_TYPE_IPv4:
-					switch recievedEthernetFrame.Header.Dst {
-					case HardwareAddr(nw.Intf.HardwareAddr), HARDWAREADDR_BROADCAST:
-						ipv4 := &IPv4{
-							Version:        recievedEthernetFrame.Data[0] >> 4,
-							Ihl:            recievedEthernetFrame.Data[0] << 4 >> 4,
-							Tos:            recievedEthernetFrame.Data[1],
-							TotalLength:    binary.BigEndian.Uint16(recievedEthernetFrame.Data[2:4]),
-							Identification: binary.BigEndian.Uint16(recievedEthernetFrame.Data[4:6]),
-							Flags:          recievedEthernetFrame.Data[6],
-							FragmentOffset: binary.BigEndian.Uint16(recievedEthernetFrame.Data[6:8]),
-							Ttl:            recievedEthernetFrame.Data[8],
-							Protocol:       recievedEthernetFrame.Data[9],
-							HeaderChecksum: binary.BigEndian.Uint16(recievedEthernetFrame.Data[10:12]),
-							SrcAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[12:16]),
-							DstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[16:20]),
-						}
+					ipv4 := &IPv4{
+						Version:        recievedEthernetFrame.Data[0] >> 4,
+						Ihl:            recievedEthernetFrame.Data[0] << 4 >> 4,
+						Tos:            recievedEthernetFrame.Data[1],
+						TotalLength:    binary.BigEndian.Uint16(recievedEthernetFrame.Data[2:4]),
+						Identification: binary.BigEndian.Uint16(recievedEthernetFrame.Data[4:6]),
+						Flags:          recievedEthernetFrame.Data[6],
+						FragmentOffset: binary.BigEndian.Uint16(recievedEthernetFrame.Data[6:8]),
+						Ttl:            recievedEthernetFrame.Data[8],
+						Protocol:       recievedEthernetFrame.Data[9],
+						HeaderChecksum: binary.BigEndian.Uint16(recievedEthernetFrame.Data[10:12]),
+						SrcAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[12:16]),
+						DstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[16:20]),
+					}
 
-						switch ipv4.DstAddr {
-						case nw.IPAdder:
-							nw.PassiveCh <- Passive{
-								EthernetFrame: recievedEthernetFrame,
-								IPv4:          ipv4,
-							}
-						}
+					nw.PassiveCh <- Passive{
+						EthernetFrame: recievedEthernetFrame,
+						IPv4:          ipv4,
 					}
 				}
 			}

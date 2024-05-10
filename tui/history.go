@@ -10,7 +10,7 @@ import (
 
 func NewPacketsHistoryTable() *tview.Table {
 	h := tview.NewTable()
-	h.SetTitle("History")
+	h.SetTitle(" Packemon <Monitor> ")
 	h.SetTitleAlign(tview.AlignLeft)
 	h.SetBorder(true)
 	h.ScrollToBeginning()

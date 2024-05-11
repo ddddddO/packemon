@@ -14,7 +14,7 @@ type IPv4 struct {
 }
 
 func (*IPv4) rows() int {
-	return 28
+	return 16
 }
 
 func (*IPv4) columns() int {
@@ -22,8 +22,8 @@ func (*IPv4) columns() int {
 }
 
 func (i *IPv4) viewTable() *tview.Table {
-	ipv4Table := tview.NewTable().SetBorders(true)
-	ipv4Table.Box = tview.NewBox().SetBorder(true).SetTitle(" IPv4 Header ")
+	ipv4Table := tview.NewTable().SetBorders(false)
+	ipv4Table.Box = tview.NewBox().SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	ipv4Table.SetCell(0, 0, tview.NewTableCell(padding("Version")))
 	ipv4Table.SetCell(0, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", i.Version))))

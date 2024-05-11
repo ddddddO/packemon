@@ -12,7 +12,7 @@ type EthernetFrame struct {
 }
 
 func (*EthernetFrame) rows() int {
-	return 10
+	return 7
 }
 
 func (*EthernetFrame) columns() int {
@@ -20,8 +20,8 @@ func (*EthernetFrame) columns() int {
 }
 
 func (ef *EthernetFrame) viewTable() *tview.Table {
-	ethTable := tview.NewTable().SetBorders(true)
-	ethTable.Box = tview.NewBox().SetBorder(true).SetTitle(" Ethernet Header ")
+	ethTable := tview.NewTable().SetBorders(false)
+	ethTable.Box = tview.NewBox().SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	ethTable.SetCell(0, 0, tview.NewTableCell(padding("Destination MAC Addr")))
 	ethTable.SetCell(0, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.Header.Dst))))

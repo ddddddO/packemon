@@ -12,7 +12,7 @@ type ICMP struct {
 }
 
 func (*ICMP) rows() int {
-	return 14
+	return 8
 }
 
 func (*ICMP) columns() int {
@@ -20,8 +20,8 @@ func (*ICMP) columns() int {
 }
 
 func (i *ICMP) viewTable() *tview.Table {
-	icmpTable := tview.NewTable().SetBorders(true)
-	icmpTable.Box = tview.NewBox().SetBorder(true).SetTitle(" ICMP Header ")
+	icmpTable := tview.NewTable().SetBorders(false)
+	icmpTable.Box = tview.NewBox().SetBorder(true).SetTitle(" ICMP Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	icmpTable.SetCell(0, 0, tview.NewTableCell(padding("Type")))
 	icmpTable.SetCell(0, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", i.Typ))))

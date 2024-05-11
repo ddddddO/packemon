@@ -12,7 +12,7 @@ type ARP struct {
 }
 
 func (*ARP) rows() int {
-	return 22
+	return 13
 }
 
 func (*ARP) columns() int {
@@ -20,8 +20,8 @@ func (*ARP) columns() int {
 }
 
 func (a *ARP) viewTable() *tview.Table {
-	arpTable := tview.NewTable().SetBorders(true)
-	arpTable.Box = tview.NewBox().SetBorder(true).SetTitle(" ARP ")
+	arpTable := tview.NewTable().SetBorders(false)
+	arpTable.Box = tview.NewBox().SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	arpTable.SetCell(0, 0, tview.NewTableCell(padding("Hardware Type")))
 	arpTable.SetCell(0, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.HardwareType))))

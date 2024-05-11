@@ -52,16 +52,16 @@ func (t *tui) updateTable(passiveCh <-chan *packemon.Passive) {
 	id := 0
 	for passive := range passiveCh {
 		r := &HistoryRow{
-			id:             tview.NewTableCell(fmt.Sprintf("%d", id)).SetTextColor(tview.Styles.SecondaryTextColor),
-			destinationMAC: tview.NewTableCell(fmt.Sprintf("Dst:%x", passive.EthernetFrame.Header.Dst)).SetTextColor(tcell.ColorGreen),
-			sourceMAC:      tview.NewTableCell(fmt.Sprintf("Src:%x", passive.EthernetFrame.Header.Src)).SetTextColor(tcell.ColorRed),
-			typ:            tview.NewTableCell(fmt.Sprintf("Typ:%x", passive.EthernetFrame.Header.Typ)).SetTextColor(tcell.ColorYellow),
+			id:             tview.NewTableCell(fmt.Sprintf("%d", id)).SetTextColor(tcell.ColorWhite),
+			destinationMAC: tview.NewTableCell(fmt.Sprintf("Dst:%x", passive.EthernetFrame.Header.Dst)).SetTextColor(tcell.Color27),
+			sourceMAC:      tview.NewTableCell(fmt.Sprintf("Src:%x", passive.EthernetFrame.Header.Src)).SetTextColor(tcell.Color48),
+			typ:            tview.NewTableCell(fmt.Sprintf("Type:%x", passive.EthernetFrame.Header.Typ)).SetTextColor(tcell.Color98),
 		}
 
 		if passive.IPv4 != nil {
-			r.protocol = tview.NewTableCell(fmt.Sprintf("Proto:%s", packemon.IPv4Protocols[passive.IPv4.Protocol])).SetTextColor(tcell.ColorYellow)
+			r.protocol = tview.NewTableCell(fmt.Sprintf("Proto:%s", packemon.IPv4Protocols[passive.IPv4.Protocol])).SetTextColor(tcell.Color50)
 		} else {
-			r.protocol = tview.NewTableCell(fmt.Sprintf("Proto:%s", "-")).SetTextColor(tcell.ColorYellow)
+			r.protocol = tview.NewTableCell(fmt.Sprintf("Proto:%s", "-")).SetTextColor(tcell.Color50)
 		}
 
 		t.storedPackets.Store(id, passive)

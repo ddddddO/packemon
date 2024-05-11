@@ -207,6 +207,46 @@ func (nw *NetworkInterface) Recieve() error {
 							IPv4:          ipv4,
 							TCP:           tcp,
 						}
+					case IPv4_PROTO_UDP:
+						udp := &UDP{
+							SrcPort:  binary.BigEndian.Uint16(ipv4.Data[0:2]),
+							DstPort:  binary.BigEndian.Uint16(ipv4.Data[2:4]),
+							Length:   binary.BigEndian.Uint16(ipv4.Data[4:6]),
+							Checksum: binary.BigEndian.Uint16(ipv4.Data[6:8]),
+							Data:     ipv4.Data[8:],
+						}
+						nw.PassiveCh <- &Passive{
+							EthernetFrame: recievedEthernetFrame,
+							IPv4:          ipv4,
+							UDP:           udp,
+						}
+
+						// // TODO: 53確かtcpもあったからそれのハンドリング考慮するいつか
+						// switch udp.DstPort {
+						// // 53port
+						// case 0x0035:
+						// 	q := &Queries{
+						// 		// TODO: domainは、0x00 までとなる。そういう判定処理が必要
+						// 		Domain: udp.Data,
+						// 		Typ:    binary.BigEndian.Uint16(),
+						// 		Class:  binary.BigEndian.Uint16(),
+						// 	}
+						// 	dns := &DNS{
+						// 		TransactionID: binary.BigEndian.Uint16(udp.Data[0:2]),
+						// 		Flags:         binary.BigEndian.Uint16(udp.Data[2:4]),
+						// 		Questions:     binary.BigEndian.Uint16(udp.Data[4:6]),
+						// 		AnswerRRs:     binary.BigEndian.Uint16(udp.Data[6:8]),
+						// 		AdditionalRRs: binary.BigEndian.Uint16(udp.Data[8:10]),
+						// 		Queries:       q,
+						// 	}
+
+						// 	nw.PassiveCh <- &Passive{
+						// 		EthernetFrame: recievedEthernetFrame,
+						// 		IPv4:          ipv4,
+						// 		UDP:           udp,
+						// 		DNS:           dns,
+						// 	}
+						// }
 					default:
 						nw.PassiveCh <- &Passive{
 							EthernetFrame: recievedEthernetFrame,

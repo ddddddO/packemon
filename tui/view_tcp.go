@@ -1,7 +1,6 @@
 package tui
 
 import (
-	// "encoding/binary"
 	"fmt"
 
 	"github.com/ddddddO/packemon"

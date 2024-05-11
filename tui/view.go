@@ -32,6 +32,9 @@ func (t *tui) updateView(passive *packemon.Passive) {
 	if passive.TCP != nil {
 		viewers = append(viewers, &TCP{passive.TCP})
 	}
+	if passive.UDP != nil {
+		viewers = append(viewers, &UDP{passive.UDP})
+	}
 
 	go func(viewers []Viewer) {
 		t.app.QueueUpdate(func() {

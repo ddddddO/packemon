@@ -45,8 +45,8 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
   - [x] ARP
   - [x] IPv4
   - [x] ICMP
-  - [ ] TCP (WIP)
-  - [ ] UDP (WIP)
+  - [x] TCP
+  - [x] UDP
   - [ ] DNS (WIP)
   - [ ] HTTP (WIP)
   - [ ] xxxxx....

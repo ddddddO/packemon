@@ -20,17 +20,17 @@ func (*EthernetFrame) columns() int {
 }
 
 func (ef *EthernetFrame) viewTable() *tview.Table {
-	ethTable := tview.NewTable().SetBorders(false)
-	ethTable.Box = tview.NewBox().SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+	table := tview.NewTable().SetBorders(false)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
-	ethTable.SetCell(0, 0, tview.NewTableCell(padding("Destination MAC Addr")))
-	ethTable.SetCell(0, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.Header.Dst))))
+	table.SetCell(0, 0, tview.NewTableCell(padding("Destination MAC Addr")))
+	table.SetCell(0, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.Header.Dst))))
 
-	ethTable.SetCell(1, 0, tview.NewTableCell(padding("Source MAC Addr")))
-	ethTable.SetCell(1, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.Header.Src))))
+	table.SetCell(1, 0, tview.NewTableCell(padding("Source MAC Addr")))
+	table.SetCell(1, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.Header.Src))))
 
-	ethTable.SetCell(2, 0, tview.NewTableCell(padding("Type")))
-	ethTable.SetCell(2, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.Header.Typ))))
+	table.SetCell(2, 0, tview.NewTableCell(padding("Type")))
+	table.SetCell(2, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", ef.Header.Typ))))
 
-	return ethTable
+	return table
 }

@@ -20,35 +20,35 @@ func (*ARP) columns() int {
 }
 
 func (a *ARP) viewTable() *tview.Table {
-	arpTable := tview.NewTable().SetBorders(false)
-	arpTable.Box = tview.NewBox().SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+	table := tview.NewTable().SetBorders(false)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
-	arpTable.SetCell(0, 0, tview.NewTableCell(padding("Hardware Type")))
-	arpTable.SetCell(0, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.HardwareType))))
+	table.SetCell(0, 0, tview.NewTableCell(padding("Hardware Type")))
+	table.SetCell(0, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.HardwareType))))
 
-	arpTable.SetCell(1, 0, tview.NewTableCell(padding("Protocol Type")))
-	arpTable.SetCell(1, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.ProtocolType))))
+	table.SetCell(1, 0, tview.NewTableCell(padding("Protocol Type")))
+	table.SetCell(1, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.ProtocolType))))
 
-	arpTable.SetCell(2, 0, tview.NewTableCell(padding("Hardware Addr Length")))
-	arpTable.SetCell(2, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.HardwareAddrLength))))
+	table.SetCell(2, 0, tview.NewTableCell(padding("Hardware Addr Length")))
+	table.SetCell(2, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.HardwareAddrLength))))
 
-	arpTable.SetCell(3, 0, tview.NewTableCell(padding("Protocol Length")))
-	arpTable.SetCell(3, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.ProtocolLength))))
+	table.SetCell(3, 0, tview.NewTableCell(padding("Protocol Length")))
+	table.SetCell(3, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.ProtocolLength))))
 
-	arpTable.SetCell(4, 0, tview.NewTableCell(padding("Operation Code")))
-	arpTable.SetCell(4, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.Operation))))
+	table.SetCell(4, 0, tview.NewTableCell(padding("Operation Code")))
+	table.SetCell(4, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.Operation))))
 
-	arpTable.SetCell(5, 0, tview.NewTableCell(padding("Sender Hardware Addr")))
-	arpTable.SetCell(5, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.SenderHardwareAddr))))
+	table.SetCell(5, 0, tview.NewTableCell(padding("Sender Hardware Addr")))
+	table.SetCell(5, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.SenderHardwareAddr))))
 
-	arpTable.SetCell(6, 0, tview.NewTableCell(padding("Sender IP Addr")))
-	arpTable.SetCell(6, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.SenderIPAddr))))
+	table.SetCell(6, 0, tview.NewTableCell(padding("Sender IP Addr")))
+	table.SetCell(6, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.SenderIPAddr))))
 
-	arpTable.SetCell(7, 0, tview.NewTableCell(padding("Target Hardware Addr")))
-	arpTable.SetCell(7, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.TargetHardwareAddr))))
+	table.SetCell(7, 0, tview.NewTableCell(padding("Target Hardware Addr")))
+	table.SetCell(7, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.TargetHardwareAddr))))
 
-	arpTable.SetCell(8, 0, tview.NewTableCell(padding("Target Hardware Addr")))
-	arpTable.SetCell(8, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.TargetIPAddr))))
+	table.SetCell(8, 0, tview.NewTableCell(padding("Target Hardware Addr")))
+	table.SetCell(8, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", a.TargetIPAddr))))
 
-	return arpTable
+	return table
 }

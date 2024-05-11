@@ -50,7 +50,7 @@ func (i *IPv4) viewTable() *tview.Table {
 	ipv4Table.SetCell(7, 1, tview.NewTableCell(padding(fmt.Sprintf("%d", i.Ttl))))
 
 	ipv4Table.SetCell(8, 0, tview.NewTableCell(padding("Protocol")))
-	ipv4Table.SetCell(8, 1, tview.NewTableCell(padding(fmt.Sprintf("%d", i.Protocol))))
+	ipv4Table.SetCell(8, 1, tview.NewTableCell(padding(fmt.Sprintf("%x (%s)", i.Protocol, packemon.IPv4Protocols[i.Protocol]))))
 
 	ipv4Table.SetCell(9, 0, tview.NewTableCell(padding("Header Checksum")))
 	ipv4Table.SetCell(9, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", i.HeaderChecksum))))

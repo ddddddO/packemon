@@ -32,6 +32,12 @@ const (
 	IPv4_PROTO_UDP  uint8 = 0x11
 )
 
+var IPv4Protocols = map[uint8]string{
+	IPv4_PROTO_ICMP: "ICMP",
+	IPv4_PROTO_TCP:  "TCP",
+	IPv4_PROTO_UDP:  "UDP",
+}
+
 // 一旦固定
 func NewIPv4(protocol uint8, dstAddr uint32) *IPv4 {
 	return &IPv4{

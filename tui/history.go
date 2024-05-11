@@ -59,7 +59,7 @@ func (t *tui) updateTable(passiveCh <-chan *packemon.Passive) {
 		}
 
 		if passive.IPv4 != nil {
-			r.protocol = tview.NewTableCell(fmt.Sprintf("Proto: %x", passive.IPv4.Protocol)).SetTextColor(tcell.ColorYellow)
+			r.protocol = tview.NewTableCell(fmt.Sprintf("Proto: %s", packemon.IPv4Protocols[passive.IPv4.Protocol])).SetTextColor(tcell.ColorYellow)
 		} else {
 			r.protocol = tview.NewTableCell(fmt.Sprintf("Proto: %s", "-")).SetTextColor(tcell.ColorYellow)
 		}

@@ -166,11 +166,30 @@ func (nw *NetworkInterface) Recieve() error {
 						HeaderChecksum: binary.BigEndian.Uint16(recievedEthernetFrame.Data[10:12]),
 						SrcAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[12:16]),
 						DstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[16:20]),
+
+						Data: recievedEthernetFrame.Data[20:],
 					}
 
-					nw.PassiveCh <- &Passive{
-						EthernetFrame: recievedEthernetFrame,
-						IPv4:          ipv4,
+					switch ipv4.Protocol {
+					case IPv4_PROTO_ICMP:
+						icmp := &ICMP{
+							Typ:        ipv4.Data[0],
+							Code:       ipv4.Data[1],
+							Checksum:   binary.BigEndian.Uint16(ipv4.Data[2:4]),
+							Identifier: binary.BigEndian.Uint16(ipv4.Data[4:6]),
+							Sequence:   binary.BigEndian.Uint16(ipv4.Data[6:8]),
+							Data:       ipv4.Data[8:],
+						}
+						nw.PassiveCh <- &Passive{
+							EthernetFrame: recievedEthernetFrame,
+							IPv4:          ipv4,
+							ICMP:          icmp,
+						}
+					default:
+						nw.PassiveCh <- &Passive{
+							EthernetFrame: recievedEthernetFrame,
+							IPv4:          ipv4,
+						}
 					}
 				}
 			}

@@ -185,6 +185,28 @@ func (nw *NetworkInterface) Recieve() error {
 							IPv4:          ipv4,
 							ICMP:          icmp,
 						}
+					case IPv4_PROTO_TCP:
+						tcp := &TCP{
+							SrcPort:        binary.BigEndian.Uint16(ipv4.Data[0:2]),
+							DstPort:        binary.BigEndian.Uint16(ipv4.Data[2:4]),
+							Sequence:       binary.BigEndian.Uint32(ipv4.Data[4:8]),
+							Acknowledgment: binary.BigEndian.Uint32(ipv4.Data[8:12]),
+							HeaderLength:   binary.BigEndian.Uint16(ipv4.Data[12:14]) >> 8,
+							Flags:          binary.BigEndian.Uint16(ipv4.Data[12:14]) >> 14,
+							Window:         binary.BigEndian.Uint16(ipv4.Data[14:16]),
+							Checksum:       binary.BigEndian.Uint16(ipv4.Data[16:18]),
+							UrgentPointer:  binary.BigEndian.Uint16(ipv4.Data[18:20]),
+							// TODO: options多分色々な種類のが飛んでくるからrange直打ちで指定できない
+							//       以下リンク先見ると、3way handshakeでoptionが使われるようなので、Flags見て判定してもいいかも
+							//       https://milestone-of-se.nesuke.com/nw-basic/tcp-udp/tcp-option/
+							// Options: ,
+							// Data: ,
+						}
+						nw.PassiveCh <- &Passive{
+							EthernetFrame: recievedEthernetFrame,
+							IPv4:          ipv4,
+							TCP:           tcp,
+						}
 					default:
 						nw.PassiveCh <- &Passive{
 							EthernetFrame: recievedEthernetFrame,

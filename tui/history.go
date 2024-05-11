@@ -48,7 +48,7 @@ func (t *tui) insertToTable(r *HistoryRow) {
 	t.table.SetCell(0, 4, r.protocol)
 }
 
-func (t *tui) updateTable(passiveCh <-chan packemon.Passive) {
+func (t *tui) updateTable(passiveCh <-chan *packemon.Passive) {
 	id := 0
 	for passive := range passiveCh {
 		r := &HistoryRow{

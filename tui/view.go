@@ -15,7 +15,7 @@ type Viewer interface {
 	viewTable() *tview.Table
 }
 
-func (t *tui) updateView(passive packemon.Passive) {
+func (t *tui) updateView(passive *packemon.Passive) {
 	viewers := []Viewer{}
 	if passive.EthernetFrame != nil {
 		viewers = append(viewers, &EthernetFrame{passive.EthernetFrame})

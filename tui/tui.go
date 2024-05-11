@@ -20,31 +20,33 @@ type tui struct {
 }
 
 func NewTUI(wantSend bool) *tui {
-	app := tview.NewApplication()
-
 	if wantSend {
-		pages := tview.NewPages()
-
-		list := tview.NewList()
-		list.SetTitle("List of protocols").SetBorder(true)
-
-		grid := tview.NewGrid()
-		grid.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon <Generator> ")
-
-		return &tui{
-			app:   app,
-			grid:  grid,
-			pages: pages,
-			list:  list,
-		}
+		return newGenerator()
 	}
+	return newMonitor()
+}
 
+func newGenerator() *tui {
+	pages := tview.NewPages()
+	grid := tview.NewGrid()
+	grid.Box = tview.NewBox().SetTitle(" Packemon <Generator> ").SetBorder(true)
+	list := tview.NewList()
+	list.SetTitle("List of protocols").SetBorder(true)
+
+	return &tui{
+		app:   tview.NewApplication(),
+		grid:  grid,
+		pages: pages,
+		list:  list,
+	}
+}
+
+func newMonitor() *tui {
 	pages := tview.NewPages()
 	table := NewPacketsHistoryTable()
 	pages.AddPage("history", table, true, true)
-
 	grid := tview.NewGrid()
-	grid.Box = tview.NewBox().SetBorder(true).SetTitle(" Packemon <Monitor> ")
+	grid.Box = tview.NewBox().SetTitle(" Packemon <Monitor> ").SetBorder(true)
 
 	return &tui{
 		app:           tview.NewApplication(),
@@ -55,7 +57,14 @@ func NewTUI(wantSend bool) *tui {
 	}
 }
 
-func (t *tui) Monitor(passiveCh chan packemon.Passive) error {
+func (t *tui) Generator(sendFn func(*packemon.EthernetFrame) error) error {
+	if err := t.form(sendFn); err != nil {
+		return err
+	}
+	return t.app.SetRoot(t.grid, true).EnableMouse(true).SetFocus(t.grid).Run()
+}
+
+func (t *tui) Monitor(passiveCh <-chan *packemon.Passive) error {
 	t.table.Select(0, 0).SetFixed(1, 1).SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEscape {
 			t.table.SetSelectable(false, false)
@@ -67,17 +76,10 @@ func (t *tui) Monitor(passiveCh chan packemon.Passive) error {
 		t.table.GetCell(row, column).SetTextColor(tcell.ColorRed)
 
 		if p, ok := t.storedPackets.Load(t.table.GetRowCount() - row - 1); ok {
-			t.updateView(p.(packemon.Passive))
+			t.updateView(p.(*packemon.Passive))
 		}
 	})
 
 	go t.updateTable(passiveCh)
 	return t.app.SetRoot(t.pages, true).Run()
-}
-
-func (t *tui) Generator(sendFn func(*packemon.EthernetFrame) error) error {
-	if err := t.form(sendFn); err != nil {
-		return err
-	}
-	return t.app.SetRoot(t.grid, true).EnableMouse(true).SetFocus(t.grid).Run()
 }

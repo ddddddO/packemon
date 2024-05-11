@@ -16,7 +16,7 @@ type NetworkInterface struct {
 	SocketAddr unix.SockaddrLinklayer
 	IPAdder    uint32
 
-	PassiveCh chan Passive
+	PassiveCh chan *Passive
 }
 
 func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
@@ -64,7 +64,7 @@ func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 		SocketAddr: addr,
 		IPAdder:    binary.BigEndian.Uint32(ipAddr),
 
-		PassiveCh: make(chan Passive, 100),
+		PassiveCh: make(chan *Passive, 100),
 	}, nil
 }
 
@@ -148,7 +148,7 @@ func (nw *NetworkInterface) Recieve() error {
 						TargetIPAddr:       [4]uint8(recievedEthernetFrame.Data[24:28]),
 					}
 
-					nw.PassiveCh <- Passive{
+					nw.PassiveCh <- &Passive{
 						EthernetFrame: recievedEthernetFrame,
 						ARP:           arp,
 					}
@@ -168,7 +168,7 @@ func (nw *NetworkInterface) Recieve() error {
 						DstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[16:20]),
 					}
 
-					nw.PassiveCh <- Passive{
+					nw.PassiveCh <- &Passive{
 						EthernetFrame: recievedEthernetFrame,
 						IPv4:          ipv4,
 					}

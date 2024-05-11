@@ -221,7 +221,7 @@ func (dnw *debugNetworkInterface) Recieve() error {
 							TargetIPAddr:       [4]uint8(recievedEthernetFrame.Data[24:28]),
 						}
 
-						// dnw.PassiveCh <- p.Passive{
+						// dnw.PassiveCh <- &p.Passive{
 						// 	EthernetFrame: recievedEthernetFrame,
 						// 	ARP:           arp,
 						// }
@@ -249,7 +249,7 @@ func (dnw *debugNetworkInterface) Recieve() error {
 
 						// switch ipv4.DstAddr {
 						// case dnw.IPAdder:
-						// 	dnw.PassiveCh <- p.Passive{
+						// 	dnw.PassiveCh <- &p.Passive{
 						// 		EthernetFrame: recievedEthernetFrame,
 						// 		IPv4:          ipv4,
 						// 	}

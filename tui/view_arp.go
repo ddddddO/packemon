@@ -16,7 +16,7 @@ func (*ARP) rows() int {
 }
 
 func (*ARP) columns() int {
-	return 20
+	return 30
 }
 
 func (a *ARP) viewTable() *tview.Table {

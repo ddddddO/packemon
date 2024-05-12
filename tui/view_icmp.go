@@ -16,7 +16,7 @@ func (*ICMP) rows() int {
 }
 
 func (*ICMP) columns() int {
-	return 20
+	return 30
 }
 
 func (i *ICMP) viewTable() *tview.Table {

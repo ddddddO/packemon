@@ -16,7 +16,7 @@ func (*EthernetFrame) rows() int {
 }
 
 func (*EthernetFrame) columns() int {
-	return 20
+	return 30
 }
 
 func (ef *EthernetFrame) viewTable() *tview.Table {

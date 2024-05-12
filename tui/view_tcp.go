@@ -16,7 +16,7 @@ func (*TCP) rows() int {
 }
 
 func (*TCP) columns() int {
-	return 20
+	return 30
 }
 
 func (t *TCP) viewTable() *tview.Table {

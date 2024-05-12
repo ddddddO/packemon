@@ -1,6 +1,7 @@
 package packemon
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"net"
@@ -215,38 +216,100 @@ func (nw *NetworkInterface) Recieve() error {
 							Checksum: binary.BigEndian.Uint16(ipv4.Data[6:8]),
 							Data:     ipv4.Data[8:],
 						}
-						nw.PassiveCh <- &Passive{
-							EthernetFrame: recievedEthernetFrame,
-							IPv4:          ipv4,
-							UDP:           udp,
+
+						// DNS以外は一旦udpまでのみviewする
+						if udp.DstPort != PORT_DNS && udp.SrcPort != PORT_DNS {
+							nw.PassiveCh <- &Passive{
+								EthernetFrame: recievedEthernetFrame,
+								IPv4:          ipv4,
+								UDP:           udp,
+							}
 						}
 
-						// // TODO: 53確かtcpもあったからそれのハンドリング考慮するいつか
-						// switch udp.DstPort {
-						// // 53port
-						// case 0x0035:
-						// 	q := &Queries{
-						// 		// TODO: domainは、0x00 までとなる。そういう判定処理が必要
-						// 		Domain: udp.Data,
-						// 		Typ:    binary.BigEndian.Uint16(),
-						// 		Class:  binary.BigEndian.Uint16(),
-						// 	}
-						// 	dns := &DNS{
-						// 		TransactionID: binary.BigEndian.Uint16(udp.Data[0:2]),
-						// 		Flags:         binary.BigEndian.Uint16(udp.Data[2:4]),
-						// 		Questions:     binary.BigEndian.Uint16(udp.Data[4:6]),
-						// 		AnswerRRs:     binary.BigEndian.Uint16(udp.Data[6:8]),
-						// 		AdditionalRRs: binary.BigEndian.Uint16(udp.Data[8:10]),
-						// 		Queries:       q,
-						// 	}
+						// TODO: 53確かtcpもあったからそれのハンドリング考慮するいつか
+						// TODO: nslookup github.com でipv6用のDNSクエリ・レスポンスも返ってきてるのでそれも対応
+						//       query.type == AAAA で判別可能
+						flags := binary.BigEndian.Uint16(udp.Data[2:4])
+						if udp.DstPort == PORT_DNS && flags == DNS_REQUEST {
+							qCnt := binary.BigEndian.Uint16(udp.Data[4:6])
+							anCnt := binary.BigEndian.Uint16(udp.Data[6:8])
+							auCnt := binary.BigEndian.Uint16(udp.Data[8:10])
+							adCnt := binary.BigEndian.Uint16(udp.Data[10:12])
 
-						// 	nw.PassiveCh <- &Passive{
-						// 		EthernetFrame: recievedEthernetFrame,
-						// 		IPv4:          ipv4,
-						// 		UDP:           udp,
-						// 		DNS:           dns,
-						// 	}
-						// }
+							// 一旦Questionsは1固定で進める
+							// また、domainは、0x00 までとなる。そういう判定処理
+							offset := bytes.IndexByte(udp.Data[12:], 0x00) + 12 + 1
+							q := &Queries{
+								Domain: udp.Data[12:offset],
+								Typ:    binary.BigEndian.Uint16(udp.Data[offset : offset+2]),
+								Class:  binary.BigEndian.Uint16(udp.Data[offset+2 : offset+4]),
+							}
+
+							dns := &DNS{
+								TransactionID: binary.BigEndian.Uint16(udp.Data[0:2]),
+								Flags:         flags,
+								Questions:     qCnt,
+								AnswerRRs:     anCnt,
+								AuthorityRRs:  auCnt,
+								AdditionalRRs: adCnt,
+								Queries:       q,
+							}
+
+							nw.PassiveCh <- &Passive{
+								EthernetFrame: recievedEthernetFrame,
+								IPv4:          ipv4,
+								UDP:           udp,
+								DNS:           dns,
+							}
+
+							continue
+						}
+
+						if udp.SrcPort == PORT_DNS && flags == DNS_RESPONSE {
+							qCnt := binary.BigEndian.Uint16(udp.Data[4:6])
+							anCnt := binary.BigEndian.Uint16(udp.Data[6:8])
+							auCnt := binary.BigEndian.Uint16(udp.Data[8:10])
+							adCnt := binary.BigEndian.Uint16(udp.Data[10:12])
+
+							// 一旦Questionsは1固定として進める
+							// また、domainは、0x00 までとなる。そういう判定処理
+							offset := bytes.IndexByte(udp.Data[12:], 0x00) + 12 + 1
+							q := &Queries{
+								Domain: udp.Data[12:offset],
+								Typ:    binary.BigEndian.Uint16(udp.Data[offset : offset+2]),
+								Class:  binary.BigEndian.Uint16(udp.Data[offset+2 : offset+4]),
+							}
+							// 一旦Answersは1固定として進める
+							offsetOfAns := offset + 4
+							a := &Answer{
+								Name:       binary.BigEndian.Uint16(udp.Data[offsetOfAns : offsetOfAns+2]),
+								Typ:        binary.BigEndian.Uint16(udp.Data[offsetOfAns+2 : offsetOfAns+4]),
+								Class:      binary.BigEndian.Uint16(udp.Data[offsetOfAns+4 : offsetOfAns+6]),
+								Ttl:        binary.BigEndian.Uint32(udp.Data[offsetOfAns+6 : offsetOfAns+10]),
+								DataLength: binary.BigEndian.Uint16(udp.Data[offsetOfAns+10 : offsetOfAns+12]),
+								Address:    binary.BigEndian.Uint32(udp.Data[offsetOfAns+12 : offsetOfAns+16]),
+							}
+
+							dns := &DNS{
+								TransactionID: binary.BigEndian.Uint16(udp.Data[0:2]),
+								Flags:         flags,
+								Questions:     qCnt,
+								AnswerRRs:     anCnt,
+								AuthorityRRs:  auCnt,
+								AdditionalRRs: adCnt,
+								Queries:       q,
+								Answers:       []*Answer{a},
+							}
+
+							nw.PassiveCh <- &Passive{
+								EthernetFrame: recievedEthernetFrame,
+								IPv4:          ipv4,
+								UDP:           udp,
+								DNS:           dns,
+							}
+
+							continue
+						}
 					default:
 						nw.PassiveCh <- &Passive{
 							EthernetFrame: recievedEthernetFrame,

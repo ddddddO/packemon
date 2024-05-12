@@ -136,7 +136,7 @@ func (t *tui) form(sendFn func(*packemon.EthernetFrame) error) error {
 
 	t.grid.
 		SetRows(1, 0).
-		SetColumns(30, 0)
+		SetColumns(15, 0)
 	// TODO: 見切れちゃう
 	// Layout for screens narrower than 100 cells (menu and side bar are hidden).
 	t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 0, true).

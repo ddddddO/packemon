@@ -12,11 +12,11 @@ type UDP struct {
 }
 
 func (*UDP) rows() int {
-	return 9
+	return 8
 }
 
 func (*UDP) columns() int {
-	return 20
+	return 30
 }
 
 func (u *UDP) viewTable() *tview.Table {
@@ -34,9 +34,6 @@ func (u *UDP) viewTable() *tview.Table {
 
 	table.SetCell(3, 0, tview.NewTableCell(padding("Checksum")))
 	table.SetCell(3, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", u.Checksum))))
-
-	table.SetCell(4, 0, tview.NewTableCell(padding("Data")))
-	table.SetCell(4, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", u.Data))))
 
 	return table
 }

@@ -18,7 +18,7 @@ func (*IPv4) rows() int {
 }
 
 func (*IPv4) columns() int {
-	return 20
+	return 30
 }
 
 func (i *IPv4) viewTable() *tview.Table {
@@ -56,14 +56,24 @@ func (i *IPv4) viewTable() *tview.Table {
 	table.SetCell(9, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", i.HeaderChecksum))))
 
 	table.SetCell(10, 0, tview.NewTableCell(padding("Source Address")))
-	b := make([]byte, 4)
-	binary.BigEndian.PutUint32(b, i.SrcAddr)
-	table.SetCell(10, 1, tview.NewTableCell(padding(net.IPv4(b[0], b[1], b[2], b[3]).String())))
+	table.SetCell(10, 1, tview.NewTableCell(padding(i.StrSrcIPAddr())))
 
 	table.SetCell(11, 0, tview.NewTableCell(padding("Destination Address")))
-	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, i.DstAddr)
-	table.SetCell(11, 1, tview.NewTableCell(padding(net.IPv4(b[0], b[1], b[2], b[3]).String())))
+	table.SetCell(11, 1, tview.NewTableCell(padding(i.StrDstIPAddr())))
 
 	return table
+}
+
+func (i *IPv4) StrSrcIPAddr() string {
+	return uint32ToStrIPv4Addr(i.SrcAddr)
+}
+
+func (i *IPv4) StrDstIPAddr() string {
+	return uint32ToStrIPv4Addr(i.DstAddr)
+}
+
+func uint32ToStrIPv4Addr(byteAddr uint32) string {
+	b := make([]byte, 4)
+	binary.BigEndian.PutUint32(b, byteAddr)
+	return net.IPv4(b[0], b[1], b[2], b[3]).String()
 }

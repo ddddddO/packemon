@@ -31,7 +31,7 @@ func newGenerator() *tui {
 	grid := tview.NewGrid()
 	grid.Box = tview.NewBox().SetTitle(" Packemon <Generator> ").SetBorder(true)
 	list := tview.NewList()
-	list.SetTitle("List of protocols").SetBorder(true)
+	list.SetTitle("Protocols").SetBorder(true)
 
 	return &tui{
 		app:   tview.NewApplication(),

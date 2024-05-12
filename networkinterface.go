@@ -153,6 +153,8 @@ func (nw *NetworkInterface) Recieve() error {
 						EthernetFrame: recievedEthernetFrame,
 						ARP:           arp,
 					}
+					continue
+
 				case ETHER_TYPE_IPv4:
 					ipv4 := &IPv4{
 						Version:        recievedEthernetFrame.Data[0] >> 4,
@@ -186,6 +188,8 @@ func (nw *NetworkInterface) Recieve() error {
 							IPv4:          ipv4,
 							ICMP:          icmp,
 						}
+
+						continue
 					case IPv4_PROTO_TCP:
 						tcp := &TCP{
 							SrcPort:        binary.BigEndian.Uint16(ipv4.Data[0:2]),
@@ -208,6 +212,8 @@ func (nw *NetworkInterface) Recieve() error {
 							IPv4:          ipv4,
 							TCP:           tcp,
 						}
+
+						continue
 					case IPv4_PROTO_UDP:
 						udp := &UDP{
 							SrcPort:  binary.BigEndian.Uint16(ipv4.Data[0:2]),
@@ -224,6 +230,7 @@ func (nw *NetworkInterface) Recieve() error {
 								IPv4:          ipv4,
 								UDP:           udp,
 							}
+							continue
 						}
 
 						// TODO: 53確かtcpもあったからそれのハンドリング考慮するいつか

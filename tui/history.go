@@ -53,28 +53,29 @@ func (t *tui) insertToTable(r *HistoryRow) {
 func (t *tui) updateTable(passiveCh <-chan *packemon.Passive) {
 	id := 0
 	for passive := range passiveCh {
-		r := &HistoryRow{
-			id:             tview.NewTableCell(fmt.Sprintf("%d", id)).SetTextColor(tcell.ColorWhite),
-			destinationMAC: tview.NewTableCell(fmt.Sprintf("Dst:%x", passive.EthernetFrame.Header.Dst)).SetTextColor(tcell.Color38),
-			sourceMAC:      tview.NewTableCell(fmt.Sprintf("Src:%x", passive.EthernetFrame.Header.Src)).SetTextColor(tcell.Color48),
-			typ:            tview.NewTableCell(fmt.Sprintf("Type:%x", passive.EthernetFrame.Header.Typ)).SetTextColor(tcell.Color98),
-		}
+		t.app.QueueUpdateDraw(func() {
+			r := &HistoryRow{
+				id:             tview.NewTableCell(fmt.Sprintf("%d", id)).SetTextColor(tcell.ColorWhite),
+				destinationMAC: tview.NewTableCell(fmt.Sprintf("Dst:%x", passive.EthernetFrame.Header.Dst)).SetTextColor(tcell.Color38),
+				sourceMAC:      tview.NewTableCell(fmt.Sprintf("Src:%x", passive.EthernetFrame.Header.Src)).SetTextColor(tcell.Color48),
+				typ:            tview.NewTableCell(fmt.Sprintf("Type:%x", passive.EthernetFrame.Header.Typ)).SetTextColor(tcell.Color98),
+			}
 
-		if passive.IPv4 != nil {
-			r.protocol = tview.NewTableCell(fmt.Sprintf("Proto:%s", packemon.IPv4Protocols[passive.IPv4.Protocol])).SetTextColor(tcell.Color50)
-			viewIPv4 := &IPv4{passive.IPv4}
-			r.destinationIPAddr = tview.NewTableCell(fmt.Sprintf("DstIP:%s", viewIPv4.StrDstIPAddr())).SetTextColor(tcell.Color51)
-			r.sourceIPAddr = tview.NewTableCell(fmt.Sprintf("SrcIP:%s", viewIPv4.StrSrcIPAddr())).SetTextColor(tcell.Color181)
-		} else {
-			r.protocol = tview.NewTableCell(fmt.Sprintf("Proto:%s", "-")).SetTextColor(tcell.Color50)
-			r.destinationIPAddr = tview.NewTableCell(fmt.Sprintf("DstIP:%s", "-")).SetTextColor(tcell.Color51)
-			r.sourceIPAddr = tview.NewTableCell(fmt.Sprintf("SrcIP:%s", "-")).SetTextColor(tcell.Color181)
+			if passive.IPv4 != nil {
+				r.protocol = tview.NewTableCell(fmt.Sprintf("Proto:%s", packemon.IPv4Protocols[passive.IPv4.Protocol])).SetTextColor(tcell.Color50)
+				viewIPv4 := &IPv4{passive.IPv4}
+				r.destinationIPAddr = tview.NewTableCell(fmt.Sprintf("DstIP:%s", viewIPv4.StrDstIPAddr())).SetTextColor(tcell.Color51)
+				r.sourceIPAddr = tview.NewTableCell(fmt.Sprintf("SrcIP:%s", viewIPv4.StrSrcIPAddr())).SetTextColor(tcell.Color181)
+			} else {
+				r.protocol = tview.NewTableCell(fmt.Sprintf("Proto:%s", "-")).SetTextColor(tcell.Color50)
+				r.destinationIPAddr = tview.NewTableCell(fmt.Sprintf("DstIP:%s", "-")).SetTextColor(tcell.Color51)
+				r.sourceIPAddr = tview.NewTableCell(fmt.Sprintf("SrcIP:%s", "-")).SetTextColor(tcell.Color181)
 
-		}
+			}
 
-		t.storedPackets.Store(id, passive)
-		t.insertToTable(r)
-		id++
-		t.app.Draw()
+			t.storedPackets.Store(id, passive)
+			t.insertToTable(r)
+			id++
+		})
 	}
 }

@@ -5,6 +5,10 @@ import (
 	"fmt"
 )
 
+const (
+	PORT_HTTP = 0x0050
+)
+
 type HTTP struct {
 	Method    string
 	Uri       string

@@ -48,7 +48,13 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
   - [x] TCP
   - [x] UDP
   - [ ] DNS (WIP)
+    - [x] DNS query
+    - [x] DNS query response
+    - [ ] xxxxx....
   - [ ] HTTP (WIP)
+    - [x] HTTP GET request
+    - [ ] HTTP GET response
+    - [ ] xxxxx....
   - [ ] xxxxx....
 
 ## Installation
@@ -147,6 +153,10 @@ Sent 1 probes (1 broadcast(s))
 Received 0 response(s)
 ```
 
+#### tcpでdns
+```console
+$ nslookup -vc github.com
+```
 
 ### 動作確認の様子
 

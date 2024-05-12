@@ -39,7 +39,7 @@ func (t *TCP) viewTable() *tview.Table {
 	table.SetCell(4, 1, tview.NewTableCell(padding(fmt.Sprintf("%x (%d)", t.HeaderLength, t.HeaderLength))))
 
 	table.SetCell(5, 0, tview.NewTableCell(padding("Flags")))
-	table.SetCell(5, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", t.Flags))))
+	table.SetCell(5, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", t.Flags<<4))))
 
 	table.SetCell(6, 0, tview.NewTableCell(padding("Window")))
 	table.SetCell(6, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", t.Window))))
@@ -52,6 +52,9 @@ func (t *TCP) viewTable() *tview.Table {
 
 	table.SetCell(9, 0, tview.NewTableCell(padding("Options")))
 	table.SetCell(9, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", t.Options))))
+
+	// table.SetCell(10, 0, tview.NewTableCell(padding("Data")))
+	// table.SetCell(10, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", t.Data))))
 
 	return table
 }

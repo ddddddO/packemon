@@ -5,6 +5,11 @@ import (
 	"encoding/binary"
 )
 
+const (
+	// 最後0付けてるけど、Wireshark上だと不要。受信時、TCP.Flags を4bit左シフトしてるからここでも付けてる
+	TCP_FLAGS_PSH_ACK = 0x0180 // データを上位層へ渡してという信号
+)
+
 type TCP struct {
 	SrcPort        uint16
 	DstPort        uint16

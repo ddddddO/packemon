@@ -197,20 +197,80 @@ func (nw *NetworkInterface) Recieve() error {
 							Sequence:       binary.BigEndian.Uint32(ipv4.Data[4:8]),
 							Acknowledgment: binary.BigEndian.Uint32(ipv4.Data[8:12]),
 							HeaderLength:   binary.BigEndian.Uint16(ipv4.Data[12:14]) >> 8,
-							Flags:          binary.BigEndian.Uint16(ipv4.Data[12:14]) >> 14,
+							Flags:          binary.BigEndian.Uint16(ipv4.Data[12:14]) << 4,
 							Window:         binary.BigEndian.Uint16(ipv4.Data[14:16]),
 							Checksum:       binary.BigEndian.Uint16(ipv4.Data[16:18]),
 							UrgentPointer:  binary.BigEndian.Uint16(ipv4.Data[18:20]),
-							// TODO: options多分色々な種類のが飛んでくるからrange直打ちで指定できない
-							//       以下リンク先見ると、3way handshakeでoptionが使われるようなので、Flags見て判定してもいいかも
-							//       https://milestone-of-se.nesuke.com/nw-basic/tcp-udp/tcp-option/
-							// Options: ,
-							// Data: ,
 						}
-						nw.PassiveCh <- &Passive{
-							EthernetFrame: recievedEthernetFrame,
-							IPv4:          ipv4,
-							TCP:           tcp,
+
+						// Wiresharkとpackemonのパケット詳細見比べるに、
+						// ( tcpヘッダーのheader lengthを10進数に変換した値 / 4 ) - 20 = options のbyte数 になるよう
+						optionLength := tcp.HeaderLength>>2 - 20
+						if optionLength > 0 {
+							tcp.Options = ipv4.Data[20 : optionLength+20]
+						}
+						tcp.Data = ipv4.Data[optionLength+20:]
+
+						switch tcp.DstPort {
+						case PORT_HTTP:
+							if tcp.Flags == TCP_FLAGS_PSH_ACK {
+								lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
+								if lineLength == -1 {
+									// TODO: こういうフォーマット不正みたいなパケットは、Dataをviewできた方がいいかも
+									nw.PassiveCh <- &Passive{
+										EthernetFrame: recievedEthernetFrame,
+										IPv4:          ipv4,
+										TCP:           tcp,
+									}
+									continue
+								}
+
+								line := tcp.Data[0 : lineLength+1]
+								split := bytes.Split(line, []byte{0x20}) // 半角スペース
+								if len(split) >= 3 {
+									http := &HTTP{
+										Method:  string(split[0]),
+										Uri:     string(split[1]),
+										Version: string(split[2]),
+									}
+
+									hostLineLength := bytes.Index(tcp.Data[lineLength+2:], []byte{0x0d, 0x0a})
+									if hostLineLength == -1 {
+										nw.PassiveCh <- &Passive{
+											EthernetFrame: recievedEthernetFrame,
+											IPv4:          ipv4,
+											TCP:           tcp,
+											HTTP:          http,
+										}
+										continue
+									}
+
+									host := bytes.TrimPrefix(tcp.Data[lineLength+2:lineLength+2+hostLineLength], []byte{0x48, 0x6f, 0x73, 0x74, 0x3a}) // "Host:"
+									http.Host = strings.TrimSpace(string(host))
+
+									nw.PassiveCh <- &Passive{
+										EthernetFrame: recievedEthernetFrame,
+										IPv4:          ipv4,
+										TCP:           tcp,
+										HTTP:          http,
+									}
+									continue
+								}
+							}
+
+							nw.PassiveCh <- &Passive{
+								EthernetFrame: recievedEthernetFrame,
+								IPv4:          ipv4,
+								TCP:           tcp,
+							}
+							continue
+
+						default:
+							nw.PassiveCh <- &Passive{
+								EthernetFrame: recievedEthernetFrame,
+								IPv4:          ipv4,
+								TCP:           tcp,
+							}
 						}
 
 						continue

@@ -66,23 +66,12 @@ func (i *ICMP) CalculateChecksum() uint16 {
 }
 
 func (i *ICMP) Bytes() []byte {
-	var buf bytes.Buffer
+	buf := &bytes.Buffer{}
 	buf.WriteByte(i.Typ)
 	buf.WriteByte(i.Code)
-
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, i.Checksum)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, i.Identifier)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, i.Sequence)
-	buf.Write(b)
-
+	writeUint16(buf, i.Checksum)
+	writeUint16(buf, i.Identifier)
+	writeUint16(buf, i.Sequence)
 	buf.Write(i.Data)
-
 	return buf.Bytes()
 }

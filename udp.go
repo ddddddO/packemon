@@ -36,24 +36,11 @@ func (u *UDP) Len() {
 }
 
 func (u *UDP) Bytes() []byte {
-	var buf bytes.Buffer
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, u.SrcPort)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, u.DstPort)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, u.Length)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, u.Checksum)
-	buf.Write(b)
-
+	buf := &bytes.Buffer{}
+	writeUint16(buf, u.SrcPort)
+	writeUint16(buf, u.DstPort)
+	writeUint16(buf, u.Length)
+	writeUint16(buf, u.Checksum)
 	buf.Write(u.Data)
-
 	return buf.Bytes()
 }

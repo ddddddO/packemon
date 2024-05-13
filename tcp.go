@@ -2,7 +2,6 @@ package packemon
 
 import (
 	"bytes"
-	"encoding/binary"
 )
 
 const (
@@ -65,51 +64,26 @@ func (*TCP) CheckSum(packet []byte) []byte {
 
 // https://www.infraexpert.com/study/tcpip8.html
 func (t *TCP) Bytes() []byte {
-	var buf bytes.Buffer
+	buf := &bytes.Buffer{}
 	buf.Write(t.headerToBytes())
 	buf.Write(t.Data)
-
 	return buf.Bytes()
 }
 
 func (t *TCP) headerToBytes() []byte {
-	var buf bytes.Buffer
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.SrcPort)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.DstPort)
-	buf.Write(b)
-
-	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.Sequence)
-	buf.Write(b)
-
-	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.Acknowledgment)
-	buf.Write(b)
+	buf := &bytes.Buffer{}
+	writeUint16(buf, t.SrcPort)
+	writeUint16(buf, t.DstPort)
+	writeUint32(buf, t.Sequence)
+	writeUint32(buf, t.Acknowledgment)
 
 	// t.headerLengthは、フォーマットでは「データオフセット」で4bit
 	// t.flagsは、フォーマット的には、「予約」+「コントロールフラグ」
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.HeaderLength<<8|t.Flags)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.Window)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.Checksum)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, t.UrgentPointer)
-	buf.Write(b)
-
+	writeUint16(buf, t.HeaderLength<<8|t.Flags)
+	writeUint16(buf, t.Window)
+	writeUint16(buf, t.Checksum)
+	writeUint16(buf, t.UrgentPointer)
 	buf.Write(t.Options)
-
 	return buf.Bytes()
 }
 
@@ -143,7 +117,7 @@ type WindowScale struct {
 
 // synパケットの中を覗いて下
 func Options() []byte {
-	var buf bytes.Buffer
+	buf := &bytes.Buffer{}
 
 	m := &Mss{
 		Kind:   0x02,
@@ -152,9 +126,7 @@ func Options() []byte {
 	}
 	buf.WriteByte(m.Kind)
 	buf.WriteByte(m.Length)
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, m.Value)
-	buf.Write(b)
+	writeUint16(buf, m.Value)
 
 	s := &SackPermitted{
 		Kind:   0x04,
@@ -171,12 +143,8 @@ func Options() []byte {
 	}
 	buf.WriteByte(t.Kind)
 	buf.WriteByte(t.Length)
-	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.Value)
-	buf.Write(b)
-	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.EchoReply)
-	buf.Write(b)
+	writeUint32(buf, t.Value)
+	writeUint32(buf, t.EchoReply)
 
 	n := &NoOperation{
 		Kind: 0x01,
@@ -199,7 +167,7 @@ func Options() []byte {
 // https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 // 「オプション」フィールド：32bit単位で可変長
 func OptionsOfhttp() []byte {
-	var buf bytes.Buffer
+	buf := &bytes.Buffer{}
 
 	n := &NoOperation{
 		Kind: 0x01,
@@ -215,13 +183,8 @@ func OptionsOfhttp() []byte {
 	}
 	buf.WriteByte(t.Kind)
 	buf.WriteByte(t.Length)
-	b := make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.Value)
-	buf.Write(b)
-	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, t.EchoReply)
-	buf.Write(b)
-
+	writeUint32(buf, t.Value)
+	writeUint32(buf, t.EchoReply)
 	// padding := []byte{0x00, 0x00, 0x00}
 	// buf.Write(padding)
 

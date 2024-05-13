@@ -32,7 +32,7 @@ func NewHTTP() *HTTP {
 }
 
 func (h *HTTP) Bytes() []byte {
-	var buf bytes.Buffer
+	buf := &bytes.Buffer{}
 	line := fmt.Sprintf("%s %s %s\r\n", h.Method, h.Uri, h.Version)
 	buf.WriteString(line)
 	buf.WriteString(fmt.Sprintf("Host: %s\r\n", h.Host))

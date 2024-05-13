@@ -21,15 +21,15 @@ type ARP struct {
 
 func (a *ARP) Bytes() []byte {
 	buf := &bytes.Buffer{}
-	writeUint16(buf, a.HardwareType)
-	writeUint16(buf, a.ProtocolType)
+	WriteUint16(buf, a.HardwareType)
+	WriteUint16(buf, a.ProtocolType)
 	buf.WriteByte(a.HardwareAddrLength)
 	buf.WriteByte(a.ProtocolLength)
-	writeUint16(buf, a.Operation)
+	WriteUint16(buf, a.Operation)
 	buf.Write(a.SenderHardwareAddr[:])
-	writeUint32(buf, a.SenderIPAddr)
+	WriteUint32(buf, a.SenderIPAddr)
 	buf.Write(a.TargetHardwareAddr[:])
-	writeUint32(buf, a.TargetIPAddr)
+	WriteUint32(buf, a.TargetIPAddr)
 	return buf.Bytes()
 }
 

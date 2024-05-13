@@ -69,22 +69,17 @@ func (t *tui) tcpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 		AddButton("Send!", func() {
 			tcp.Checksum = func() uint16 {
 				pseudoTCPHeader := func() []byte {
-					var buf bytes.Buffer
-					b := make([]byte, 4)
-					binary.BigEndian.PutUint32(b, ipv4.SrcAddr)
-					buf.Write(b)
-					b = make([]byte, 4)
-					binary.BigEndian.PutUint32(b, ipv4.DstAddr)
-					buf.Write(b)
+					buf := &bytes.Buffer{}
+					packemon.WriteUint32(buf, ipv4.SrcAddr)
+					packemon.WriteUint32(buf, ipv4.DstAddr)
 					padding := byte(0x00)
 					buf.WriteByte(padding)
 					buf.WriteByte(ipv4.Protocol)
-					b = make([]byte, 2)
-					binary.BigEndian.PutUint16(b, uint16(len(tcp.Bytes())))
-					buf.Write(b)
+					packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
 					return buf.Bytes()
 				}()
-				var forTCPChecksum bytes.Buffer
+
+				forTCPChecksum := &bytes.Buffer{}
 				forTCPChecksum.Write(pseudoTCPHeader)
 				forTCPChecksum.Write(tcp.Bytes())
 				return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))

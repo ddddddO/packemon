@@ -2,7 +2,6 @@ package packemon
 
 import (
 	"bytes"
-	"encoding/binary"
 	"strings"
 )
 
@@ -73,40 +72,15 @@ func (d *DNS) Domain(domain string) {
 }
 
 func (d *DNS) Bytes() []byte {
-	var buf bytes.Buffer
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.TransactionID)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.Flags)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.Questions)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.AnswerRRs)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.AuthorityRRs)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.AdditionalRRs)
-	buf.Write(b)
-
+	buf := &bytes.Buffer{}
+	WriteUint16(buf, d.TransactionID)
+	WriteUint16(buf, d.Flags)
+	WriteUint16(buf, d.Questions)
+	WriteUint16(buf, d.AnswerRRs)
+	WriteUint16(buf, d.AuthorityRRs)
+	WriteUint16(buf, d.AdditionalRRs)
 	buf.Write(d.Queries.Domain)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.Queries.Typ)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, d.Queries.Class)
-	buf.Write(b)
-
+	WriteUint16(buf, d.Queries.Typ)
+	WriteUint16(buf, d.Queries.Class)
 	return buf.Bytes()
 }

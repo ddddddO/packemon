@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"log"
 
+	"github.com/ddddddO/packemon"
 	p "github.com/ddddddO/packemon"
 	"golang.org/x/sys/unix"
 )
@@ -79,22 +80,17 @@ func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 	// 「「チェックサム」フィールド：16bit幅」
 	tcp.Checksum = func() uint16 {
 		pseudoTCPHeader := func() []byte {
-			var buf bytes.Buffer
-			b := make([]byte, 4)
-			binary.BigEndian.PutUint32(b, ipv4.SrcAddr)
-			buf.Write(b)
-			b = make([]byte, 4)
-			binary.BigEndian.PutUint32(b, ipv4.DstAddr)
-			buf.Write(b)
+			buf := &bytes.Buffer{}
+			packemon.WriteUint32(buf, ipv4.SrcAddr)
+			packemon.WriteUint32(buf, ipv4.DstAddr)
 			padding := byte(0x00)
 			buf.WriteByte(padding)
 			buf.WriteByte(ipv4.Protocol)
-			b = make([]byte, 2)
-			binary.BigEndian.PutUint16(b, uint16(len(tcp.Bytes())))
-			buf.Write(b)
+			packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
 			return buf.Bytes()
 		}()
-		var forTCPChecksum bytes.Buffer
+
+		forTCPChecksum := &bytes.Buffer{}
 		forTCPChecksum.Write(pseudoTCPHeader)
 		forTCPChecksum.Write(tcp.Bytes())
 		return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
@@ -116,22 +112,16 @@ func (dnw *debugNetworkInterface) SendHTTPget(firsthopMACAddr [6]byte) error {
 	// 「「チェックサム」フィールド：16bit幅」
 	tcp.Checksum = func() uint16 {
 		pseudoTCPHeader := func() []byte {
-			var buf bytes.Buffer
-			b := make([]byte, 4)
-			binary.BigEndian.PutUint32(b, ipv4.SrcAddr)
-			buf.Write(b)
-			b = make([]byte, 4)
-			binary.BigEndian.PutUint32(b, ipv4.DstAddr)
-			buf.Write(b)
+			buf := &bytes.Buffer{}
+			packemon.WriteUint32(buf, ipv4.SrcAddr)
+			packemon.WriteUint32(buf, ipv4.DstAddr)
 			padding := byte(0x00)
 			buf.WriteByte(padding)
 			buf.WriteByte(ipv4.Protocol)
-			b = make([]byte, 2)
-			binary.BigEndian.PutUint16(b, uint16(len(tcp.Bytes())))
-			buf.Write(b)
+			packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
 			return buf.Bytes()
 		}()
-		var forTCPChecksum bytes.Buffer
+		forTCPChecksum := &bytes.Buffer{}
 		forTCPChecksum.Write(pseudoTCPHeader)
 		forTCPChecksum.Write(tcp.Bytes())
 		return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))

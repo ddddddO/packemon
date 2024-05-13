@@ -72,17 +72,17 @@ func (t *TCP) Bytes() []byte {
 
 func (t *TCP) headerToBytes() []byte {
 	buf := &bytes.Buffer{}
-	writeUint16(buf, t.SrcPort)
-	writeUint16(buf, t.DstPort)
-	writeUint32(buf, t.Sequence)
-	writeUint32(buf, t.Acknowledgment)
+	WriteUint16(buf, t.SrcPort)
+	WriteUint16(buf, t.DstPort)
+	WriteUint32(buf, t.Sequence)
+	WriteUint32(buf, t.Acknowledgment)
 
 	// t.headerLengthは、フォーマットでは「データオフセット」で4bit
 	// t.flagsは、フォーマット的には、「予約」+「コントロールフラグ」
-	writeUint16(buf, t.HeaderLength<<8|t.Flags)
-	writeUint16(buf, t.Window)
-	writeUint16(buf, t.Checksum)
-	writeUint16(buf, t.UrgentPointer)
+	WriteUint16(buf, t.HeaderLength<<8|t.Flags)
+	WriteUint16(buf, t.Window)
+	WriteUint16(buf, t.Checksum)
+	WriteUint16(buf, t.UrgentPointer)
 	buf.Write(t.Options)
 	return buf.Bytes()
 }
@@ -126,7 +126,7 @@ func Options() []byte {
 	}
 	buf.WriteByte(m.Kind)
 	buf.WriteByte(m.Length)
-	writeUint16(buf, m.Value)
+	WriteUint16(buf, m.Value)
 
 	s := &SackPermitted{
 		Kind:   0x04,
@@ -143,8 +143,8 @@ func Options() []byte {
 	}
 	buf.WriteByte(t.Kind)
 	buf.WriteByte(t.Length)
-	writeUint32(buf, t.Value)
-	writeUint32(buf, t.EchoReply)
+	WriteUint32(buf, t.Value)
+	WriteUint32(buf, t.EchoReply)
 
 	n := &NoOperation{
 		Kind: 0x01,
@@ -183,8 +183,8 @@ func OptionsOfhttp() []byte {
 	}
 	buf.WriteByte(t.Kind)
 	buf.WriteByte(t.Length)
-	writeUint32(buf, t.Value)
-	writeUint32(buf, t.EchoReply)
+	WriteUint32(buf, t.Value)
+	WriteUint32(buf, t.EchoReply)
 	// padding := []byte{0x00, 0x00, 0x00}
 	// buf.Write(padding)
 

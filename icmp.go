@@ -69,9 +69,9 @@ func (i *ICMP) Bytes() []byte {
 	buf := &bytes.Buffer{}
 	buf.WriteByte(i.Typ)
 	buf.WriteByte(i.Code)
-	writeUint16(buf, i.Checksum)
-	writeUint16(buf, i.Identifier)
-	writeUint16(buf, i.Sequence)
+	WriteUint16(buf, i.Checksum)
+	WriteUint16(buf, i.Identifier)
+	WriteUint16(buf, i.Sequence)
 	buf.Write(i.Data)
 	return buf.Bytes()
 }

@@ -37,10 +37,10 @@ func (u *UDP) Len() {
 
 func (u *UDP) Bytes() []byte {
 	buf := &bytes.Buffer{}
-	writeUint16(buf, u.SrcPort)
-	writeUint16(buf, u.DstPort)
-	writeUint16(buf, u.Length)
-	writeUint16(buf, u.Checksum)
+	WriteUint16(buf, u.SrcPort)
+	WriteUint16(buf, u.DstPort)
+	WriteUint16(buf, u.Length)
+	WriteUint16(buf, u.Checksum)
 	buf.Write(u.Data)
 	return buf.Bytes()
 }

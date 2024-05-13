@@ -2,7 +2,6 @@ package packemon
 
 import (
 	"bytes"
-	"encoding/binary"
 )
 
 func NewEthernetFrame(dst HardwareAddr, src HardwareAddr, typ uint16, payload []byte) *EthernetFrame {
@@ -17,14 +16,10 @@ func NewEthernetFrame(dst HardwareAddr, src HardwareAddr, typ uint16, payload []
 }
 
 func (ef *EthernetFrame) Bytes() []byte {
-	var buf bytes.Buffer
+	buf := &bytes.Buffer{}
 	buf.Write(ef.Header.Dst[:])
 	buf.Write(ef.Header.Src[:])
-
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, ef.Header.Typ)
-	buf.Write(b)
-
+	WriteUint16(buf, ef.Header.Typ)
 	buf.Write(ef.Data)
 	return buf.Bytes()
 }

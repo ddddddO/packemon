@@ -136,17 +136,17 @@ func (nw *NetworkInterface) Recieve() error {
 				switch recievedEthernetFrame.Header.Typ {
 				case ETHER_TYPE_ARP:
 					arp := &ARP{
-						HardwareType:       [2]uint8(recievedEthernetFrame.Data[0:2]),
+						HardwareType:       binary.BigEndian.Uint16(recievedEthernetFrame.Data[0:2]),
 						ProtocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.Data[2:4]),
 						HardwareAddrLength: recievedEthernetFrame.Data[4],
 						ProtocolLength:     recievedEthernetFrame.Data[5],
-						Operation:          [2]uint8(recievedEthernetFrame.Data[6:8]),
+						Operation:          binary.BigEndian.Uint16(recievedEthernetFrame.Data[6:8]),
 
 						SenderHardwareAddr: HardwareAddr(recievedEthernetFrame.Data[8:14]),
-						SenderIPAddr:       [4]uint8(recievedEthernetFrame.Data[14:18]),
+						SenderIPAddr:       binary.BigEndian.Uint32(recievedEthernetFrame.Data[14:18]),
 
 						TargetHardwareAddr: HardwareAddr(recievedEthernetFrame.Data[18:24]),
-						TargetIPAddr:       [4]uint8(recievedEthernetFrame.Data[24:28]),
+						TargetIPAddr:       binary.BigEndian.Uint32(recievedEthernetFrame.Data[24:28]),
 					}
 
 					nw.PassiveCh <- &Passive{

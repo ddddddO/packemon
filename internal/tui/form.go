@@ -345,17 +345,17 @@ func defaultPackets() (*defaults, error) {
 	}
 
 	arp := &packemon.ARP{
-		HardwareType:       [2]byte(hardwareType),
+		HardwareType:       binary.BigEndian.Uint16(hardwareType),
 		ProtocolType:       binary.BigEndian.Uint16(protocolType),
 		HardwareAddrLength: hardwareSize,
 		ProtocolLength:     protocolSize,
-		Operation:          [2]byte(operation),
+		Operation:          binary.BigEndian.Uint16(operation),
 
 		SenderHardwareAddr: [6]byte(senderMac),
-		SenderIPAddr:       [4]byte(senderIP),
+		SenderIPAddr:       binary.BigEndian.Uint32(senderIP),
 
 		TargetHardwareAddr: [6]byte(targetMac),
-		TargetIPAddr:       [4]byte(targetIP),
+		TargetIPAddr:       binary.BigEndian.Uint32(targetIP),
 	}
 
 	mac, err := strHexToBytes(DEFAULT_MAC_SOURCE)

@@ -22,7 +22,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			arp.HardwareType = [2]byte(b)
+			arp.HardwareType = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -82,7 +82,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			arp.Operation = [2]byte(b)
+			arp.Operation = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -111,7 +111,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 					return false
 				}
 
-				arp.SenderIPAddr = [4]byte(ip)
+				arp.SenderIPAddr = binary.BigEndian.Uint32(ip)
 				return true
 			}
 
@@ -142,7 +142,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 					return false
 				}
 
-				arp.TargetIPAddr = [4]byte(ip)
+				arp.TargetIPAddr = binary.BigEndian.Uint32(ip)
 				return true
 			}
 

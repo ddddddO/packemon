@@ -2,7 +2,6 @@ package packemon
 
 import (
 	"bytes"
-	"encoding/binary"
 )
 
 // https://ja.wikipedia.org/wiki/Address_Resolution_Protocol#%E3%83%91%E3%82%B1%E3%83%83%E3%83%88%E6%A7%8B%E9%80%A0
@@ -22,33 +21,15 @@ type ARP struct {
 
 func (a *ARP) Bytes() []byte {
 	var buf bytes.Buffer
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, a.HardwareType)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, a.ProtocolType)
-	buf.Write(b)
-
+	writeUint16(buf, a.HardwareType)
+	writeUint16(buf, a.ProtocolType)
 	buf.WriteByte(a.HardwareAddrLength)
 	buf.WriteByte(a.ProtocolLength)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, a.Operation)
-	buf.Write(b)
-
+	writeUint16(buf, a.Operation)
 	buf.Write(a.SenderHardwareAddr[:])
-
-	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, a.SenderIPAddr)
-	buf.Write(b)
-
+	writeUint32(buf, a.SenderIPAddr)
 	buf.Write(a.TargetHardwareAddr[:])
-
-	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, a.TargetIPAddr)
-	buf.Write(b)
-
+	writeUint32(buf, a.TargetIPAddr)
 	return buf.Bytes()
 }
 

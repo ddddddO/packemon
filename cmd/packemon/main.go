@@ -8,7 +8,7 @@ import (
 
 	"github.com/ddddddO/packemon"
 	"github.com/ddddddO/packemon/internal/debugging"
-	"github.com/ddddddO/packemon/tui"
+	"github.com/ddddddO/packemon/internal/tui"
 )
 
 const DEFAULT_TARGET_NW_INTERFACE = "eth0"

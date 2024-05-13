@@ -121,44 +121,23 @@ func sumByteArr(packet []byte) (sum uint) {
 }
 
 func (i *IPv4) Bytes() []byte {
-	var buf bytes.Buffer
-
 	// Wireshark で他の正常なパケット見ると、versionとヘッダー長(ihl)が「45」
 	// 以下コメントアウト部だと、「40 50」となりダメ
 	// buf.WriteByte(i.version<<4)
 	// buf.WriteByte(i.ihl<<4)
+	// buf.WriteByte(i.Version<<4 | i.Ihl)
+
+	buf := &bytes.Buffer{}
 	buf.WriteByte(i.Version<<4 | i.Ihl)
-
 	buf.WriteByte(i.Tos)
-
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, i.TotalLength)
-	buf.Write(b)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, i.Identification)
-	buf.Write(b)
-
+	writeUint16(buf, i.TotalLength)
+	writeUint16(buf, i.Identification)
 	buf.WriteByte(i.Flags)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, i.FragmentOffset|uint16(i.Ttl))
-	buf.Write(b)
-
+	writeUint16(buf, i.FragmentOffset|uint16(i.Ttl))
 	buf.WriteByte(i.Protocol)
-
-	b = make([]byte, 2)
-	binary.BigEndian.PutUint16(b, i.HeaderChecksum)
-	buf.Write(b)
-
-	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, i.SrcAddr)
-	buf.Write(b)
-
-	b = make([]byte, 4)
-	binary.BigEndian.PutUint32(b, i.DstAddr)
-	buf.Write(b)
-
+	writeUint16(buf, i.HeaderChecksum)
+	writeUint32(buf, i.SrcAddr)
+	writeUint32(buf, i.DstAddr)
 	buf.Write(i.Data)
 
 	return buf.Bytes()

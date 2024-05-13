@@ -20,7 +20,7 @@ type ARP struct {
 }
 
 func (a *ARP) Bytes() []byte {
-	var buf bytes.Buffer
+	buf := &bytes.Buffer{}
 	writeUint16(buf, a.HardwareType)
 	writeUint16(buf, a.ProtocolType)
 	buf.WriteByte(a.HardwareAddrLength)

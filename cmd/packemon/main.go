@@ -54,7 +54,7 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 		// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
 		// $ ip route
 		// $ arp xxx.xx.xxx.1
-		firsthopMACAddr := [6]byte{0x00, 0x15, 0x5d, 0x2d, 0x82, 0xcb}
+		firsthopMACAddr := [6]byte{0x00, 0x15, 0x5d, 0x8c, 0xc2, 0x6b}
 		return debugMode(wantSend, protocol, netIf, firsthopMACAddr)
 	}
 
@@ -79,6 +79,8 @@ func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface,
 			return debugNetIf.SendICMPechoRequest(dstMacAddr)
 		case "tcp":
 			return debugNetIf.SendTCPsyn(dstMacAddr)
+		case "tcp-3way":
+			return debugNetIf.SendTCP3wayhandshake(dstMacAddr)
 		case "dns":
 			return debugNetIf.SendDNSquery(dstMacAddr)
 		case "http":

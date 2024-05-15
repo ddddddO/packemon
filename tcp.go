@@ -6,6 +6,9 @@ import (
 
 const (
 	// 最後0付けてるけど、Wireshark上だと不要。受信時、TCP.Flags を4bit左シフトしてるからここでも付けてる
+	TCP_FLAGS_SYN     = 0x0020
+	TCP_FLAGS_SYN_ACK = 0x0120
+	TCP_FLAGS_ACK     = 0x0100
 	TCP_FLAGS_PSH_ACK = 0x0180 // データを上位層へ渡してという信号
 )
 
@@ -28,12 +31,28 @@ type TCP struct {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPSyn() *TCP {
 	return &TCP{
-		SrcPort:        0x9e10,
+		SrcPort:        0x9e13, // 40467
 		DstPort:        0x0050, // 80
 		Sequence:       0x1f6e9499,
 		Acknowledgment: 0x00000000,
 		HeaderLength:   0x00a0,
 		Flags:          0x002, // syn
+		Window:         0xfaf0,
+		Checksum:       0x0000,
+		UrgentPointer:  0x0000,
+		Options:        Options(),
+	}
+}
+
+// tcpパケット単発で連続で送るときは port/sequence 変えること
+func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
+	return &TCP{
+		SrcPort:        0x9e13, // 40467
+		DstPort:        0x0050, // 80
+		Sequence:       prevAcknowledgment,
+		Acknowledgment: prevSequence + 0x00000001,
+		HeaderLength:   0x00a0,
+		Flags:          0x010, // ack
 		Window:         0xfaf0,
 		Checksum:       0x0000,
 		UrgentPointer:  0x0000,

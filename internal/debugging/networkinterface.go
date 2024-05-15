@@ -104,6 +104,194 @@ func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 	return dnw.Send(ethernetFrame)
 }
 
+func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) error {
+	tcp := p.NewTCPSyn()
+	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
+	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
+	// 「「チェックサム」フィールド：16bit幅」
+	tcp.Checksum = func() uint16 {
+		pseudoTCPHeader := func() []byte {
+			buf := &bytes.Buffer{}
+			packemon.WriteUint32(buf, ipv4.SrcAddr)
+			packemon.WriteUint32(buf, ipv4.DstAddr)
+			padding := byte(0x00)
+			buf.WriteByte(padding)
+			buf.WriteByte(ipv4.Protocol)
+			packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
+			return buf.Bytes()
+		}()
+
+		forTCPChecksum := &bytes.Buffer{}
+		forTCPChecksum.Write(pseudoTCPHeader)
+		forTCPChecksum.Write(tcp.Bytes())
+		return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
+	}()
+	ipv4.Data = tcp.Bytes()
+	ipv4.CalculateTotalLength()
+	ipv4.CalculateChecksum()
+	dst := p.HardwareAddr(firsthopMACAddr)
+	src := p.HardwareAddr(dnw.Intf.HardwareAddr)
+	ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+	if err := dnw.Send(ethernetFrame); err != nil {
+		return err
+	}
+
+	epollfd, err := unix.EpollCreate1(0)
+	if err != nil {
+		return err
+	}
+
+	if err := unix.EpollCtl(
+		epollfd,
+		unix.EPOLL_CTL_ADD,
+		dnw.Socket,
+		&unix.EpollEvent{
+			Events: unix.EPOLLIN,
+			Fd:     int32(dnw.Socket),
+		},
+	); err != nil {
+		return err
+	}
+
+	events := make([]unix.EpollEvent, 10)
+	for {
+		fds, err := unix.EpollWait(epollfd, events, -1)
+		if err != nil {
+			return err
+		}
+
+		for i := 0; i < fds; i++ {
+			if events[i].Fd == int32(dnw.Socket) {
+				recieved := make([]byte, 1500)
+				n, _, err := unix.Recvfrom(dnw.Socket, recieved, 0)
+				if err != nil {
+					if n == -1 {
+						continue
+					}
+					return err
+				}
+
+				recievedEthernetFrame := &p.EthernetFrame{
+					Header: &p.EthernetHeader{
+						Dst: p.HardwareAddr(recieved[0:6]),
+						Src: p.HardwareAddr(recieved[6:12]),
+						Typ: binary.BigEndian.Uint16(recieved[12:14]), // タグVLANだとズレる
+					},
+					Data: recieved[14:],
+				}
+
+				switch recievedEthernetFrame.Header.Typ {
+				case p.ETHER_TYPE_IPv4:
+					ipv4 := &p.IPv4{
+						Version:        recievedEthernetFrame.Data[0] >> 4,
+						Ihl:            recievedEthernetFrame.Data[0] << 4 >> 4,
+						Tos:            recievedEthernetFrame.Data[1],
+						TotalLength:    binary.BigEndian.Uint16(recievedEthernetFrame.Data[2:4]),
+						Identification: binary.BigEndian.Uint16(recievedEthernetFrame.Data[4:6]),
+						Flags:          recievedEthernetFrame.Data[6],
+						FragmentOffset: binary.BigEndian.Uint16(recievedEthernetFrame.Data[6:8]),
+						Ttl:            recievedEthernetFrame.Data[8],
+						Protocol:       recievedEthernetFrame.Data[9],
+						HeaderChecksum: binary.BigEndian.Uint16(recievedEthernetFrame.Data[10:12]),
+						SrcAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[12:16]),
+						DstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[16:20]),
+
+						Data: recievedEthernetFrame.Data[20:],
+					}
+
+					switch ipv4.Protocol {
+					case p.IPv4_PROTO_TCP:
+						tcp := &p.TCP{
+							SrcPort:        binary.BigEndian.Uint16(ipv4.Data[0:2]),
+							DstPort:        binary.BigEndian.Uint16(ipv4.Data[2:4]),
+							Sequence:       binary.BigEndian.Uint32(ipv4.Data[4:8]),
+							Acknowledgment: binary.BigEndian.Uint32(ipv4.Data[8:12]),
+							HeaderLength:   binary.BigEndian.Uint16(ipv4.Data[12:14]) >> 8,
+							Flags:          binary.BigEndian.Uint16(ipv4.Data[12:14]) << 4,
+							Window:         binary.BigEndian.Uint16(ipv4.Data[14:16]),
+							Checksum:       binary.BigEndian.Uint16(ipv4.Data[16:18]),
+							UrgentPointer:  binary.BigEndian.Uint16(ipv4.Data[18:20]),
+						}
+
+						// Wiresharkとpackemonのパケット詳細見比べるに、
+						// ( tcpヘッダーのheader lengthを10進数に変換した値 / 4 ) - 20 = options のbyte数 になるよう
+						optionLength := tcp.HeaderLength>>2 - 20
+						if optionLength > 0 {
+							tcp.Options = ipv4.Data[20 : optionLength+20]
+						}
+						tcp.Data = ipv4.Data[optionLength+20:]
+
+						switch tcp.DstPort {
+						case 0x9e13: // synパケットの送信元ポート
+							if tcp.Flags == p.TCP_FLAGS_PSH_ACK {
+								lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
+								if lineLength == -1 {
+									log.Println("-1")
+									continue
+								}
+								log.Println("passive TCP_FLAGS_PSH_ACK")
+							}
+
+							if tcp.Flags == p.TCP_FLAGS_SYN_ACK {
+								log.Println("passive TCP_FLAGS_SYN_ACK")
+								log.Printf("%+v\n", tcp)
+
+								// syn/ackを受け取ったのでack送信
+								tcp := p.NewTCPAck(tcp.Sequence, tcp.Acknowledgment)
+								ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
+								// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
+								// 「「チェックサム」フィールド：16bit幅」
+								tcp.Checksum = func() uint16 {
+									pseudoTCPHeader := func() []byte {
+										buf := &bytes.Buffer{}
+										packemon.WriteUint32(buf, ipv4.SrcAddr)
+										packemon.WriteUint32(buf, ipv4.DstAddr)
+										padding := byte(0x00)
+										buf.WriteByte(padding)
+										buf.WriteByte(ipv4.Protocol)
+										packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
+										return buf.Bytes()
+									}()
+
+									forTCPChecksum := &bytes.Buffer{}
+									forTCPChecksum.Write(pseudoTCPHeader)
+									forTCPChecksum.Write(tcp.Bytes())
+									return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
+								}()
+								ipv4.Data = tcp.Bytes()
+								ipv4.CalculateTotalLength()
+								ipv4.CalculateChecksum()
+								dst := p.HardwareAddr(firsthopMACAddr)
+								src := p.HardwareAddr(dnw.Intf.HardwareAddr)
+								ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+								if err := dnw.Send(ethernetFrame); err != nil {
+									return err
+								}
+							}
+
+							// dnw.PassiveCh <- &p.Passive{
+							// 	EthernetFrame: recievedEthernetFrame,
+							// 	IPv4:          ipv4,
+							// 	TCP:           tcp,
+							// }
+							continue
+
+						default:
+							// dnw.PassiveCh <- &p.Passive{
+							// 	EthernetFrame: recievedEthernetFrame,
+							// 	IPv4:          ipv4,
+							// 	TCP:           tcp,
+							// }
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func (dnw *debugNetworkInterface) SendHTTPget(firsthopMACAddr [6]byte) error {
 	http := p.NewHTTP()
 	tcp := p.NewTCPWithData(http.Bytes())

@@ -31,7 +31,7 @@ type TCP struct {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPSyn() *TCP {
 	return &TCP{
-		SrcPort:        0x9e13, // 40467
+		SrcPort:        0x9e16, // 40470
 		DstPort:        0x0050, // 80
 		Sequence:       0x1f6e9499,
 		Acknowledgment: 0x00000000,
@@ -47,7 +47,7 @@ func NewTCPSyn() *TCP {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
 	return &TCP{
-		SrcPort:        0x9e13, // 40467
+		SrcPort:        0x9e16, // 40470
 		DstPort:        0x0050, // 80
 		Sequence:       prevAcknowledgment,
 		Acknowledgment: prevSequence + 0x00000001,
@@ -56,7 +56,7 @@ func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
 		Window:         0xfaf0,
 		Checksum:       0x0000,
 		UrgentPointer:  0x0000,
-		Options:        Options(),
+		Options:        OptionsOfAck(),
 	}
 }
 
@@ -178,6 +178,30 @@ func Options() []byte {
 	buf.WriteByte(w.Kind)
 	buf.WriteByte(w.Length)
 	buf.WriteByte(w.ShiftCount)
+
+	return buf.Bytes()
+}
+
+// synパケットの中を覗いて下
+func OptionsOfAck() []byte {
+	buf := &bytes.Buffer{}
+
+	n := &NoOperation{
+		Kind: 0x01,
+	}
+	buf.WriteByte(n.Kind)
+	buf.WriteByte(n.Kind)
+
+	t := &Timestamps{
+		Kind:      0x08,
+		Length:    0x0a,
+		Value:     0x73297ad7,
+		EchoReply: 0x00000000,
+	}
+	buf.WriteByte(t.Kind)
+	buf.WriteByte(t.Length)
+	WriteUint32(buf, t.Value)
+	WriteUint32(buf, t.EchoReply)
 
 	return buf.Bytes()
 }

@@ -226,7 +226,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 						tcp.Data = ipv4.Data[optionLength+20:]
 
 						switch tcp.DstPort {
-						case 0x9e13: // synパケットの送信元ポート
+						case 0x9e16: // synパケットの送信元ポート
 							if tcp.Flags == p.TCP_FLAGS_PSH_ACK {
 								lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
 								if lineLength == -1 {
@@ -269,6 +269,10 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 								src := p.HardwareAddr(dnw.Intf.HardwareAddr)
 								ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
 								if err := dnw.Send(ethernetFrame); err != nil {
+									return err
+								}
+
+								if err := dnw.SendHTTPget(firsthopMACAddr); err != nil {
 									return err
 								}
 							}

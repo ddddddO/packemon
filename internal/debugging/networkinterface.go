@@ -155,12 +155,16 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 
 	events := make([]unix.EpollEvent, 10)
 	for {
+		log.Println("in outer loop")
+
 		fds, err := unix.EpollWait(epollfd, events, -1)
 		if err != nil {
 			return err
 		}
 
 		for i := 0; i < fds; i++ {
+			log.Println("in inner loop")
+
 			if events[i].Fd == int32(dnw.Socket) {
 				recieved := make([]byte, 1500)
 				n, _, err := unix.Recvfrom(dnw.Socket, recieved, 0)

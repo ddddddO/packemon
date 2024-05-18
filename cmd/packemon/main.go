@@ -80,8 +80,6 @@ func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface,
 		case "tcp":
 			return debugNetIf.SendTCPsyn(dstMacAddr)
 		case "tcp-3way":
-			// return debugNetIf.SendTCP3wayhandshake(dstMacAddr)
-			// return packemon.EstablishConnection()
 			return packemon.Aaaa()
 		case "dns":
 			return debugNetIf.SendDNSquery(dstMacAddr)

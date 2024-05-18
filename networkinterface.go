@@ -414,13 +414,14 @@ type NetworkInterfaceForTCP struct {
 }
 
 func NewNetworkInterfaceForTCP() (*NetworkInterfaceForTCP, error) {
-	// sock, err := unix.Socket(unix.AF_INET, unix.SOCK_RAW, unix.IPPROTO_TCP)
 	sock, err := unix.Socket(unix.AF_INET, unix.SOCK_STREAM, unix.IPPROTO_TCP)
 	if err != nil {
 		return nil, err
 	}
 
-	// unix.SetsockoptInt(sock, unix.IPPROTO_IP, unix.IP_HDRINCL, 1)
+	if err := unix.BindToDevice(sock, "eth0"); err != nil {
+		return nil, err
+	}
 
 	return &NetworkInterfaceForTCP{
 		Socket: sock,
@@ -447,51 +448,3 @@ func (nwt *NetworkInterfaceForTCP) Read(buf []byte) (int, error) {
 func (nwt *NetworkInterfaceForTCP) Close() error {
 	return unix.Close(nwt.Socket)
 }
-
-// syn/ack受信直後rst返してしまうので、ちょっとボツ
-// func (nwt *NetworkInterfaceForTCP) RecieveTCPSynAck(dstIPAddr []byte) (*TCP, error) {
-// 	for {
-// 		recieved := make([]byte, 128)
-// 		_, _, err := unix.Recvfrom(nwt.Socket, recieved, 0)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		ipv4 := &IPv4{
-// 			Version:        recieved[0] >> 4,
-// 			Ihl:            recieved[0] << 4 >> 4,
-// 			Tos:            recieved[1],
-// 			TotalLength:    binary.BigEndian.Uint16(recieved[2:4]),
-// 			Identification: binary.BigEndian.Uint16(recieved[4:6]),
-// 			Flags:          recieved[6],
-// 			FragmentOffset: binary.BigEndian.Uint16(recieved[6:8]),
-// 			Ttl:            recieved[8],
-// 			Protocol:       recieved[9],
-// 			HeaderChecksum: binary.BigEndian.Uint16(recieved[10:12]),
-// 			SrcAddr:        binary.BigEndian.Uint32(recieved[12:16]),
-// 			DstAddr:        binary.BigEndian.Uint32(recieved[16:20]),
-
-// 			Data: recieved[20:],
-// 		}
-
-// 		if ipv4.Protocol == IPv4_PROTO_TCP && ipv4.SrcAddr == binary.BigEndian.Uint32(dstIPAddr) {
-// 			tcp := &TCP{
-// 				SrcPort:        binary.BigEndian.Uint16(ipv4.Data[0:2]),
-// 				DstPort:        binary.BigEndian.Uint16(ipv4.Data[2:4]),
-// 				Sequence:       binary.BigEndian.Uint32(ipv4.Data[4:8]),
-// 				Acknowledgment: binary.BigEndian.Uint32(ipv4.Data[8:12]),
-// 				HeaderLength:   binary.BigEndian.Uint16(ipv4.Data[12:14]) >> 8,
-// 				Flags:          binary.BigEndian.Uint16(ipv4.Data[12:14]) << 4,
-// 				Window:         binary.BigEndian.Uint16(ipv4.Data[14:16]),
-// 				Checksum:       binary.BigEndian.Uint16(ipv4.Data[16:18]),
-// 				UrgentPointer:  binary.BigEndian.Uint16(ipv4.Data[18:20]),
-// 			}
-
-// 			if tcp.Flags == TCP_FLAGS_SYN_ACK {
-// 				return tcp, nil
-// 			}
-// 		}
-// 	}
-
-// 	return nil, nil
-// }

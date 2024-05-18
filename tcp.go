@@ -2,6 +2,8 @@ package packemon
 
 import (
 	"bytes"
+	"encoding/binary"
+	"log"
 )
 
 const (
@@ -31,9 +33,9 @@ type TCP struct {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPSyn() *TCP {
 	return &TCP{
-		SrcPort:        0x9e16, // 40470
+		SrcPort:        0x9e20, // 40474
 		DstPort:        0x0050, // 80
-		Sequence:       0x1f6e9499,
+		Sequence:       0x1f6e9502,
 		Acknowledgment: 0x00000000,
 		HeaderLength:   0x00a0,
 		Flags:          0x002, // syn
@@ -47,7 +49,7 @@ func NewTCPSyn() *TCP {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
 	return &TCP{
-		SrcPort:        0x9e16, // 40470
+		SrcPort:        0x9e20, // 40474
 		DstPort:        0x0050, // 80
 		Sequence:       prevAcknowledgment,
 		Acknowledgment: prevSequence + 0x00000001,
@@ -157,7 +159,7 @@ func Options() []byte {
 	t := &Timestamps{
 		Kind:      0x08,
 		Length:    0x0a,
-		Value:     0x73297ad7,
+		Value:     0xdbe1c2c4,
 		EchoReply: 0x00000000,
 	}
 	buf.WriteByte(t.Kind)
@@ -195,8 +197,8 @@ func OptionsOfAck() []byte {
 	t := &Timestamps{
 		Kind:      0x08,
 		Length:    0x0a,
-		Value:     0x73297ad7,
-		EchoReply: 0x00000000,
+		Value:     0xdbe1c2c4,
+		EchoReply: 0x796a7651,
 	}
 	buf.WriteByte(t.Kind)
 	buf.WriteByte(t.Length)
@@ -233,3 +235,109 @@ func OptionsOfhttp() []byte {
 
 	return buf.Bytes()
 }
+
+func Aaaa() error {
+	log.Println("in Aaaaa")
+	nwt, err := NewNetworkInterfaceForTCP()
+	if err != nil {
+		return err
+	}
+
+	dstIPAddr := make([]byte, 4)
+	binary.BigEndian.PutUint32(dstIPAddr, 0xc0a80a6e) // 192.168.10.110
+	var dstPort uint16 = 0x0050                       // 80
+	if err := nwt.Connect(dstIPAddr, dstPort); err != nil {
+		return err
+	}
+	defer nwt.Close()
+
+	return nil
+}
+
+// 3Wayhandshake
+// func EstablishConnection() error {
+// 	log.Println("in EstablishConnection")
+
+// 	// --- syn packet ---
+
+// 	tcp := NewTCPSyn()
+// 	ipv4 := NewIPv4(IPv4_PROTO_TCP, 0xc0a80a6e) // 192.168.10.110 = raspi
+// 	tcp.Checksum = func() uint16 {
+// 		pseudoTCPHeader := func() []byte {
+// 			buf := &bytes.Buffer{}
+// 			WriteUint32(buf, ipv4.SrcAddr)
+// 			WriteUint32(buf, ipv4.DstAddr)
+// 			padding := byte(0x00)
+// 			buf.WriteByte(padding)
+// 			buf.WriteByte(ipv4.Protocol)
+// 			WriteUint16(buf, uint16(len(tcp.Bytes())))
+// 			return buf.Bytes()
+// 		}()
+
+// 		forTCPChecksum := &bytes.Buffer{}
+// 		forTCPChecksum.Write(pseudoTCPHeader)
+// 		forTCPChecksum.Write(tcp.Bytes())
+// 		return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
+// 	}()
+// 	ipv4.Data = tcp.Bytes()
+// 	ipv4.CalculateTotalLength()
+// 	ipv4.CalculateChecksum()
+
+// 	nwt, err := NewNetworkInterfaceForTCP()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer unix.Close(nwt.Socket)
+
+// 	// --- send syn packet ---
+// 	log.Println("send syn packet")
+
+// 	dstIPAddr := make([]byte, 4)
+// 	binary.BigEndian.PutUint32(dstIPAddr, ipv4.DstAddr)
+// 	if err := nwt.SendIPv4Packet(dstIPAddr, tcp.DstPort, ipv4.Bytes()); err != nil {
+// 		return err
+// 	}
+
+// 	// --- recieve syn/ack packet ---
+// 	log.Println("recieve syn/ack packet")
+// 	synack, err := nwt.RecieveTCPSynAck(dstIPAddr)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	// --- send ack packet ---
+// 	log.Println("send ack packet")
+
+// 	// syn/ackを受け取ったのでack送信
+// 	tcp = NewTCPAck(synack.Sequence, synack.Acknowledgment)
+// 	ipv4 = NewIPv4(IPv4_PROTO_TCP, 0xc0a80a6e) // 192.168.10.110 = raspi
+// 	tcp.Checksum = func() uint16 {
+// 		pseudoTCPHeader := func() []byte {
+// 			buf := &bytes.Buffer{}
+// 			WriteUint32(buf, ipv4.SrcAddr)
+// 			WriteUint32(buf, ipv4.DstAddr)
+// 			padding := byte(0x00)
+// 			buf.WriteByte(padding)
+// 			buf.WriteByte(ipv4.Protocol)
+// 			WriteUint16(buf, uint16(len(tcp.Bytes())))
+// 			return buf.Bytes()
+// 		}()
+
+// 		forTCPChecksum := &bytes.Buffer{}
+// 		forTCPChecksum.Write(pseudoTCPHeader)
+// 		forTCPChecksum.Write(tcp.Bytes())
+// 		return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
+// 	}()
+// 	ipv4.Data = tcp.Bytes()
+// 	ipv4.CalculateTotalLength()
+// 	ipv4.CalculateChecksum()
+
+// 	binary.BigEndian.PutUint32(dstIPAddr, ipv4.DstAddr)
+// 	if err := nwt.SendIPv4Packet(dstIPAddr, tcp.DstPort, ipv4.Bytes()); err != nil {
+// 		return err
+// 	}
+
+// 	log.Println("Established?")
+
+// 	return nil
+// }

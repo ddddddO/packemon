@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"errors"
 	"flag"
 	"fmt"
@@ -52,8 +53,12 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 	tui.DEFAULT_ARP_TARGET_IP = tui.DEFAULT_ARP_SENDER_IP
 
 	if debug {
-		if wantSend && protocol == "tcp-3way" {
-			return packemon.EstablishConnection(nwInterface)
+		if wantSend && protocol == "tcp-3way-http" {
+			dstIPAddr := make([]byte, 4)
+			binary.BigEndian.PutUint32(dstIPAddr, 0xc0a80a6e) // 192.168.10.110
+			var dstPort uint16 = 0x0050                       // 80
+			httpGet := packemon.NewHTTP()
+			return packemon.EstablishConnectionAndSendPayload(nwInterface, dstIPAddr, dstPort, httpGet.Bytes())
 		}
 
 		// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする

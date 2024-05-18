@@ -2,8 +2,6 @@ package packemon
 
 import (
 	"bytes"
-	"encoding/binary"
-	"log"
 )
 
 const (
@@ -236,21 +234,21 @@ func OptionsOfhttp() []byte {
 	return buf.Bytes()
 }
 
-func EstablishConnection(nwInterface string) error {
-	log.Println("in EstablishConnection")
-
+// with tcp 3 way handshake
+func EstablishConnectionAndSendPayload(nwInterface string, dstIPAddr []byte, dstPort uint16, payload []byte) error {
 	nwt, err := NewNetworkInterfaceForTCP(nwInterface)
 	if err != nil {
 		return err
 	}
 
-	dstIPAddr := make([]byte, 4)
-	binary.BigEndian.PutUint32(dstIPAddr, 0xc0a80a6e) // 192.168.10.110
-	var dstPort uint16 = 0x0050                       // 80
 	if err := nwt.Connect(dstIPAddr, dstPort); err != nil {
 		return err
 	}
 	defer nwt.Close()
+
+	if _, err := nwt.Write(payload); err != nil {
+		return err
+	}
 
 	return nil
 }

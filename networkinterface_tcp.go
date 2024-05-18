@@ -37,8 +37,8 @@ func (nwt *NetworkInterfaceForTCP) Connect(dstIPAddr []byte, dstPort uint16) err
 	return unix.Connect(nwt.Socket, &addr)
 }
 
-func (nwt *NetworkInterfaceForTCP) Write(segment []byte) (int, error) {
-	return unix.Write(nwt.Socket, segment)
+func (nwt *NetworkInterfaceForTCP) Write(tcpPayload []byte) (int, error) {
+	return unix.Write(nwt.Socket, tcpPayload)
 }
 
 func (nwt *NetworkInterfaceForTCP) Read(buf []byte) (int, error) {

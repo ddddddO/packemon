@@ -86,6 +86,8 @@ func (nw *NetworkInterface) Send(ethernetFrame *EthernetFrame) error {
 }
 
 type Passive struct {
+	HighLayerProto string
+
 	HTTP          *HTTP
 	DNS           *DNS
 	TCP           *TCP
@@ -158,6 +160,8 @@ func (nw *NetworkInterface) Recieve() error {
 					}
 
 					nw.PassiveCh <- &Passive{
+						HighLayerProto: "ARP",
+
 						EthernetFrame: recievedEthernetFrame,
 						ARP:           arp,
 					}
@@ -192,6 +196,8 @@ func (nw *NetworkInterface) Recieve() error {
 							Data:       ipv4.Data[8:],
 						}
 						nw.PassiveCh <- &Passive{
+							HighLayerProto: "ICMP",
+
 							EthernetFrame: recievedEthernetFrame,
 							IPv4:          ipv4,
 							ICMP:          icmp,
@@ -257,6 +263,8 @@ func (nw *NetworkInterface) Recieve() error {
 									http.Host = strings.TrimSpace(string(host))
 
 									nw.PassiveCh <- &Passive{
+										HighLayerProto: "HTTP",
+
 										EthernetFrame: recievedEthernetFrame,
 										IPv4:          ipv4,
 										TCP:           tcp,
@@ -267,6 +275,8 @@ func (nw *NetworkInterface) Recieve() error {
 							}
 
 							nw.PassiveCh <- &Passive{
+								HighLayerProto: "TCP",
+
 								EthernetFrame: recievedEthernetFrame,
 								IPv4:          ipv4,
 								TCP:           tcp,
@@ -275,6 +285,8 @@ func (nw *NetworkInterface) Recieve() error {
 
 						default:
 							nw.PassiveCh <- &Passive{
+								HighLayerProto: "TCP",
+
 								EthernetFrame: recievedEthernetFrame,
 								IPv4:          ipv4,
 								TCP:           tcp,
@@ -294,6 +306,8 @@ func (nw *NetworkInterface) Recieve() error {
 						// DNS以外は一旦udpまでのみviewする
 						if udp.DstPort != PORT_DNS && udp.SrcPort != PORT_DNS {
 							nw.PassiveCh <- &Passive{
+								HighLayerProto: "UDP",
+
 								EthernetFrame: recievedEthernetFrame,
 								IPv4:          ipv4,
 								UDP:           udp,
@@ -331,6 +345,8 @@ func (nw *NetworkInterface) Recieve() error {
 							}
 
 							nw.PassiveCh <- &Passive{
+								HighLayerProto: "DNS",
+
 								EthernetFrame: recievedEthernetFrame,
 								IPv4:          ipv4,
 								UDP:           udp,
@@ -377,6 +393,8 @@ func (nw *NetworkInterface) Recieve() error {
 							}
 
 							nw.PassiveCh <- &Passive{
+								HighLayerProto: "DNS",
+
 								EthernetFrame: recievedEthernetFrame,
 								IPv4:          ipv4,
 								UDP:           udp,
@@ -387,6 +405,8 @@ func (nw *NetworkInterface) Recieve() error {
 						}
 					default:
 						nw.PassiveCh <- &Passive{
+							HighLayerProto: "IPv4",
+
 							EthernetFrame: recievedEthernetFrame,
 							IPv4:          ipv4,
 						}

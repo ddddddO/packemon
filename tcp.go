@@ -6,10 +6,11 @@ import (
 
 const (
 	// 最後0付けてるけど、Wireshark上だと不要。受信時、TCP.Flags を4bit左シフトしてるからここでも付けてる
-	TCP_FLAGS_SYN     = 0x0020
-	TCP_FLAGS_SYN_ACK = 0x0120
-	TCP_FLAGS_ACK     = 0x0100
-	TCP_FLAGS_PSH_ACK = 0x0180 // データを上位層へ渡してという信号
+	TCP_FLAGS_SYN         = 0x0020
+	TCP_FLAGS_SYN_ACK     = 0x0120
+	TCP_FLAGS_ACK         = 0x0100
+	TCP_FLAGS_PSH_ACK     = 0x0180 // データを上位層へ渡してという信号
+	TCP_FLAGS_FIN_PSH_ACK = 0x0190
 )
 
 type TCP struct {

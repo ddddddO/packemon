@@ -41,3 +41,10 @@ func (h *HTTP) Bytes() []byte {
 	buf.WriteString("\r\n")
 	return buf.Bytes()
 }
+
+// TODO: HTTP struct にまとめる
+type HTTPResponse struct {
+	StatusLine string
+	Header     string
+	Body       string
+}

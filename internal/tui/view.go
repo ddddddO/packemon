@@ -41,6 +41,9 @@ func (t *tui) updateView(passive *packemon.Passive) {
 	if passive.HTTP != nil {
 		viewers = append(viewers, &HTTP{passive.HTTP})
 	}
+	if passive.HTTPRes != nil {
+		viewers = append(viewers, &HTTPResponse{passive.HTTPRes})
+	}
 
 	go func(viewers []Viewer) {
 		t.app.QueueUpdate(func() {

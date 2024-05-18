@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -88,6 +89,7 @@ func (nw *NetworkInterface) Send(ethernetFrame *EthernetFrame) error {
 type Passive struct {
 	HighLayerProto string
 
+	HTTPRes       *HTTPResponse
 	HTTP          *HTTP
 	DNS           *DNS
 	TCP           *TCP
@@ -282,18 +284,35 @@ func (nw *NetworkInterface) Recieve() error {
 								TCP:           tcp,
 							}
 							continue
-
-						default:
-							nw.PassiveCh <- &Passive{
-								HighLayerProto: "TCP",
-
-								EthernetFrame: recievedEthernetFrame,
-								IPv4:          ipv4,
-								TCP:           tcp,
-							}
 						}
 
-						continue
+						switch tcp.SrcPort {
+						case PORT_HTTP:
+							if tcp.Flags == TCP_FLAGS_FIN_PSH_ACK || tcp.Flags == TCP_FLAGS_PSH_ACK {
+								lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
+
+								line := tcp.Data[0 : lineLength+1]
+								split := bytes.Split(line, []byte{0x20}) // 半角スペース
+								if len(split) < 3 {
+									// TODO: handling
+									continue
+								}
+
+								httpRes := &HTTPResponse{
+									StatusLine: fmt.Sprintf("%s %s %s", string(split[0]), string(split[1]), string(split[2])),
+								}
+								nw.PassiveCh <- &Passive{
+									HighLayerProto: "HTTP",
+
+									EthernetFrame: recievedEthernetFrame,
+									IPv4:          ipv4,
+									TCP:           tcp,
+									HTTPRes:       httpRes,
+								}
+
+								continue
+							}
+						}
 					case IPv4_PROTO_UDP:
 						udp := &UDP{
 							SrcPort:  binary.BigEndian.Uint16(ipv4.Data[0:2]),

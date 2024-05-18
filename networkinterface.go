@@ -21,21 +21,10 @@ type NetworkInterface struct {
 }
 
 func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
-	interfaces, err := net.Interfaces()
+	intf, err := getInterface(nwInterface)
 	if err != nil {
 		return nil, err
 	}
-
-	var intf *net.Interface
-	for i := range interfaces {
-		if interfaces[i].Name == nwInterface {
-			intf = &interfaces[i]
-		}
-	}
-	if intf == nil {
-		return nil, errors.New("specified interface did not exist")
-	}
-
 	ipAddrs, err := intf.Addrs()
 	if err != nil {
 		return nil, err
@@ -67,6 +56,25 @@ func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 
 		PassiveCh: make(chan *Passive, 100),
 	}, nil
+}
+
+func getInterface(nwInterface string) (*net.Interface, error) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+
+	var intf *net.Interface
+	for i := range interfaces {
+		if interfaces[i].Name == nwInterface {
+			intf = &interfaces[i]
+		}
+	}
+	if intf == nil {
+		return nil, errors.New("specified interface did not exist")
+	}
+
+	return intf, nil
 }
 
 func hton(i uint16) uint16 {
@@ -391,6 +399,10 @@ func (nw *NetworkInterface) Recieve() error {
 	return nil
 }
 
+func (nw *NetworkInterface) Close() error {
+	return unix.Close(nw.Socket)
+}
+
 // stringのIPv4アドレスをbytesに変換
 func strIPToBytes(s string) ([]byte, error) {
 	b := make([]byte, 4)
@@ -407,44 +419,4 @@ func strIPToBytes(s string) ([]byte, error) {
 		b[i] = byte(ip)
 	}
 	return b, nil
-}
-
-type NetworkInterfaceForTCP struct {
-	Socket int
-}
-
-func NewNetworkInterfaceForTCP() (*NetworkInterfaceForTCP, error) {
-	sock, err := unix.Socket(unix.AF_INET, unix.SOCK_STREAM, unix.IPPROTO_TCP)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := unix.BindToDevice(sock, "eth0"); err != nil {
-		return nil, err
-	}
-
-	return &NetworkInterfaceForTCP{
-		Socket: sock,
-	}, nil
-}
-
-func (nwt *NetworkInterfaceForTCP) Connect(dstIPAddr []byte, dstPort uint16) error {
-	addr := unix.SockaddrInet4{
-		Addr: [4]byte{dstIPAddr[0], dstIPAddr[1], dstIPAddr[2], dstIPAddr[3]},
-		Port: int(dstPort),
-	}
-
-	return unix.Connect(nwt.Socket, &addr)
-}
-
-func (nwt *NetworkInterfaceForTCP) Write(segment []byte) (int, error) {
-	return unix.Write(nwt.Socket, segment)
-}
-
-func (nwt *NetworkInterfaceForTCP) Read(buf []byte) (int, error) {
-	return unix.Read(nwt.Socket, buf)
-}
-
-func (nwt *NetworkInterfaceForTCP) Close() error {
-	return unix.Close(nwt.Socket)
 }

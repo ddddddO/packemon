@@ -236,9 +236,10 @@ func OptionsOfhttp() []byte {
 	return buf.Bytes()
 }
 
-func Aaaa() error {
-	log.Println("in Aaaaa")
-	nwt, err := NewNetworkInterfaceForTCP()
+func EstablishConnection(nwInterface string) error {
+	log.Println("in EstablishConnection")
+
+	nwt, err := NewNetworkInterfaceForTCP(nwInterface)
 	if err != nil {
 		return err
 	}

@@ -34,6 +34,7 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 	if err != nil {
 		return err
 	}
+	defer netIf.Close()
 
 	// TODO: 以降要refactor
 	tui.DEFAULT_MAC_DESTINATION = fmt.Sprintf("0x%s", strings.ReplaceAll(netIf.Intf.HardwareAddr.String(), ":", ""))
@@ -51,6 +52,10 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 	tui.DEFAULT_ARP_TARGET_IP = tui.DEFAULT_ARP_SENDER_IP
 
 	if debug {
+		if wantSend && protocol == "tcp-3way" {
+			return packemon.EstablishConnection(nwInterface)
+		}
+
 		// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
 		// $ ip route
 		// $ arp xxx.xx.xxx.1
@@ -70,6 +75,7 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 
 func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface, dstMacAddr [6]byte) error {
 	debugNetIf := debugging.NewDebugNetworkInterface(netIf)
+	defer debugNetIf.Close()
 
 	if wantSend {
 		switch protocol {
@@ -79,8 +85,6 @@ func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface,
 			return debugNetIf.SendICMPechoRequest(dstMacAddr)
 		case "tcp":
 			return debugNetIf.SendTCPsyn(dstMacAddr)
-		case "tcp-3way":
-			return packemon.Aaaa()
 		case "dns":
 			return debugNetIf.SendDNSquery(dstMacAddr)
 		case "http":

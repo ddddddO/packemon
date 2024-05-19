@@ -121,6 +121,11 @@ go install github.com/ddddddO/packemon/cmd/packemon
 
 ### 動作確認
 
+#### Raspberry Piで簡易http server
+```console
+pi@raspberrypi:~ $ sudo go run main.go
+```
+
 #### パケットキャプチャ
 ```console
 $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -k -i -

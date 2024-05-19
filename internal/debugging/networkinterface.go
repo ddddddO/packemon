@@ -385,7 +385,7 @@ func (dnw *debugNetworkInterface) Recieve() error {
 					Data: recieved[14:],
 				}
 
-				HARDWAREADDR_BROADCAST := [6]uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+				HARDWAREADDR_BROADCAST := p.HardwareAddr([6]uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
 
 				switch recievedEthernetFrame.Header.Typ {
 				case p.ETHER_TYPE_ARP:

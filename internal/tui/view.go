@@ -16,6 +16,36 @@ type Viewer interface {
 }
 
 func (t *tui) updateView(passive *packemon.Passive) {
+	go func(viewers []Viewer) {
+		t.app.QueueUpdate(func() {
+			t.grid.Clear()
+		})
+
+		rows := make([]int, len(viewers))
+		columns := make([]int, len(viewers))
+		for i := range viewers {
+			rows[i] = viewers[i].rows()
+			columns[i] = viewers[i].columns()
+		}
+		t.grid.RemoveItem(t.grid) // ほんと？
+		t.grid.SetRows(rows...).SetColumns(columns...).SetBorders(false)
+		for i := range viewers {
+			t.grid.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false) // focus=true にするとスクロールしない
+		}
+		t.grid.SetInputCapture(
+			func(event *tcell.EventKey) *tcell.EventKey {
+				if event.Key() == tcell.KeyEscape {
+					t.grid.Clear()
+					t.pages.SwitchToPage("history")
+				}
+				return event
+			})
+		t.pages.AddAndSwitchToPage("packetDetail", t.grid, true)
+		t.app.Draw()
+	}(passiveToViewers(passive))
+}
+
+func passiveToViewers(passive *packemon.Passive) []Viewer {
 	viewers := []Viewer{}
 	if passive.EthernetFrame != nil {
 		viewers = append(viewers, &EthernetFrame{passive.EthernetFrame})
@@ -45,33 +75,7 @@ func (t *tui) updateView(passive *packemon.Passive) {
 		viewers = append(viewers, &HTTPResponse{passive.HTTPRes})
 	}
 
-	go func(viewers []Viewer) {
-		t.app.QueueUpdate(func() {
-			t.grid.Clear()
-		})
-
-		rows := make([]int, len(viewers))
-		columns := make([]int, len(viewers))
-		for i := range viewers {
-			rows[i] = viewers[i].rows()
-			columns[i] = viewers[i].columns()
-		}
-		t.grid.RemoveItem(t.grid) // ほんと？
-		t.grid.SetRows(rows...).SetColumns(columns...).SetBorders(false)
-		for i := range viewers {
-			t.grid.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false) // focus=true にするとスクロールしない
-		}
-		t.grid.SetInputCapture(
-			func(event *tcell.EventKey) *tcell.EventKey {
-				if event.Key() == tcell.KeyEscape {
-					t.grid.Clear()
-					t.pages.SwitchToPage("history")
-				}
-				return event
-			})
-		t.pages.AddAndSwitchToPage("packetDetail", t.grid, true)
-		t.app.Draw()
-	}(viewers)
+	return viewers
 }
 
 func padding(s string) string {

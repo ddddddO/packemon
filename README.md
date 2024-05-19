@@ -29,13 +29,13 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 
 - The following types of packets are covered.
   - [x] Ethernet
-  - [x] ARP
-  - [ ] IPv4 (WIP)
-  - [ ] ICMP (WIP)
-  - [ ] TCP (WIP)
-  - [ ] UDP (WIP)
-  - [ ] DNS (WIP)
-  - [ ] HTTP (WIP)
+  - [x] ARP (WIP)
+  - [x] IPv4 (WIP)
+  - [x] ICMP (WIP)
+  - [x] TCP (WIP)
+  - [x] UDP (WIP)
+  - [x] DNS (WIP)
+  - [x] HTTP (WIP)
   - [ ] xxxxx....
 
 ### Packet Monitor
@@ -46,9 +46,9 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 - The following types of packets are covered.
   - [x] Ethernet
   - [x] ARP
-  - [x] IPv4
-  - [x] ICMP
-  - [x] TCP
+  - [x] IPv4 (WIP)
+  - [x] ICMP (WIP)
+  - [x] TCP (WIP)
   - [x] UDP
   - [ ] DNS (WIP)
     - [x] DNS query
@@ -56,7 +56,7 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
     - [ ] xxxxx....
   - [ ] HTTP (WIP)
     - [x] HTTP GET request
-    - [ ] HTTP GET response
+    - [x] HTTP GET response
     - [ ] xxxxx....
   - [ ] xxxxx....
 

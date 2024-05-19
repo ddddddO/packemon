@@ -38,8 +38,8 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 	defer netIf.Close()
 
 	// TODO: 以降要refactor
-	tui.DEFAULT_MAC_DESTINATION = fmt.Sprintf("0x%s", strings.ReplaceAll(netIf.Intf.HardwareAddr.String(), ":", ""))
-	tui.DEFAULT_MAC_SOURCE = tui.DEFAULT_MAC_DESTINATION
+	tui.DEFAULT_MAC_DESTINATION = "0x00155dfbbf3a"
+	tui.DEFAULT_MAC_SOURCE = fmt.Sprintf("0x%s", strings.ReplaceAll(netIf.Intf.HardwareAddr.String(), ":", ""))
 	tui.DEFAULT_ARP_SENDER_MAC = tui.DEFAULT_MAC_SOURCE
 
 	fmt.Printf("Monitor interface: %v\n", netIf.Intf)

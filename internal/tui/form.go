@@ -364,13 +364,17 @@ func defaultPackets() (*defaults, error) {
 		TargetIPAddr:       binary.BigEndian.Uint32(targetIP),
 	}
 
-	mac, err := strHexToBytes(DEFAULT_MAC_SOURCE)
+	dstMAC, err := strHexToBytes(DEFAULT_MAC_DESTINATION)
+	if err != nil {
+		return nil, err
+	}
+	srcMAC, err := strHexToBytes(DEFAULT_MAC_SOURCE)
 	if err != nil {
 		return nil, err
 	}
 	ethernetHeader := &packemon.EthernetHeader{
-		Dst: packemon.HardwareAddr(mac),
-		Src: packemon.HardwareAddr(mac),
+		Dst: packemon.HardwareAddr(dstMAC),
+		Src: packemon.HardwareAddr(srcMAC),
 		Typ: packemon.ETHER_TYPE_IPv4,
 	}
 

@@ -9,8 +9,14 @@ import (
 )
 
 func (t *tui) httpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, tcp *packemon.TCP, http *packemon.HTTP) *tview.Form {
+	do3wayHandshake := false
+
 	httpForm := tview.NewForm().
 		AddTextView("HTTP", "This section generates the HTTP.\nIt is still under development.", 60, 4, true, false).
+		AddCheckbox("Do 3way handshake ?", do3wayHandshake, func(checked bool) {
+			do3wayHandshake = checked
+		}).
+		AddTextView("", "When 3-way handshake for TCP is enabled, only \n\n  - HTTP section\n  - TCP Destination Port\n  - IPv4 Destination IP Addr\n\nare reflected as input.", 60, 7, true, true).
 		AddInputField("Method", DEFAULT_HTTP_METHOD, 10, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) <= 10 {
 				http.Method = textToCheck
@@ -57,6 +63,23 @@ func (t *tui) httpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 			t.app.SetFocus(t.list)
 		}).
 		AddButton("Send!", func() {
+			if do3wayHandshake {
+				dstIPAddr := make([]byte, 4)
+				binary.BigEndian.PutUint32(dstIPAddr, ipv4.DstAddr)
+				if err := packemon.EstablishConnectionAndSendPayload(
+					DEFAULT_NW_INTERFACE,
+					dstIPAddr,
+					tcp.DstPort,
+					// []byte{0xc0, 0xa8, 0x0a, 0x6e},
+					// 0x0050,
+					http.Bytes(),
+				); err != nil {
+					// TODO: ここエラーポップアップだしたい
+					//t.app.Stop()
+				}
+				return
+			}
+
 			tcp.Data = http.Bytes()
 			tcp.Checksum = func() uint16 {
 				pseudoTCPHeader := func() []byte {

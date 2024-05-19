@@ -15,6 +15,8 @@ const (
 )
 
 var (
+	DEFAULT_NW_INTERFACE = "" // TODO: 良くない直す
+
 	DEFAULT_MAC_DESTINATION = ""
 	DEFAULT_MAC_SOURCE      = ""
 
@@ -287,7 +289,11 @@ func defaultPackets() (*defaults, error) {
 		Sequence:   binary.BigEndian.Uint16(icmpSequence),
 	}
 
-	ip, err := strIPToBytes(DEFAULT_IP_SOURCE)
+	srcIP, err := strIPToBytes(DEFAULT_IP_SOURCE)
+	if err != nil {
+		return nil, err
+	}
+	dstIP, err := strIPToBytes(DEFAULT_IP_DESTINATION)
 	if err != nil {
 		return nil, err
 	}
@@ -303,8 +309,8 @@ func defaultPackets() (*defaults, error) {
 		Ttl:            0x80,
 		Protocol:       packemon.IPv4_PROTO_ICMP,
 		HeaderChecksum: 0,
-		SrcAddr:        binary.BigEndian.Uint32(ip),
-		DstAddr:        binary.BigEndian.Uint32(ip),
+		SrcAddr:        binary.BigEndian.Uint32(srcIP),
+		DstAddr:        binary.BigEndian.Uint32(dstIP),
 	}
 
 	hardwareType, err := strHexToBytes2(DEFAULT_ARP_HARDWARE_TYPE)

@@ -48,7 +48,8 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 		return err
 	}
 	tui.DEFAULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
-	tui.DEFAULT_IP_DESTINATION = tui.DEFAULT_IP_SOURCE
+	// tui.DEFAULT_IP_DESTINATION = tui.DEFAULT_IP_SOURCE
+	tui.DEFAULT_IP_DESTINATION = "192.168.10.110" // raspbbery pi
 	tui.DEFAULT_ARP_SENDER_IP = tui.DEFAULT_IP_SOURCE
 	tui.DEFAULT_ARP_TARGET_IP = tui.DEFAULT_ARP_SENDER_IP
 
@@ -69,6 +70,7 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 	}
 
 	if wantSend {
+		tui.DEFAULT_NW_INTERFACE = nwInterface
 		tui := tui.NewTUI(wantSend)
 		return tui.Generator(netIf.Send)
 	} else {

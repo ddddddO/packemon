@@ -2,6 +2,9 @@
 
 Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ) <br>
 
+![](./doc/packemon.gif)
+
+
 TUI tool and Go library for sending packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows and macOS. I have confirmed that it works on Debian on WSL2.**<br>
 
 I intend to develop it patiently🌴

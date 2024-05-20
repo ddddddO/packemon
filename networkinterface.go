@@ -30,6 +30,10 @@ func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(ipAddrs) == 0 {
+		return nil, errors.New("unkown error")
+	}
+
 	ipAddr, err := strIPToBytes(strings.Split(ipAddrs[0].String(), "/")[0])
 	if err != nil {
 		return nil, err

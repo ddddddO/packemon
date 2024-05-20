@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/ddddddO/packemon"
@@ -26,7 +27,8 @@ func main() {
 	flag.Parse()
 
 	if err := run(nwInterface, wantSend, debug, protocol); err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
 

@@ -138,152 +138,7 @@ func (nw *NetworkInterface) Recieve() error {
 					return err
 				}
 
-				ethernetFrame := ParsedEthernetFrame(recieved)
-
-				switch ethernetFrame.Header.Typ {
-				case ETHER_TYPE_ARP:
-					arp := ParsedARP(ethernetFrame.Data)
-
-					nw.PassiveCh <- &Passive{
-						HighLayerProto: "ARP",
-
-						EthernetFrame: ethernetFrame,
-						ARP:           arp,
-					}
-					continue
-
-				case ETHER_TYPE_IPv4:
-					ipv4 := ParsedIPv4(ethernetFrame.Data)
-
-					switch ipv4.Protocol {
-					case IPv4_PROTO_ICMP:
-						icmp := ParsedICMP(ipv4.Data)
-
-						nw.PassiveCh <- &Passive{
-							HighLayerProto: "ICMP",
-
-							EthernetFrame: ethernetFrame,
-							IPv4:          ipv4,
-							ICMP:          icmp,
-						}
-
-						continue
-					case IPv4_PROTO_TCP:
-						tcp := ParsedTCP(ipv4.Data)
-
-						switch tcp.DstPort {
-						case PORT_HTTP:
-							if tcp.Flags == TCP_FLAGS_PSH_ACK {
-								passive := &Passive{
-									HighLayerProto: "TCP",
-
-									EthernetFrame: ethernetFrame,
-									IPv4:          ipv4,
-									TCP:           tcp,
-								}
-								if http := ParsedHTTPRequest(tcp.Data); http != nil {
-									passive.HighLayerProto = "HTTP"
-									passive.HTTP = http
-								}
-								nw.PassiveCh <- passive
-								continue
-							}
-
-							nw.PassiveCh <- &Passive{
-								HighLayerProto: "TCP",
-
-								EthernetFrame: ethernetFrame,
-								IPv4:          ipv4,
-								TCP:           tcp,
-							}
-							continue
-						}
-
-						switch tcp.SrcPort {
-						case PORT_HTTP:
-							if tcp.Flags == TCP_FLAGS_FIN_PSH_ACK || tcp.Flags == TCP_FLAGS_PSH_ACK {
-								passive := &Passive{
-									HighLayerProto: "TCP",
-
-									EthernetFrame: ethernetFrame,
-									IPv4:          ipv4,
-									TCP:           tcp,
-								}
-								if httpRes := ParsedHTTPResponse(tcp.Data); httpRes != nil {
-									passive.HighLayerProto = "HTTP"
-									passive.HTTPRes = httpRes
-								}
-								nw.PassiveCh <- passive
-								continue
-							}
-						}
-
-						nw.PassiveCh <- &Passive{
-							HighLayerProto: "TCP",
-
-							EthernetFrame: ethernetFrame,
-							IPv4:          ipv4,
-							TCP:           tcp,
-						}
-						continue
-
-					case IPv4_PROTO_UDP:
-						udp := ParsedUDP(ipv4.Data)
-
-						// DNS以外は一旦udpまでのみviewする
-						if udp.DstPort != PORT_DNS && udp.SrcPort != PORT_DNS {
-							nw.PassiveCh <- &Passive{
-								HighLayerProto: "UDP",
-
-								EthernetFrame: ethernetFrame,
-								IPv4:          ipv4,
-								UDP:           udp,
-							}
-							continue
-						}
-
-						// TODO: 53確かtcpもあったからそれのハンドリング考慮するいつか
-						// TODO: nslookup github.com でipv6用のDNSクエリ・レスポンスも返ってきてるのでそれも対応
-						//       query.type == AAAA で判別可能
-						flags := binary.BigEndian.Uint16(udp.Data[2:4])
-						if udp.DstPort == PORT_DNS && flags == DNS_REQUEST {
-							dns := ParsedDNSRequest(udp.Data)
-
-							nw.PassiveCh <- &Passive{
-								HighLayerProto: "DNS",
-
-								EthernetFrame: ethernetFrame,
-								IPv4:          ipv4,
-								UDP:           udp,
-								DNS:           dns,
-							}
-
-							continue
-						}
-
-						if udp.SrcPort == PORT_DNS && flags == DNS_RESPONSE {
-							dns := ParsedDNSResponse(udp.Data)
-
-							nw.PassiveCh <- &Passive{
-								HighLayerProto: "DNS",
-
-								EthernetFrame: ethernetFrame,
-								IPv4:          ipv4,
-								UDP:           udp,
-								DNS:           dns,
-							}
-
-							continue
-						}
-					default:
-						nw.PassiveCh <- &Passive{
-							HighLayerProto: "IPv4",
-
-							EthernetFrame: ethernetFrame,
-							IPv4:          ipv4,
-						}
-					}
-				}
+				nw.ParsePackets(recieved)
 			}
 		}
 	}
@@ -311,4 +166,151 @@ func strIPToBytes(s string) ([]byte, error) {
 		b[i] = byte(ip)
 	}
 	return b, nil
+}
+
+func (nw *NetworkInterface) ParsePackets(recieved []byte) {
+	ethernetFrame := ParsedEthernetFrame(recieved)
+
+	switch ethernetFrame.Header.Typ {
+	case ETHER_TYPE_ARP:
+		arp := ParsedARP(ethernetFrame.Data)
+
+		nw.PassiveCh <- &Passive{
+			HighLayerProto: "ARP",
+
+			EthernetFrame: ethernetFrame,
+			ARP:           arp,
+		}
+		return
+
+	case ETHER_TYPE_IPv4:
+		ipv4 := ParsedIPv4(ethernetFrame.Data)
+
+		switch ipv4.Protocol {
+		case IPv4_PROTO_ICMP:
+			icmp := ParsedICMP(ipv4.Data)
+
+			nw.PassiveCh <- &Passive{
+				HighLayerProto: "ICMP",
+
+				EthernetFrame: ethernetFrame,
+				IPv4:          ipv4,
+				ICMP:          icmp,
+			}
+			return
+
+		case IPv4_PROTO_TCP:
+			tcp := ParsedTCP(ipv4.Data)
+
+			switch tcp.DstPort {
+			case PORT_HTTP:
+				if tcp.Flags == TCP_FLAGS_PSH_ACK {
+					passive := &Passive{
+						HighLayerProto: "TCP",
+
+						EthernetFrame: ethernetFrame,
+						IPv4:          ipv4,
+						TCP:           tcp,
+					}
+					if http := ParsedHTTPRequest(tcp.Data); http != nil {
+						passive.HighLayerProto = "HTTP"
+						passive.HTTP = http
+					}
+					nw.PassiveCh <- passive
+					return
+				}
+
+				nw.PassiveCh <- &Passive{
+					HighLayerProto: "TCP",
+
+					EthernetFrame: ethernetFrame,
+					IPv4:          ipv4,
+					TCP:           tcp,
+				}
+				return
+			}
+
+			switch tcp.SrcPort {
+			case PORT_HTTP:
+				if tcp.Flags == TCP_FLAGS_FIN_PSH_ACK || tcp.Flags == TCP_FLAGS_PSH_ACK {
+					passive := &Passive{
+						HighLayerProto: "TCP",
+
+						EthernetFrame: ethernetFrame,
+						IPv4:          ipv4,
+						TCP:           tcp,
+					}
+					if httpRes := ParsedHTTPResponse(tcp.Data); httpRes != nil {
+						passive.HighLayerProto = "HTTP"
+						passive.HTTPRes = httpRes
+					}
+					nw.PassiveCh <- passive
+					return
+				}
+			}
+
+			nw.PassiveCh <- &Passive{
+				HighLayerProto: "TCP",
+
+				EthernetFrame: ethernetFrame,
+				IPv4:          ipv4,
+				TCP:           tcp,
+			}
+			return
+
+		case IPv4_PROTO_UDP:
+			udp := ParsedUDP(ipv4.Data)
+
+			// DNS以外は一旦udpまでのみviewする
+			if udp.DstPort != PORT_DNS && udp.SrcPort != PORT_DNS {
+				nw.PassiveCh <- &Passive{
+					HighLayerProto: "UDP",
+
+					EthernetFrame: ethernetFrame,
+					IPv4:          ipv4,
+					UDP:           udp,
+				}
+				return
+			}
+
+			// TODO: 53確かtcpもあったからそれのハンドリング考慮するいつか
+			// TODO: nslookup github.com でipv6用のDNSクエリ・レスポンスも返ってきてるのでそれも対応
+			//       query.type == AAAA で判別可能
+			flags := binary.BigEndian.Uint16(udp.Data[2:4])
+			if udp.DstPort == PORT_DNS && flags == DNS_REQUEST {
+				dns := ParsedDNSRequest(udp.Data)
+
+				nw.PassiveCh <- &Passive{
+					HighLayerProto: "DNS",
+
+					EthernetFrame: ethernetFrame,
+					IPv4:          ipv4,
+					UDP:           udp,
+					DNS:           dns,
+				}
+				return
+			}
+
+			if udp.SrcPort == PORT_DNS && flags == DNS_RESPONSE {
+				dns := ParsedDNSResponse(udp.Data)
+
+				nw.PassiveCh <- &Passive{
+					HighLayerProto: "DNS",
+
+					EthernetFrame: ethernetFrame,
+					IPv4:          ipv4,
+					UDP:           udp,
+					DNS:           dns,
+				}
+				return
+			}
+		default:
+			nw.PassiveCh <- &Passive{
+				HighLayerProto: "IPv4",
+
+				EthernetFrame: ethernetFrame,
+				IPv4:          ipv4,
+			}
+		}
+	}
 }

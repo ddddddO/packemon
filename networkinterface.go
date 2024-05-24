@@ -138,7 +138,7 @@ func (nw *NetworkInterface) Recieve() error {
 					return err
 				}
 
-				nw.PassiveCh <- nw.ParsePackets(recieved)
+				nw.PassiveCh <- nw.ParsePacket(recieved)
 			}
 		}
 	}
@@ -168,7 +168,7 @@ func strIPToBytes(s string) ([]byte, error) {
 	return b, nil
 }
 
-func (nw *NetworkInterface) ParsePackets(recieved []byte) *Passive {
+func (nw *NetworkInterface) ParsePacket(recieved []byte) *Passive {
 	ethernetFrame := ParsedEthernetFrame(recieved)
 
 	switch ethernetFrame.Header.Typ {

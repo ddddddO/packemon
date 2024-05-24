@@ -138,7 +138,7 @@ func (nw *NetworkInterface) Recieve() error {
 					return err
 				}
 
-				nw.ParsePackets(recieved)
+				nw.PassiveCh <- nw.ParsePackets(recieved)
 			}
 		}
 	}
@@ -168,20 +168,19 @@ func strIPToBytes(s string) ([]byte, error) {
 	return b, nil
 }
 
-func (nw *NetworkInterface) ParsePackets(recieved []byte) {
+func (nw *NetworkInterface) ParsePackets(recieved []byte) *Passive {
 	ethernetFrame := ParsedEthernetFrame(recieved)
 
 	switch ethernetFrame.Header.Typ {
 	case ETHER_TYPE_ARP:
 		arp := ParsedARP(ethernetFrame.Data)
 
-		nw.PassiveCh <- &Passive{
+		return &Passive{
 			HighLayerProto: "ARP",
 
 			EthernetFrame: ethernetFrame,
 			ARP:           arp,
 		}
-		return
 
 	case ETHER_TYPE_IPv4:
 		ipv4 := ParsedIPv4(ethernetFrame.Data)
@@ -190,14 +189,13 @@ func (nw *NetworkInterface) ParsePackets(recieved []byte) {
 		case IPv4_PROTO_ICMP:
 			icmp := ParsedICMP(ipv4.Data)
 
-			nw.PassiveCh <- &Passive{
+			return &Passive{
 				HighLayerProto: "ICMP",
 
 				EthernetFrame: ethernetFrame,
 				IPv4:          ipv4,
 				ICMP:          icmp,
 			}
-			return
 
 		case IPv4_PROTO_TCP:
 			tcp := ParsedTCP(ipv4.Data)
@@ -216,18 +214,17 @@ func (nw *NetworkInterface) ParsePackets(recieved []byte) {
 						passive.HighLayerProto = "HTTP"
 						passive.HTTP = http
 					}
-					nw.PassiveCh <- passive
-					return
+
+					return passive
 				}
 
-				nw.PassiveCh <- &Passive{
+				return &Passive{
 					HighLayerProto: "TCP",
 
 					EthernetFrame: ethernetFrame,
 					IPv4:          ipv4,
 					TCP:           tcp,
 				}
-				return
 			}
 
 			switch tcp.SrcPort {
@@ -244,33 +241,31 @@ func (nw *NetworkInterface) ParsePackets(recieved []byte) {
 						passive.HighLayerProto = "HTTP"
 						passive.HTTPRes = httpRes
 					}
-					nw.PassiveCh <- passive
-					return
+
+					return passive
 				}
 			}
 
-			nw.PassiveCh <- &Passive{
+			return &Passive{
 				HighLayerProto: "TCP",
 
 				EthernetFrame: ethernetFrame,
 				IPv4:          ipv4,
 				TCP:           tcp,
 			}
-			return
 
 		case IPv4_PROTO_UDP:
 			udp := ParsedUDP(ipv4.Data)
 
 			// DNS以外は一旦udpまでのみviewする
 			if udp.DstPort != PORT_DNS && udp.SrcPort != PORT_DNS {
-				nw.PassiveCh <- &Passive{
+				return &Passive{
 					HighLayerProto: "UDP",
 
 					EthernetFrame: ethernetFrame,
 					IPv4:          ipv4,
 					UDP:           udp,
 				}
-				return
 			}
 
 			// TODO: 53確かtcpもあったからそれのハンドリング考慮するいつか
@@ -280,7 +275,7 @@ func (nw *NetworkInterface) ParsePackets(recieved []byte) {
 			if udp.DstPort == PORT_DNS && flags == DNS_REQUEST {
 				dns := ParsedDNSRequest(udp.Data)
 
-				nw.PassiveCh <- &Passive{
+				return &Passive{
 					HighLayerProto: "DNS",
 
 					EthernetFrame: ethernetFrame,
@@ -288,13 +283,12 @@ func (nw *NetworkInterface) ParsePackets(recieved []byte) {
 					UDP:           udp,
 					DNS:           dns,
 				}
-				return
 			}
 
 			if udp.SrcPort == PORT_DNS && flags == DNS_RESPONSE {
 				dns := ParsedDNSResponse(udp.Data)
 
-				nw.PassiveCh <- &Passive{
+				return &Passive{
 					HighLayerProto: "DNS",
 
 					EthernetFrame: ethernetFrame,
@@ -302,15 +296,20 @@ func (nw *NetworkInterface) ParsePackets(recieved []byte) {
 					UDP:           udp,
 					DNS:           dns,
 				}
-				return
 			}
 		default:
-			nw.PassiveCh <- &Passive{
+			return &Passive{
 				HighLayerProto: "IPv4",
 
 				EthernetFrame: ethernetFrame,
 				IPv4:          ipv4,
 			}
 		}
+	}
+
+	return &Passive{
+		HighLayerProto: "Ethernet",
+
+		EthernetFrame: ethernetFrame,
 	}
 }

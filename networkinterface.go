@@ -317,6 +317,16 @@ func (nw *NetworkInterface) Recieve() error {
 								continue
 							}
 						}
+
+						nw.PassiveCh <- &Passive{
+							HighLayerProto: "TCP",
+
+							EthernetFrame: recievedEthernetFrame,
+							IPv4:          ipv4,
+							TCP:           tcp,
+						}
+						continue
+
 					case IPv4_PROTO_UDP:
 						udp := &UDP{
 							SrcPort:  binary.BigEndian.Uint16(ipv4.Data[0:2]),

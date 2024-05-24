@@ -175,11 +175,11 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 					return err
 				}
 
-				recievedEthernetFrame := p.ParsedEthernetFrame(recieved)
+				ethernetFrame := p.ParsedEthernetFrame(recieved)
 
-				switch recievedEthernetFrame.Header.Typ {
+				switch ethernetFrame.Header.Typ {
 				case p.ETHER_TYPE_IPv4:
-					ipv4 := p.ParsedIPv4(recievedEthernetFrame.Data)
+					ipv4 := p.ParsedIPv4(ethernetFrame.Data)
 
 					switch ipv4.Protocol {
 					case p.IPv4_PROTO_TCP:
@@ -238,7 +238,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 							}
 
 							// dnw.PassiveCh <- &p.Passive{
-							// 	EthernetFrame: recievedEthernetFrame,
+							// 	EthernetFrame: ethernetFrame,
 							// 	IPv4:          ipv4,
 							// 	TCP:           tcp,
 							// }
@@ -246,7 +246,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 
 						default:
 							// dnw.PassiveCh <- &p.Passive{
-							// 	EthernetFrame: recievedEthernetFrame,
+							// 	EthernetFrame: ethernetFrame,
 							// 	IPv4:          ipv4,
 							// 	TCP:           tcp,
 							// }
@@ -336,7 +336,7 @@ func (dnw *debugNetworkInterface) Recieve() error {
 
 				log.Println("recieved")
 
-				recievedEthernetFrame := &p.EthernetFrame{
+				ethernetFrame := &p.EthernetFrame{
 					Header: &p.EthernetHeader{
 						Dst: p.HardwareAddr(recieved[0:6]),
 						Src: p.HardwareAddr(recieved[6:12]),
@@ -347,44 +347,44 @@ func (dnw *debugNetworkInterface) Recieve() error {
 
 				HARDWAREADDR_BROADCAST := p.HardwareAddr([6]uint8{0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
 
-				switch recievedEthernetFrame.Header.Typ {
+				switch ethernetFrame.Header.Typ {
 				case p.ETHER_TYPE_ARP:
-					switch recievedEthernetFrame.Header.Dst {
+					switch ethernetFrame.Header.Dst {
 					case p.HardwareAddr(dnw.Intf.HardwareAddr), HARDWAREADDR_BROADCAST:
 						log.Println("recieved ARP")
 
-						arp := p.ParsedARP(recievedEthernetFrame.Data)
+						arp := p.ParsedARP(ethernetFrame.Data)
 
 						// dnw.PassiveCh <- &p.Passive{
-						// 	EthernetFrame: recievedEthernetFrame,
+						// 	EthernetFrame: ethernetFrame,
 						// 	ARP:           arp,
 						// }
 						_ = arp
 					}
 				case p.ETHER_TYPE_IPv4:
-					switch recievedEthernetFrame.Header.Dst {
+					switch ethernetFrame.Header.Dst {
 					case p.HardwareAddr(dnw.Intf.HardwareAddr), HARDWAREADDR_BROADCAST:
 						log.Println("recieved IPv4")
 
 						ipv4 := &p.IPv4{
-							Version:        recievedEthernetFrame.Data[0] >> 4,
-							Ihl:            recievedEthernetFrame.Data[0] << 4 >> 4,
-							Tos:            recievedEthernetFrame.Data[1],
-							TotalLength:    binary.BigEndian.Uint16(recievedEthernetFrame.Data[2:4]),
-							Identification: binary.BigEndian.Uint16(recievedEthernetFrame.Data[4:6]),
-							Flags:          recievedEthernetFrame.Data[6],
-							FragmentOffset: binary.BigEndian.Uint16(recievedEthernetFrame.Data[6:8]),
-							Ttl:            recievedEthernetFrame.Data[8],
-							Protocol:       recievedEthernetFrame.Data[9],
-							HeaderChecksum: binary.BigEndian.Uint16(recievedEthernetFrame.Data[10:12]),
-							SrcAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[12:16]),
-							DstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[16:20]),
+							Version:        ethernetFrame.Data[0] >> 4,
+							Ihl:            ethernetFrame.Data[0] << 4 >> 4,
+							Tos:            ethernetFrame.Data[1],
+							TotalLength:    binary.BigEndian.Uint16(ethernetFrame.Data[2:4]),
+							Identification: binary.BigEndian.Uint16(ethernetFrame.Data[4:6]),
+							Flags:          ethernetFrame.Data[6],
+							FragmentOffset: binary.BigEndian.Uint16(ethernetFrame.Data[6:8]),
+							Ttl:            ethernetFrame.Data[8],
+							Protocol:       ethernetFrame.Data[9],
+							HeaderChecksum: binary.BigEndian.Uint16(ethernetFrame.Data[10:12]),
+							SrcAddr:        binary.BigEndian.Uint32(ethernetFrame.Data[12:16]),
+							DstAddr:        binary.BigEndian.Uint32(ethernetFrame.Data[16:20]),
 						}
 
 						// switch ipv4.DstAddr {
 						// case dnw.IPAdder:
 						// 	dnw.PassiveCh <- &p.Passive{
-						// 		EthernetFrame: recievedEthernetFrame,
+						// 		EthernetFrame: ethernetFrame,
 						// 		IPv4:          ipv4,
 						// 	}
 						// }

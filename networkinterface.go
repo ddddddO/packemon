@@ -138,22 +138,22 @@ func (nw *NetworkInterface) Recieve() error {
 					return err
 				}
 
-				recievedEthernetFrame := ParsedEthernetFrame(recieved)
+				ethernetFrame := ParsedEthernetFrame(recieved)
 
-				switch recievedEthernetFrame.Header.Typ {
+				switch ethernetFrame.Header.Typ {
 				case ETHER_TYPE_ARP:
-					arp := ParsedARP(recievedEthernetFrame.Data)
+					arp := ParsedARP(ethernetFrame.Data)
 
 					nw.PassiveCh <- &Passive{
 						HighLayerProto: "ARP",
 
-						EthernetFrame: recievedEthernetFrame,
+						EthernetFrame: ethernetFrame,
 						ARP:           arp,
 					}
 					continue
 
 				case ETHER_TYPE_IPv4:
-					ipv4 := ParsedIPv4(recievedEthernetFrame.Data)
+					ipv4 := ParsedIPv4(ethernetFrame.Data)
 
 					switch ipv4.Protocol {
 					case IPv4_PROTO_ICMP:
@@ -162,7 +162,7 @@ func (nw *NetworkInterface) Recieve() error {
 						nw.PassiveCh <- &Passive{
 							HighLayerProto: "ICMP",
 
-							EthernetFrame: recievedEthernetFrame,
+							EthernetFrame: ethernetFrame,
 							IPv4:          ipv4,
 							ICMP:          icmp,
 						}
@@ -177,7 +177,7 @@ func (nw *NetworkInterface) Recieve() error {
 								passive := &Passive{
 									HighLayerProto: "TCP",
 
-									EthernetFrame: recievedEthernetFrame,
+									EthernetFrame: ethernetFrame,
 									IPv4:          ipv4,
 									TCP:           tcp,
 								}
@@ -192,7 +192,7 @@ func (nw *NetworkInterface) Recieve() error {
 							nw.PassiveCh <- &Passive{
 								HighLayerProto: "TCP",
 
-								EthernetFrame: recievedEthernetFrame,
+								EthernetFrame: ethernetFrame,
 								IPv4:          ipv4,
 								TCP:           tcp,
 							}
@@ -205,7 +205,7 @@ func (nw *NetworkInterface) Recieve() error {
 								passive := &Passive{
 									HighLayerProto: "TCP",
 
-									EthernetFrame: recievedEthernetFrame,
+									EthernetFrame: ethernetFrame,
 									IPv4:          ipv4,
 									TCP:           tcp,
 								}
@@ -221,7 +221,7 @@ func (nw *NetworkInterface) Recieve() error {
 						nw.PassiveCh <- &Passive{
 							HighLayerProto: "TCP",
 
-							EthernetFrame: recievedEthernetFrame,
+							EthernetFrame: ethernetFrame,
 							IPv4:          ipv4,
 							TCP:           tcp,
 						}
@@ -235,7 +235,7 @@ func (nw *NetworkInterface) Recieve() error {
 							nw.PassiveCh <- &Passive{
 								HighLayerProto: "UDP",
 
-								EthernetFrame: recievedEthernetFrame,
+								EthernetFrame: ethernetFrame,
 								IPv4:          ipv4,
 								UDP:           udp,
 							}
@@ -252,7 +252,7 @@ func (nw *NetworkInterface) Recieve() error {
 							nw.PassiveCh <- &Passive{
 								HighLayerProto: "DNS",
 
-								EthernetFrame: recievedEthernetFrame,
+								EthernetFrame: ethernetFrame,
 								IPv4:          ipv4,
 								UDP:           udp,
 								DNS:           dns,
@@ -267,7 +267,7 @@ func (nw *NetworkInterface) Recieve() error {
 							nw.PassiveCh <- &Passive{
 								HighLayerProto: "DNS",
 
-								EthernetFrame: recievedEthernetFrame,
+								EthernetFrame: ethernetFrame,
 								IPv4:          ipv4,
 								UDP:           udp,
 								DNS:           dns,
@@ -279,7 +279,7 @@ func (nw *NetworkInterface) Recieve() error {
 						nw.PassiveCh <- &Passive{
 							HighLayerProto: "IPv4",
 
-							EthernetFrame: recievedEthernetFrame,
+							EthernetFrame: ethernetFrame,
 							IPv4:          ipv4,
 						}
 					}

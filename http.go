@@ -3,6 +3,7 @@ package packemon
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -18,6 +19,35 @@ type HTTP struct {
 	Accept    string
 
 	Body string
+}
+
+func ParsedHTTPRequest(payload []byte) *HTTP {
+	lineLength := bytes.Index(payload, []byte{0x0d, 0x0a}) // "\r\n"
+	if lineLength == -1 {
+		// TODO: こういうフォーマット不正みたいなパケットは、Dataをviewできた方がいいかも
+		return nil
+	}
+
+	line := payload[0 : lineLength+1]
+	split := bytes.Split(line, []byte{0x20}) // 半角スペース
+	if len(split) >= 3 {
+		http := &HTTP{
+			Method:  string(split[0]),
+			Uri:     string(split[1]),
+			Version: string(split[2]),
+		}
+
+		hostLineLength := bytes.Index(payload[lineLength+2:], []byte{0x0d, 0x0a})
+		if hostLineLength == -1 {
+			return http
+		}
+		host := bytes.TrimPrefix(payload[lineLength+2:lineLength+2+hostLineLength], []byte{0x48, 0x6f, 0x73, 0x74, 0x3a}) // "Host:"
+		http.Host = strings.TrimSpace(string(host))
+
+		return http
+	}
+
+	return nil
 }
 
 func NewHTTP() *HTTP {
@@ -42,9 +72,22 @@ func (h *HTTP) Bytes() []byte {
 	return buf.Bytes()
 }
 
-// TODO: HTTP struct にまとめる
 type HTTPResponse struct {
 	StatusLine string
 	Header     string
 	Body       string
+}
+
+func ParsedHTTPResponse(payload []byte) *HTTPResponse {
+	lineLength := bytes.Index(payload, []byte{0x0d, 0x0a}) // "\r\n"
+
+	line := payload[0 : lineLength+1]
+	split := bytes.Split(line, []byte{0x20}) // 半角スペース
+	if len(split) < 3 {
+		return nil
+	}
+
+	return &HTTPResponse{
+		StatusLine: fmt.Sprintf("%s %s %s", string(split[0]), string(split[1]), string(split[2])),
+	}
 }

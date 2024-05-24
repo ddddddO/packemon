@@ -2,6 +2,7 @@ package packemon
 
 import (
 	"bytes"
+	"encoding/binary"
 	"strings"
 )
 
@@ -51,6 +52,70 @@ type Answer struct {
 	Ttl        uint32
 	DataLength uint16
 	Address    uint32
+}
+
+func ParsedDNSRequest(payload []byte) *DNS {
+	flags := binary.BigEndian.Uint16(payload[2:4])
+	qCnt := binary.BigEndian.Uint16(payload[4:6])
+	anCnt := binary.BigEndian.Uint16(payload[6:8])
+	auCnt := binary.BigEndian.Uint16(payload[8:10])
+	adCnt := binary.BigEndian.Uint16(payload[10:12])
+	// 一旦Questionsは1固定で進める
+	// また、domainは、0x00 までとなる。そういう判定処理
+	offset := bytes.IndexByte(payload[12:], 0x00) + 12 + 1
+	q := &Queries{
+		Domain: payload[12:offset],
+		Typ:    binary.BigEndian.Uint16(payload[offset : offset+2]),
+		Class:  binary.BigEndian.Uint16(payload[offset+2 : offset+4]),
+	}
+
+	return &DNS{
+		TransactionID: binary.BigEndian.Uint16(payload[0:2]),
+		Flags:         flags,
+		Questions:     qCnt,
+		AnswerRRs:     anCnt,
+		AuthorityRRs:  auCnt,
+		AdditionalRRs: adCnt,
+		Queries:       q,
+	}
+}
+
+func ParsedDNSResponse(payload []byte) *DNS {
+	flags := binary.BigEndian.Uint16(payload[2:4])
+	qCnt := binary.BigEndian.Uint16(payload[4:6])
+	anCnt := binary.BigEndian.Uint16(payload[6:8])
+	auCnt := binary.BigEndian.Uint16(payload[8:10])
+	adCnt := binary.BigEndian.Uint16(payload[10:12])
+
+	// 一旦Questionsは1固定として進める
+	// また、domainは、0x00 までとなる。そういう判定処理
+	offset := bytes.IndexByte(payload[12:], 0x00) + 12 + 1
+	q := &Queries{
+		Domain: payload[12:offset],
+		Typ:    binary.BigEndian.Uint16(payload[offset : offset+2]),
+		Class:  binary.BigEndian.Uint16(payload[offset+2 : offset+4]),
+	}
+	// 一旦Answersは1固定として進める
+	offsetOfAns := offset + 4
+	a := &Answer{
+		Name:       binary.BigEndian.Uint16(payload[offsetOfAns : offsetOfAns+2]),
+		Typ:        binary.BigEndian.Uint16(payload[offsetOfAns+2 : offsetOfAns+4]),
+		Class:      binary.BigEndian.Uint16(payload[offsetOfAns+4 : offsetOfAns+6]),
+		Ttl:        binary.BigEndian.Uint32(payload[offsetOfAns+6 : offsetOfAns+10]),
+		DataLength: binary.BigEndian.Uint16(payload[offsetOfAns+10 : offsetOfAns+12]),
+		Address:    binary.BigEndian.Uint32(payload[offsetOfAns+12 : offsetOfAns+16]),
+	}
+
+	return &DNS{
+		TransactionID: binary.BigEndian.Uint16(payload[0:2]),
+		Flags:         flags,
+		Questions:     qCnt,
+		AnswerRRs:     anCnt,
+		AuthorityRRs:  auCnt,
+		AdditionalRRs: adCnt,
+		Queries:       q,
+		Answers:       []*Answer{a},
+	}
 }
 
 func (d *DNS) Domain(domain string) {

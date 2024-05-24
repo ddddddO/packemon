@@ -2,6 +2,7 @@ package packemon
 
 import (
 	"bytes"
+	"encoding/binary"
 )
 
 func NewEthernetFrame(dst HardwareAddr, src HardwareAddr, typ uint16, payload []byte) *EthernetFrame {
@@ -12,6 +13,17 @@ func NewEthernetFrame(dst HardwareAddr, src HardwareAddr, typ uint16, payload []
 			Typ: typ,
 		},
 		Data: payload,
+	}
+}
+
+func ParsedEthernetFrame(b []byte) *EthernetFrame {
+	return &EthernetFrame{
+		Header: &EthernetHeader{
+			Dst: HardwareAddr(b[0:6]),
+			Src: HardwareAddr(b[6:12]),
+			Typ: binary.BigEndian.Uint16(b[12:14]), // タグVLANだとズレる
+		},
+		Data: b[14:],
 	}
 }
 

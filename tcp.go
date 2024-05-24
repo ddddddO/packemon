@@ -2,6 +2,7 @@ package packemon
 
 import (
 	"bytes"
+	"encoding/binary"
 )
 
 const (
@@ -27,6 +28,30 @@ type TCP struct {
 	Options       []byte // optionsをセットする用の関数あった方がいいかも？
 
 	Data []byte
+}
+
+func ParsedTCP(payload []byte) *TCP {
+	tcp := &TCP{
+		SrcPort:        binary.BigEndian.Uint16(payload[0:2]),
+		DstPort:        binary.BigEndian.Uint16(payload[2:4]),
+		Sequence:       binary.BigEndian.Uint32(payload[4:8]),
+		Acknowledgment: binary.BigEndian.Uint32(payload[8:12]),
+		HeaderLength:   binary.BigEndian.Uint16(payload[12:14]) >> 8,
+		Flags:          binary.BigEndian.Uint16(payload[12:14]) << 4,
+		Window:         binary.BigEndian.Uint16(payload[14:16]),
+		Checksum:       binary.BigEndian.Uint16(payload[16:18]),
+		UrgentPointer:  binary.BigEndian.Uint16(payload[18:20]),
+	}
+
+	// Wiresharkとpackemonのパケット詳細見比べるに、
+	// ( tcpヘッダーのheader lengthを10進数に変換した値 / 4 ) - 20 = options のbyte数 になるよう
+	optionLength := tcp.HeaderLength>>2 - 20
+	if optionLength > 0 {
+		tcp.Options = payload[20 : optionLength+20]
+	}
+	tcp.Data = payload[optionLength+20:]
+
+	return tcp
 }
 
 // tcpパケット単発で連続で送るときは port/sequence 変えること

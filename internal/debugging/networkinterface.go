@@ -30,7 +30,7 @@ func (dnw *debugNetworkInterface) SendARPrequest() error {
 
 func (dnw *debugNetworkInterface) SendICMPechoRequest(firsthopMACAddr [6]byte) error {
 	icmp := p.NewICMP()
-	ipv4 := p.NewIPv4(p.IPv4_PROTO_ICMP, 0xa32b661d) // dst: 163.43.102.29 = tools.m-bsys.com
+	ipv4 := NewIPv4(p.IPv4_PROTO_ICMP, 0xa32b661d) // dst: 163.43.102.29 = tools.m-bsys.com
 	ipv4.Data = icmp.Bytes()
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
@@ -63,7 +63,7 @@ func (dnw *debugNetworkInterface) SendDNSquery(firsthopMACAddr [6]byte) error {
 	}
 	udp.Data = dns.Bytes()
 	udp.Len()
-	ipv4 := p.NewIPv4(p.IPv4_PROTO_UDP, 0x08080808) // 8.8.8.8 = DNSクエリ用
+	ipv4 := NewIPv4(p.IPv4_PROTO_UDP, 0x08080808) // 8.8.8.8 = DNSクエリ用
 	ipv4.Data = udp.Bytes()
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
@@ -75,7 +75,7 @@ func (dnw *debugNetworkInterface) SendDNSquery(firsthopMACAddr [6]byte) error {
 
 func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 	tcp := p.NewTCPSyn()
-	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
+	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 	// 「「チェックサム」フィールド：16bit幅」
 	tcp.Checksum = func() uint16 {
@@ -106,7 +106,7 @@ func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 
 func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) error {
 	tcp := p.NewTCPSyn()
-	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
+	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 	// 「「チェックサム」フィールド：16bit幅」
 	tcp.Checksum = func() uint16 {
@@ -175,55 +175,15 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 					return err
 				}
 
-				recievedEthernetFrame := &p.EthernetFrame{
-					Header: &p.EthernetHeader{
-						Dst: p.HardwareAddr(recieved[0:6]),
-						Src: p.HardwareAddr(recieved[6:12]),
-						Typ: binary.BigEndian.Uint16(recieved[12:14]), // タグVLANだとズレる
-					},
-					Data: recieved[14:],
-				}
+				recievedEthernetFrame := p.ParsedEthernetFrame(recieved)
 
 				switch recievedEthernetFrame.Header.Typ {
 				case p.ETHER_TYPE_IPv4:
-					ipv4 := &p.IPv4{
-						Version:        recievedEthernetFrame.Data[0] >> 4,
-						Ihl:            recievedEthernetFrame.Data[0] << 4 >> 4,
-						Tos:            recievedEthernetFrame.Data[1],
-						TotalLength:    binary.BigEndian.Uint16(recievedEthernetFrame.Data[2:4]),
-						Identification: binary.BigEndian.Uint16(recievedEthernetFrame.Data[4:6]),
-						Flags:          recievedEthernetFrame.Data[6],
-						FragmentOffset: binary.BigEndian.Uint16(recievedEthernetFrame.Data[6:8]),
-						Ttl:            recievedEthernetFrame.Data[8],
-						Protocol:       recievedEthernetFrame.Data[9],
-						HeaderChecksum: binary.BigEndian.Uint16(recievedEthernetFrame.Data[10:12]),
-						SrcAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[12:16]),
-						DstAddr:        binary.BigEndian.Uint32(recievedEthernetFrame.Data[16:20]),
-
-						Data: recievedEthernetFrame.Data[20:],
-					}
+					ipv4 := p.ParsedIPv4(recievedEthernetFrame.Data)
 
 					switch ipv4.Protocol {
 					case p.IPv4_PROTO_TCP:
-						tcp := &p.TCP{
-							SrcPort:        binary.BigEndian.Uint16(ipv4.Data[0:2]),
-							DstPort:        binary.BigEndian.Uint16(ipv4.Data[2:4]),
-							Sequence:       binary.BigEndian.Uint32(ipv4.Data[4:8]),
-							Acknowledgment: binary.BigEndian.Uint32(ipv4.Data[8:12]),
-							HeaderLength:   binary.BigEndian.Uint16(ipv4.Data[12:14]) >> 8,
-							Flags:          binary.BigEndian.Uint16(ipv4.Data[12:14]) << 4,
-							Window:         binary.BigEndian.Uint16(ipv4.Data[14:16]),
-							Checksum:       binary.BigEndian.Uint16(ipv4.Data[16:18]),
-							UrgentPointer:  binary.BigEndian.Uint16(ipv4.Data[18:20]),
-						}
-
-						// Wiresharkとpackemonのパケット詳細見比べるに、
-						// ( tcpヘッダーのheader lengthを10進数に変換した値 / 4 ) - 20 = options のbyte数 になるよう
-						optionLength := tcp.HeaderLength>>2 - 20
-						if optionLength > 0 {
-							tcp.Options = ipv4.Data[20 : optionLength+20]
-						}
-						tcp.Data = ipv4.Data[optionLength+20:]
+						tcp := p.ParsedTCP(ipv4.Data)
 
 						switch tcp.DstPort {
 						case 0x9e16: // synパケットの送信元ポート
@@ -242,7 +202,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 
 								// syn/ackを受け取ったのでack送信
 								tcp := p.NewTCPAck(tcp.Sequence, tcp.Acknowledgment)
-								ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
+								ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 								// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 								// 「「チェックサム」フィールド：16bit幅」
 								tcp.Checksum = func() uint16 {
@@ -303,7 +263,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 func (dnw *debugNetworkInterface) SendHTTPget(firsthopMACAddr [6]byte) error {
 	http := p.NewHTTP()
 	tcp := p.NewTCPWithData(http.Bytes())
-	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, 0x88bb0609) // 136.187.6.9 = research.nii.ac.jp
+	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0x88bb0609) // 136.187.6.9 = research.nii.ac.jp
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 	// 「「チェックサム」フィールド：16bit幅」
 	tcp.Checksum = func() uint16 {
@@ -393,19 +353,7 @@ func (dnw *debugNetworkInterface) Recieve() error {
 					case p.HardwareAddr(dnw.Intf.HardwareAddr), HARDWAREADDR_BROADCAST:
 						log.Println("recieved ARP")
 
-						arp := &p.ARP{
-							HardwareType:       binary.BigEndian.Uint16(recievedEthernetFrame.Data[0:2]),
-							ProtocolType:       binary.BigEndian.Uint16(recievedEthernetFrame.Data[2:4]),
-							HardwareAddrLength: recievedEthernetFrame.Data[4],
-							ProtocolLength:     recievedEthernetFrame.Data[5],
-							Operation:          binary.BigEndian.Uint16(recievedEthernetFrame.Data[6:8]),
-
-							SenderHardwareAddr: p.HardwareAddr(recievedEthernetFrame.Data[8:14]),
-							SenderIPAddr:       binary.BigEndian.Uint32(recievedEthernetFrame.Data[14:18]),
-
-							TargetHardwareAddr: p.HardwareAddr(recievedEthernetFrame.Data[18:24]),
-							TargetIPAddr:       binary.BigEndian.Uint32(recievedEthernetFrame.Data[24:28]),
-						}
+						arp := p.ParsedARP(recievedEthernetFrame.Data)
 
 						// dnw.PassiveCh <- &p.Passive{
 						// 	EthernetFrame: recievedEthernetFrame,
@@ -450,4 +398,21 @@ func (dnw *debugNetworkInterface) Recieve() error {
 	}
 
 	return nil
+}
+
+func NewIPv4(protocol uint8, dstAddr uint32) *p.IPv4 {
+	return &p.IPv4{
+		Version:        0x04,
+		Ihl:            0x05,
+		Tos:            0x00,
+		TotalLength:    0x54,
+		Identification: 0x0d94,
+		Flags:          0x40,
+		FragmentOffset: 0x0,
+		Ttl:            0x40,
+		Protocol:       protocol,
+		HeaderChecksum: 0,
+		SrcAddr:        0xac17f24e, // 172.23.242.78
+		DstAddr:        dstAddr,
+	}
 }

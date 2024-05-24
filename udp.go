@@ -13,6 +13,16 @@ type UDP struct {
 	Data     []byte
 }
 
+func ParsedUDP(payload []byte) *UDP {
+	return &UDP{
+		SrcPort:  binary.BigEndian.Uint16(payload[0:2]),
+		DstPort:  binary.BigEndian.Uint16(payload[2:4]),
+		Length:   binary.BigEndian.Uint16(payload[4:6]),
+		Checksum: binary.BigEndian.Uint16(payload[6:8]),
+		Data:     payload[8:],
+	}
+}
+
 func (u *UDP) Len() {
 	length := 0
 	b := make([]byte, 2)

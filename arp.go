@@ -2,6 +2,7 @@ package packemon
 
 import (
 	"bytes"
+	"encoding/binary"
 )
 
 // https://ja.wikipedia.org/wiki/Address_Resolution_Protocol#%E3%83%91%E3%82%B1%E3%83%83%E3%83%88%E6%A7%8B%E9%80%A0
@@ -31,6 +32,22 @@ func (a *ARP) Bytes() []byte {
 	buf.Write(a.TargetHardwareAddr[:])
 	WriteUint32(buf, a.TargetIPAddr)
 	return buf.Bytes()
+}
+
+func ParsedARP(payload []byte) *ARP {
+	return &ARP{
+		HardwareType:       binary.BigEndian.Uint16(payload[0:2]),
+		ProtocolType:       binary.BigEndian.Uint16(payload[2:4]),
+		HardwareAddrLength: payload[4],
+		ProtocolLength:     payload[5],
+		Operation:          binary.BigEndian.Uint16(payload[6:8]),
+
+		SenderHardwareAddr: HardwareAddr(payload[8:14]),
+		SenderIPAddr:       binary.BigEndian.Uint32(payload[14:18]),
+
+		TargetHardwareAddr: HardwareAddr(payload[18:24]),
+		TargetIPAddr:       binary.BigEndian.Uint32(payload[24:28]),
+	}
 }
 
 func NewARP() *ARP {

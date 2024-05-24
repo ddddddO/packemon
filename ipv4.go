@@ -38,21 +38,22 @@ var IPv4Protocols = map[uint8]string{
 	IPv4_PROTO_UDP:  "UDP",
 }
 
-// 一旦固定
-func NewIPv4(protocol uint8, dstAddr uint32) *IPv4 {
+func ParsedIPv4(payload []byte) *IPv4 {
 	return &IPv4{
-		Version:        0x04,
-		Ihl:            0x05,
-		Tos:            0x00,
-		TotalLength:    0x54,
-		Identification: 0x0d94,
-		Flags:          0x40,
-		FragmentOffset: 0x0,
-		Ttl:            0x40,
-		Protocol:       protocol,
-		HeaderChecksum: 0,
-		SrcAddr:        0xac17f24e, // 172.23.242.78
-		DstAddr:        dstAddr,
+		Version:        payload[0] >> 4,
+		Ihl:            payload[0] << 4 >> 4,
+		Tos:            payload[1],
+		TotalLength:    binary.BigEndian.Uint16(payload[2:4]),
+		Identification: binary.BigEndian.Uint16(payload[4:6]),
+		Flags:          payload[6],
+		FragmentOffset: binary.BigEndian.Uint16(payload[6:8]),
+		Ttl:            payload[8],
+		Protocol:       payload[9],
+		HeaderChecksum: binary.BigEndian.Uint16(payload[10:12]),
+		SrcAddr:        binary.BigEndian.Uint32(payload[12:16]),
+		DstAddr:        binary.BigEndian.Uint32(payload[16:20]),
+
+		Data: payload[20:],
 	}
 }
 

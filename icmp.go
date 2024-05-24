@@ -21,6 +21,17 @@ const (
 	ICMP_TYPE_REQUEST = 0x08
 )
 
+func ParsedICMP(payload []byte) *ICMP {
+	return &ICMP{
+		Typ:        payload[0],
+		Code:       payload[1],
+		Checksum:   binary.BigEndian.Uint16(payload[2:4]),
+		Identifier: binary.BigEndian.Uint16(payload[4:6]),
+		Sequence:   binary.BigEndian.Uint16(payload[6:8]),
+		Data:       payload[8:],
+	}
+}
+
 // icmp request
 func NewICMP() *ICMP {
 	icmp := &ICMP{

@@ -7,8 +7,8 @@ type Passive struct {
 	TCP           *TCP
 	UDP           *UDP
 	ICMP          *ICMP
-	ARP           *ARP
 	IPv4          *IPv4
+	ARP           *ARP
 	EthernetFrame *EthernetFrame
 }
 
@@ -17,11 +17,11 @@ func (p *Passive) HighLayerProto() string {
 	if p.EthernetFrame != nil {
 		proto = "Ethernet"
 	}
-	if p.IPv4 != nil {
-		proto = "IPv4"
-	}
 	if p.ARP != nil {
 		proto = "ARP"
+	}
+	if p.IPv4 != nil {
+		proto = "IPv4"
 	}
 	if p.ICMP != nil {
 		proto = "ICMP"

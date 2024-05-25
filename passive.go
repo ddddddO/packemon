@@ -13,7 +13,7 @@ type Passive struct {
 }
 
 func (p *Passive) HighLayerProto() string {
-	proto := "unkown"
+	proto := "unknown"
 	if p.EthernetFrame != nil {
 		proto = "Ethernet"
 	}

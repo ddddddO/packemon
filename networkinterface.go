@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
-	"strconv"
 	"strings"
 
 	"golang.org/x/sys/unix"
@@ -134,24 +133,6 @@ func (nw *NetworkInterface) Recieve() error {
 
 func (nw *NetworkInterface) Close() error {
 	return unix.Close(nw.Socket)
-}
-
-// stringのIPv4アドレスをbytesに変換
-func strIPToBytes(s string) ([]byte, error) {
-	b := make([]byte, 4)
-	src := strings.Split(s, ".")
-
-	for i := range src {
-		if len(src[i]) == 0 {
-			continue
-		}
-		ip, err := strconv.ParseUint(src[i], 10, 8)
-		if err != nil {
-			return nil, err
-		}
-		b[i] = byte(ip)
-	}
-	return b, nil
 }
 
 func ParsedPacket(recieved []byte) *Passive {

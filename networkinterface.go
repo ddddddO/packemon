@@ -182,60 +182,46 @@ func ParsedPacket(recieved []byte) *Passive {
 		case IPv4_PROTO_TCP:
 			tcp := ParsedTCP(ipv4.Data)
 
-			switch tcp.DstPort {
-			case PORT_HTTP:
-				if tcp.Flags == TCP_FLAGS_PSH_ACK {
-					passive := &Passive{
-						EthernetFrame: ethernetFrame,
-						IPv4:          ipv4,
-						TCP:           tcp,
-					}
-					if http := ParsedHTTPRequest(tcp.Data); http != nil {
-						passive.HTTP = http
-					}
-
-					return passive
-				}
-
-				return &Passive{
-					EthernetFrame: ethernetFrame,
-					IPv4:          ipv4,
-					TCP:           tcp,
-				}
-			}
-
-			switch tcp.SrcPort {
-			case PORT_HTTP:
-				if tcp.Flags == TCP_FLAGS_FIN_PSH_ACK || tcp.Flags == TCP_FLAGS_PSH_ACK {
-					passive := &Passive{
-						EthernetFrame: ethernetFrame,
-						IPv4:          ipv4,
-						TCP:           tcp,
-					}
-					if httpRes := ParsedHTTPResponse(tcp.Data); httpRes != nil {
-						passive.HTTPRes = httpRes
-					}
-
-					return passive
-				}
-			}
-
-			return &Passive{
+			passive := &Passive{
 				EthernetFrame: ethernetFrame,
 				IPv4:          ipv4,
 				TCP:           tcp,
 			}
 
+			switch tcp.DstPort {
+			case PORT_HTTP:
+				if tcp.Flags == TCP_FLAGS_PSH_ACK {
+					if http := ParsedHTTPRequest(tcp.Data); http != nil {
+						passive.HTTP = http
+					}
+				}
+				return passive
+			}
+
+			switch tcp.SrcPort {
+			case PORT_HTTP:
+				if tcp.Flags == TCP_FLAGS_FIN_PSH_ACK || tcp.Flags == TCP_FLAGS_PSH_ACK {
+					if httpRes := ParsedHTTPResponse(tcp.Data); httpRes != nil {
+						passive.HTTPRes = httpRes
+					}
+				}
+				return passive
+			}
+
+			return passive
+
 		case IPv4_PROTO_UDP:
 			udp := ParsedUDP(ipv4.Data)
 
+			passive := &Passive{
+				EthernetFrame: ethernetFrame,
+				IPv4:          ipv4,
+				UDP:           udp,
+			}
+
 			// DNS以外は一旦udpまでのみviewする
 			if udp.DstPort != PORT_DNS && udp.SrcPort != PORT_DNS {
-				return &Passive{
-					EthernetFrame: ethernetFrame,
-					IPv4:          ipv4,
-					UDP:           udp,
-				}
+				return passive
 			}
 
 			// TODO: 53確かtcpもあったからそれのハンドリング考慮するいつか
@@ -244,34 +230,28 @@ func ParsedPacket(recieved []byte) *Passive {
 			flags := binary.BigEndian.Uint16(udp.Data[2:4])
 			if udp.DstPort == PORT_DNS && flags == DNS_REQUEST {
 				dns := ParsedDNSRequest(udp.Data)
-
-				return &Passive{
-					EthernetFrame: ethernetFrame,
-					IPv4:          ipv4,
-					UDP:           udp,
-					DNS:           dns,
-				}
+				passive.DNS = dns
+				return passive
 			}
 
 			if udp.SrcPort == PORT_DNS && flags == DNS_RESPONSE {
 				dns := ParsedDNSResponse(udp.Data)
-
-				return &Passive{
-					EthernetFrame: ethernetFrame,
-					IPv4:          ipv4,
-					UDP:           udp,
-					DNS:           dns,
-				}
+				passive.DNS = dns
+				return passive
 			}
+
+			return passive
+
 		default:
 			return &Passive{
 				EthernetFrame: ethernetFrame,
 				IPv4:          ipv4,
 			}
 		}
-	}
 
-	return &Passive{
-		EthernetFrame: ethernetFrame,
+	default:
+		return &Passive{
+			EthernetFrame: ethernetFrame,
+		}
 	}
 }

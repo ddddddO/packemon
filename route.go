@@ -65,20 +65,20 @@ func GetDefaultRouteIP() (string, error) {
 	return "", errors.New("could not obtain IP address for default route")
 }
 
-func ExecIPRoute() (string, error) {
+func ExecIPRoute(args ...string) (string, error) {
 	// $ ip route
 	// default via 172.23.240.1 dev eth0 proto kernel
 	// 172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown
 	// 172.23.240.0/20 dev eth0 proto kernel scope link src 172.23.242.78
-	return ExecIP("route")
+	return ExecIP(append([]string{"route"}, args...)...)
 }
 
-func ExecIPNeigh() (string, error) {
+func ExecIPNeigh(args ...string) (string, error) {
 	// $ ip neigh
 	// 172.23.240.1 dev eth0 lladdr 00:15:5d:fb:bf:3a REACHABLE
 	// 192.168.10.110 dev docker0  FAILED
 	// 172.23.242.79 dev eth0  FAILED
-	return ExecIP("neigh")
+	return ExecIP(append([]string{"neigh"}, args...)...)
 }
 
 const COMMAND_IP = "ip"

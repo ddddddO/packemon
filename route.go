@@ -57,7 +57,7 @@ func GetDefaultRouteIP() (string, error) {
 		}
 
 		split := strings.Split(lines[i], " ")
-		if len(split) >= 2 {
+		if len(split) >= 3 {
 			return split[2], nil // e.g. 172.23.240.1
 		}
 	}

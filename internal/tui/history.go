@@ -61,7 +61,7 @@ func (t *tui) updateTable(passiveCh <-chan *packemon.Passive) {
 				typ:            tview.NewTableCell(fmt.Sprintf("Type:%x", passive.EthernetFrame.Header.Typ)).SetTextColor(tcell.Color98),
 			}
 
-			r.protocol = tview.NewTableCell(fmt.Sprintf("Proto:%s", passive.HighLayerProto)).SetTextColor(tcell.Color50)
+			r.protocol = tview.NewTableCell(fmt.Sprintf("Proto:%s", passive.HighLayerProto())).SetTextColor(tcell.Color50)
 
 			if passive.IPv4 != nil {
 				viewIPv4 := &IPv4{passive.IPv4}

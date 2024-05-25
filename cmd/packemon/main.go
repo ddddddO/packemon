@@ -39,33 +39,17 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 	}
 	defer netIf.Close()
 
-	// TODO: 以降要refactor
 	tui.DEFAULT_MAC_SOURCE = fmt.Sprintf("0x%s", strings.ReplaceAll(netIf.Intf.HardwareAddr.String(), ":", ""))
-
-	tui.DEFAULT_MAC_DESTINATION = "0x00155dfbbf3a"
-	defaultRouteMAC, err := packemon.GetDefaultRouteMAC()
-	if err == nil { // errでもokなため
-		tui.DEFAULT_MAC_DESTINATION = fmt.Sprintf("0x%s", strings.ReplaceAll(defaultRouteMAC, ":", ""))
-	}
-
 	tui.DEFAULT_ARP_SENDER_MAC = tui.DEFAULT_MAC_SOURCE
 
 	fmt.Printf("Monitor interface: %v\n", netIf.Intf)
+
 	ipAddr, err := netIf.Intf.Addrs()
 	if err != nil {
 		return err
 	}
 	tui.DEFAULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
-	// tui.DEFAULT_IP_DESTINATION = tui.DEFAULT_IP_SOURCE
-	tui.DEFAULT_IP_DESTINATION = "192.168.10.110" // raspbbery pi
-
 	tui.DEFAULT_ARP_SENDER_IP = tui.DEFAULT_IP_SOURCE
-
-	tui.DEFAULT_ARP_TARGET_IP = tui.DEFAULT_ARP_SENDER_IP
-	defaultRouteIP, err := packemon.GetDefaultRouteIP()
-	if err == nil { // errでもok
-		tui.DEFAULT_ARP_TARGET_IP = defaultRouteIP
-	}
 
 	if debug {
 		if wantSend && protocol == "tcp-3way-http" {

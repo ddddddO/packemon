@@ -75,15 +75,6 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 		tui := tui.NewTUI(wantSend)
 		go netIf.Recieve()
 		return tui.Monitor(netIf.PassiveCh)
-
-		// go netIf.Recieve()
-		// i := 0
-		// for passive := range netIf.PassiveCh {
-		// 	_ = passive
-		// 	log.Printf("%d: passive\n", i)
-		// 	i++
-		// }
-		// return nil
 	}
 }
 

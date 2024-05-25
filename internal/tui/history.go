@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"github.com/ddddddO/packemon"
 	"github.com/gdamore/tcell/v2"
@@ -51,7 +52,7 @@ func (t *tui) insertToTable(r *HistoryRow) {
 }
 
 func (t *tui) updateTable(passiveCh <-chan *packemon.Passive) {
-	id := 0
+	var id uint64 = 0
 	for passive := range passiveCh {
 		t.app.QueueUpdateDraw(func() {
 			r := &HistoryRow{
@@ -75,7 +76,7 @@ func (t *tui) updateTable(passiveCh <-chan *packemon.Passive) {
 
 			t.storedPackets.Store(id, passive)
 			t.insertToTable(r)
-			id++
+			atomic.AddUint64(&id, 1)
 		})
 	}
 }

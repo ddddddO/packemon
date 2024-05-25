@@ -75,7 +75,7 @@ func (t *tui) Monitor(passiveCh <-chan *packemon.Passive) error {
 	}).SetSelectedFunc(func(row int, column int) {
 		t.table.GetCell(row, column).SetTextColor(tcell.ColorRed)
 
-		if p, ok := t.storedPackets.Load(t.table.GetRowCount() - row - 1); ok {
+		if p, ok := t.storedPackets.Load(uint64(t.table.GetRowCount() - row - 1)); ok {
 			t.updateView(p.(*packemon.Passive))
 		}
 	})

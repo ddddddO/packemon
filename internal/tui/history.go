@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	"github.com/ddddddO/packemon"
 	"github.com/gdamore/tcell/v2"
@@ -54,6 +55,8 @@ func (t *tui) insertToTable(r *HistoryRow) {
 func (t *tui) updateTable(passiveCh <-chan *packemon.Passive) {
 	var id uint64 = 0
 	for passive := range passiveCh {
+		time.Sleep(10 * time.Millisecond)
+
 		t.app.QueueUpdateDraw(func() {
 			r := &HistoryRow{
 				id:             tview.NewTableCell(fmt.Sprintf("%d", id)).SetTextColor(tcell.ColorWhite),

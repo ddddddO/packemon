@@ -61,6 +61,7 @@ func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 }
 
 func getInterface(nwInterface string) (*net.Interface, error) {
+	// any で全てのインタフェースを取得しない限り、net.InterfaceByName で取得がいいかもしれない
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err

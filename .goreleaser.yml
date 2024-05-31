@@ -1,0 +1,78 @@
+project_name: packemon
+env:
+  - GO111MODULE=on
+before:
+  hooks:
+    - go mod tidy
+builds:
+  # - id: packemon
+  #   main: ./cmd/packemon
+  #   binary: packemon
+  #   ldflags:
+  #     - -s -w
+  #     - -X main.Version={{.Version}}
+  #     - -X main.Revision={{.ShortCommit}}
+  #   goos:
+  #     - darwin
+  #     - windows
+  #   env:
+  #     - CGO_ENABLED=0
+  - id: packemon-linux
+    main: ./cmd/packemon
+    binary: packemon
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Revision={{.ShortCommit}}
+    goos:
+      - linux
+    env:
+      - CGO_ENABLED=0
+archives:
+  - name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+    # format_overrides:
+    #   - goos: windows
+    #     format: zip
+    files:
+      - LICENSE
+      - CREDITS
+release:
+  prerelease: auto
+# brews:
+#   - repository:
+#       owner: ddddddO
+#       name: homebrew-tap
+#       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+#     folder: Formula
+#     homepage: 'https://github.com/ddddddO/packemon'
+#     description: "Packet monster, or Packémon for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ). TUI tool for sending packets of arbitrary input and monitoring packets on any network interfaces (default: eth0)."
+#     license: "BSD-2-Clause"
+# scoops:
+#   - repository:
+#       owner: ddddddO
+#       name: scoop-bucket
+#       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+#     url_template: "https://github.com/ddddddO/packemon/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+#     homepage: "https://github.com/ddddddO/packemon"
+#     description: "Packet monster, or Packémon for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ). TUI tool for sending packets of arbitrary input and monitoring packets on any network interfaces (default: eth0)."
+#     license: "BSD-2-Clause"
+nfpms:
+  - id: packemon-nfpms
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}-1_{{ .Arch }}"
+    builds:
+      - packemon-linux
+    homepage: https://github.com/ddddddO/packemon
+    maintainer: ddddddO <lbfdeatq@gmail.com>
+    description: "Packet monster, or Packémon for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ). TUI tool for sending packets of arbitrary input and monitoring packets on any network interfaces (default: eth0)."
+    license: BSD-2-Clause
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/bin
+    epoch: 1

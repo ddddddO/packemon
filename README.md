@@ -62,9 +62,25 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 
 ## Installation
 
-```console
-go install github.com/ddddddO/packemon/cmd/packemon
-```
+<pre>
+<b>Go</b>
+$ go install github.com/ddddddO/packemon/cmd/packemon@latest
+
+<b>deb</b>
+$ export PACKEMON_VERSION=X.X.X
+$ curl -o gtree.deb -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.deb
+$ dpkg -i packemon.deb
+
+<b>rpm</b>
+$ export PACKEMON_VERSION=X.X.X
+$ yum install https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.rpm
+
+<b>apk</b>
+$ export PACKEMON_VERSION=X.X.X
+$ curl -o packemon.apk -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.apk
+$ apk add --allow-untrusted packemon.apk
+
+</pre>
 
 ## Usage
 

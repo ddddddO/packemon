@@ -230,6 +230,12 @@ func ParsedPacket(recieved []byte) *Passive {
 				IPv4:          ipv4,
 			}
 		}
+	case ETHER_TYPE_IPv6:
+		ipv6 := ParsedIPv6(ethernetFrame.Data)
+		return &Passive{
+			EthernetFrame: ethernetFrame,
+			IPv6:          ipv6,
+		}
 
 	default:
 		return &Passive{

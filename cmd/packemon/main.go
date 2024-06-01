@@ -52,19 +52,25 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 	tui.DEFAULT_ARP_SENDER_IP = tui.DEFAULT_IP_SOURCE
 
 	if debug {
-		if wantSend && protocol == "tcp-3way-http" {
-			dstIPAddr := make([]byte, 4)
-			binary.BigEndian.PutUint32(dstIPAddr, 0xc0a80a6e) // 192.168.10.110
-			var dstPort uint16 = 0x0050                       // 80
-			httpGet := packemon.NewHTTP()
-			return packemon.EstablishConnectionAndSendPayload(nwInterface, dstIPAddr, dstPort, httpGet.Bytes())
+		if wantSend {
+			if protocol == "tcp-3way-http" {
+				dstIPAddr := make([]byte, 4)
+				binary.BigEndian.PutUint32(dstIPAddr, 0xc0a80a6e) // 192.168.10.110
+				var dstPort uint16 = 0x0050                       // 80
+				httpGet := packemon.NewHTTP()
+				return packemon.EstablishConnectionAndSendPayload(nwInterface, dstIPAddr, dstPort, httpGet.Bytes())
+			}
+
+			// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
+			// $ ip route
+			// $ arp xxx.xx.xxx.1
+			firsthopMACAddr := [6]byte{0x00, 0x15, 0x5d, 0x8c, 0xc2, 0x6b}
+			return debugMode(wantSend, protocol, netIf, firsthopMACAddr)
 		}
 
-		// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
-		// $ ip route
-		// $ arp xxx.xx.xxx.1
-		firsthopMACAddr := [6]byte{0x00, 0x15, 0x5d, 0x8c, 0xc2, 0x6b}
-		return debugMode(wantSend, protocol, netIf, firsthopMACAddr)
+		// Monitor の debug は本チャンの networkinterface.go 使うようにする
+		go netIf.Recieve()
+		return debugPrint(netIf.PassiveCh)
 	}
 
 	if wantSend {
@@ -76,6 +82,18 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 		go netIf.Recieve()
 		return tui.Monitor(netIf.PassiveCh)
 	}
+}
+
+func debugPrint(passive <-chan *packemon.Passive) error {
+	for p := range passive {
+		if p.HighLayerProto() == "IPv6" {
+			fmt.Println("Passive!")
+			fmt.Printf("%x\n", p.IPv6)
+		}
+
+	}
+
+	return nil
 }
 
 func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface, dstMacAddr [6]byte) error {

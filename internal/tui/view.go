@@ -56,6 +56,9 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 	if passive.IPv4 != nil {
 		viewers = append(viewers, &IPv4{passive.IPv4})
 	}
+	if passive.IPv6 != nil {
+		viewers = append(viewers, &IPv6{passive.IPv6})
+	}
 	if passive.ICMP != nil {
 		viewers = append(viewers, &ICMP{passive.ICMP})
 	}

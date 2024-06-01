@@ -182,6 +182,14 @@ Received 0 response(s)
 $ nslookup -vc github.com
 ```
 
+#### ipv6でping
+どうするか
+
+```console
+$ ip -6 route
+$ ping -c 1 fe80::1
+```
+
 ### 動作確認の様子
 
 <details><summary>xxx</summary>

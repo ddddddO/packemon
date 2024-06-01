@@ -68,7 +68,7 @@ $ go install github.com/ddddddO/packemon/cmd/packemon@latest
 
 <b>deb</b>
 $ export PACKEMON_VERSION=X.X.X
-$ curl -o gtree.deb -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.deb
+$ curl -o packemon.deb -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.deb
 $ dpkg -i packemon.deb
 
 <b>rpm</b>

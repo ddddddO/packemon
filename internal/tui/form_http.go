@@ -74,8 +74,7 @@ func (t *tui) httpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 					// 0x0050,
 					http.Bytes(),
 				); err != nil {
-					// TODO: ここエラーポップアップだしたい
-					//t.app.Stop()
+					t.addErrPage(err)
 				}
 				return
 			}
@@ -109,7 +108,7 @@ func (t *tui) httpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 				Data:   ipv4.Bytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
-				t.app.Stop()
+				t.addErrPage(err)
 			}
 		}).
 		AddButton("Under layer", func() {

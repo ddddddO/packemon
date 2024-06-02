@@ -62,7 +62,7 @@ func (t *tui) udpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 				Data:   ipv4.Bytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
-				t.app.Stop()
+				t.addErrPage(err)
 			}
 		}).
 		AddButton("Under layer", func() {

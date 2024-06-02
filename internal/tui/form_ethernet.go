@@ -56,7 +56,7 @@ func (t *tui) ethernetForm(sendFn func(*packemon.EthernetFrame) error, ethernetH
 				// data: 専用の口用意してユーザー自身の任意のフレームを送れるようにする？,
 			}
 			if err := sendFn(ethernetFrame); err != nil {
-				t.app.Stop()
+				t.addErrPage(err)
 			}
 		}).
 		AddButton("Over layer", func() {

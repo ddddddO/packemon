@@ -157,7 +157,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 				Data:   arp.Bytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
-				t.app.Stop()
+				t.addErrPage(err)
 			}
 		}).
 		AddButton("Under layer", func() {

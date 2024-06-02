@@ -75,7 +75,7 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 				Data:   ipv4.Bytes(),
 			}
 			if err := sendFn(ethernetFrame); err != nil {
-				t.app.Stop()
+				t.addErrPage(err)
 			}
 		}).
 		AddButton("Under layer", func() {

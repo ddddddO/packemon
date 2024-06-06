@@ -10,7 +10,7 @@ import (
 
 func (t *tui) tcpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, tcp *packemon.TCP) *tview.Form {
 	tcpForm := tview.NewForm().
-		AddTextView("TCP", "This section generates the UDP.\nIt is still under development.", 60, 4, true, false).
+		AddTextView("TCP", "This section generates the TCP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Source Port", DEFAULT_TCP_PORT_SOURCE, 5, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) <= 5 {
 				n, err := strIntToUint16(textToCheck)
@@ -48,10 +48,10 @@ func (t *tui) tcpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 
 			return true
 		}, nil).
-		AddInputField("Flags", DEFAULT_TCP_FLAGS, 6, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 6 {
+		AddInputField("Flags", DEFAULT_TCP_FLAGS, 5, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 5 {
 				return true
-			} else if len(textToCheck) > 6 {
+			} else if len(textToCheck) > 5 {
 				return false
 			}
 

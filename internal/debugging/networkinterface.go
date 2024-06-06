@@ -106,7 +106,8 @@ func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 
 func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) error {
 	tcp := p.NewTCPSyn()
-	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
+	// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
+	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 	// 「「チェックサム」フィールド：16bit幅」
 	tcp.Checksum = func() uint16 {
@@ -202,7 +203,8 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 
 								// syn/ackを受け取ったのでack送信
 								tcp := p.NewTCPAck(tcp.Sequence, tcp.Acknowledgment)
-								ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
+								ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
+								// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 								// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 								// 「「チェックサム」フィールド：16bit幅」
 								tcp.Checksum = func() uint16 {

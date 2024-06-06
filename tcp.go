@@ -57,7 +57,7 @@ func ParsedTCP(payload []byte) *TCP {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPSyn() *TCP {
 	return &TCP{
-		SrcPort:        0x9e20, // 40474
+		SrcPort:        0x9e26,
 		DstPort:        0x0050, // 80
 		Sequence:       0x1f6e9502,
 		Acknowledgment: 0x00000000,
@@ -73,7 +73,7 @@ func NewTCPSyn() *TCP {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
 	return &TCP{
-		SrcPort:        0x9e20, // 40474
+		SrcPort:        0x9e26,
 		DstPort:        0x0050, // 80
 		Sequence:       prevAcknowledgment,
 		Acknowledgment: prevSequence + 0x00000001,
@@ -183,7 +183,7 @@ func Options() []byte {
 	t := &Timestamps{
 		Kind:      0x08,
 		Length:    0x0a,
-		Value:     0xdbe1c2c4,
+		Value:     0xd4091f09,
 		EchoReply: 0x00000000,
 	}
 	buf.WriteByte(t.Kind)

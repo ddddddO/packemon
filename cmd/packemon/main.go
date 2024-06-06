@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"errors"
 	"flag"
 	"fmt"
@@ -53,18 +52,18 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 
 	if debug {
 		if wantSend {
-			if protocol == "tcp-3way-http" {
-				dstIPAddr := make([]byte, 4)
-				binary.BigEndian.PutUint32(dstIPAddr, 0xc0a80a6e) // 192.168.10.110
-				var dstPort uint16 = 0x0050                       // 80
-				httpGet := packemon.NewHTTP()
-				return packemon.EstablishConnectionAndSendPayload(nwInterface, dstIPAddr, dstPort, httpGet.Bytes())
-			}
+			// if protocol == "tcp-3way-http" {
+			// 	dstIPAddr := make([]byte, 4)
+			// 	binary.BigEndian.PutUint32(dstIPAddr, 0xc0a80a6e) // 192.168.10.110
+			// 	var dstPort uint16 = 0x0050                       // 80
+			// 	httpGet := packemon.NewHTTP()
+			// 	return packemon.EstablishConnectionAndSendPayload(nwInterface, dstIPAddr, dstPort, httpGet.Bytes())
+			// }
 
 			// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
 			// $ ip route
 			// $ arp xxx.xx.xxx.1
-			firsthopMACAddr := [6]byte{0x00, 0x15, 0x5d, 0x8c, 0xc2, 0x6b}
+			firsthopMACAddr := [6]byte{0x00, 0x15, 0x5d, 0xe0, 0x97, 0x9d}
 			return debugMode(wantSend, protocol, netIf, firsthopMACAddr)
 		}
 
@@ -110,6 +109,8 @@ func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface,
 			return debugNetIf.SendTCPsyn(dstMacAddr)
 		case "dns":
 			return debugNetIf.SendDNSquery(dstMacAddr)
+		case "tcp-3way-http":
+			return debugNetIf.SendTCP3wayhandshake(dstMacAddr)
 		case "http":
 			return debugNetIf.SendHTTPget(dstMacAddr)
 		default:

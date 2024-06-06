@@ -187,7 +187,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 						tcp := p.ParsedTCP(ipv4.Data)
 
 						switch tcp.DstPort {
-						case 0x9e16: // synパケットの送信元ポート
+						case 0x9e27: // synパケットの送信元ポート
 							if tcp.Flags == p.TCP_FLAGS_PSH_ACK {
 								lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
 								if lineLength == -1 {

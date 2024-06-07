@@ -55,8 +55,8 @@ func NewHTTP() *HTTP {
 		Method:    "GET",
 		Uri:       "/",
 		Version:   "HTTP/1.1",
-		Host:      "tools.m-bsys.com",
-		UserAgent: "packemon",
+		Host:      "192.168.10.110",
+		UserAgent: "packemon!!",
 		Accept:    "*/*",
 	}
 }

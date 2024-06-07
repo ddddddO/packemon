@@ -187,7 +187,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 						tcp := p.ParsedTCP(ipv4.Data)
 
 						switch tcp.DstPort {
-						case 0x9e27: // synパケットの送信元ポート
+						case 0x9e66: // synパケットの送信元ポート
 							if tcp.Flags == p.TCP_FLAGS_PSH_ACK {
 								lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
 								if lineLength == -1 {
@@ -234,7 +234,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 									return err
 								}
 
-								if err := dnw.SendHTTPget(firsthopMACAddr); err != nil {
+								if err := dnw.SendHTTPget(firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
 									return err
 								}
 							}
@@ -262,10 +262,11 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 	return nil
 }
 
-func (dnw *debugNetworkInterface) SendHTTPget(firsthopMACAddr [6]byte) error {
+func (dnw *debugNetworkInterface) SendHTTPget(firsthopMACAddr [6]byte, prevSequence uint32, prevAcknowledgment uint32) error {
 	http := p.NewHTTP()
-	tcp := p.NewTCPWithData(http.Bytes())
-	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0x88bb0609) // 136.187.6.9 = research.nii.ac.jp
+	tcp := p.NewTCPWithData(http.Bytes(), prevSequence, prevAcknowledgment)
+	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
+	// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0x88bb0609) // 136.187.6.9 = research.nii.ac.jp
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 	// 「「チェックサム」フィールド：16bit幅」
 	tcp.Checksum = func() uint16 {

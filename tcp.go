@@ -57,9 +57,9 @@ func ParsedTCP(payload []byte) *TCP {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPSyn() *TCP {
 	return &TCP{
-		SrcPort:        0x9e27,
+		SrcPort:        0x9e66,
 		DstPort:        0x0050, // 80
-		Sequence:       0x1f6e9502,
+		Sequence:       0x091f58c2,
 		Acknowledgment: 0x00000000,
 		HeaderLength:   0x00a0,
 		Flags:          0x002, // syn
@@ -73,13 +73,13 @@ func NewTCPSyn() *TCP {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
 	return &TCP{
-		SrcPort:        0x9e27,
-		DstPort:        0x0050, // 80
-		Sequence:       prevAcknowledgment,
-		Acknowledgment: prevSequence + 0x00000001,
-		HeaderLength:   0x00a0,
+		SrcPort:        0x9e66,
+		DstPort:        0x0050,                    // 80
+		Sequence:       prevAcknowledgment,        // ok
+		Acknowledgment: prevSequence + 0x00000001, // ok
+		HeaderLength:   0x0080,
 		Flags:          0x010, // ack
-		Window:         0xfaf0,
+		Window:         0x01f6,
 		Checksum:       0x0000,
 		UrgentPointer:  0x0000,
 		Options:        OptionsOfAck(),
@@ -87,19 +87,21 @@ func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
 }
 
 // tcpパケット単発で連続で送るときは port/sequence 変えること
-func NewTCPWithData(data []byte) *TCP {
+func NewTCPWithData(data []byte, prevSequence uint32, prevAcknowledgment uint32) *TCP {
 	return &TCP{
-		SrcPort:        0x9e12,
+		SrcPort:        0x9e66,
 		DstPort:        0x0050, // 80
-		Sequence:       0x1f6e9616,
-		Acknowledgment: 0x00000000,
-		HeaderLength:   0x0080,
-		Flags:          0x0018, // psh,ack
-		Window:         0xfaf0,
-		Checksum:       0x0000,
-		UrgentPointer:  0x0000,
-		Options:        OptionsOfhttp(),
-		Data:           data,
+		Sequence:       prevSequence,
+		Acknowledgment: prevAcknowledgment,
+		// Sequence:       prevAcknowledgment,
+		// Acknowledgment: prevSequence,
+		HeaderLength:  0x0080,
+		Flags:         0x0018, // psh,ack
+		Window:        0x01f6,
+		Checksum:      0x0000,
+		UrgentPointer: 0x0000,
+		Options:       OptionsOfhttp(),
+		Data:          data,
 	}
 }
 
@@ -247,8 +249,8 @@ func OptionsOfhttp() []byte {
 	t := &Timestamps{
 		Kind:      0x08,
 		Length:    0x0a,
-		Value:     0x817338b5,
-		EchoReply: 0x409e9657,
+		Value:     0x5d1fbc0b,
+		EchoReply: 0x7a7519d3,
 	}
 	buf.WriteByte(t.Kind)
 	buf.WriteByte(t.Length)

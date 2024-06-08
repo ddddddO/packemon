@@ -113,7 +113,9 @@ func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface,
 			return debugNetIf.SendTCP3wayhandshake(dstMacAddr)
 		case "http":
 			var srcPort uint16 = 0x9e98
-			return debugNetIf.SendHTTPget(srcPort, dstMacAddr, 0x00000000, 0x00000000)
+			var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
+			var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
+			return debugNetIf.SendHTTPget(srcPort, srcIPAddr, dstIPAddr, dstMacAddr, 0x00000000, 0x00000000)
 		default:
 			return errors.New("not supported protocol")
 		}

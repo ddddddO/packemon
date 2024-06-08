@@ -26,6 +26,24 @@ type IPv4 struct {
 	Data []byte
 }
 
+func NewIPv4(protocol uint8, srcAddr uint32, dstAddr uint32) *IPv4 {
+	return &IPv4{
+		Version:        0x04,
+		Ihl:            0x05,
+		Tos:            0x00,
+		TotalLength:    0x54,
+		Identification: 0x0d94,
+		Flags:          0x40,
+		FragmentOffset: 0x0,
+		Ttl:            0x40,
+		Protocol:       protocol,
+		HeaderChecksum: 0,
+		// SrcAddr:        0xac184fcf, // 172.23.242.78
+		SrcAddr: srcAddr,
+		DstAddr: dstAddr,
+	}
+}
+
 const (
 	IPv4_PROTO_ICMP uint8 = 0x01
 	IPv4_PROTO_TCP  uint8 = 0x06

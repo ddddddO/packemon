@@ -96,7 +96,7 @@ func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa000
+	var srcPort uint16 = 0xa003
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
 	dstMACAddr := p.HardwareAddr(firsthopMACAddr)
@@ -210,7 +210,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 									// そのackを返す
 									log.Printf("Length of http resp: %d\n", resp.Len())
 
-									tcp := p.NewTCPAckForHTTPresp(srcPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
+									tcp := p.NewTCPAckForPassiveData(srcPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
 									ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 									tcp.CalculateChecksum(ipv4)
 

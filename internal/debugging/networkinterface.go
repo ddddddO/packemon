@@ -107,7 +107,7 @@ func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0x9e98
+	var srcPort uint16 = 0x9e99
 
 	tcp := p.NewTCPSyn(srcPort)
 	// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
@@ -322,6 +322,39 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 
 							if tcp.Flags == p.TCP_FLAGS_FIN_ACK {
 								log.Println("passive TCP_FLAGS_FIN_ACK")
+
+								// それにack
+								tcp := p.NewTCPAck(srcPort, tcp.Sequence, tcp.Acknowledgment)
+								ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
+								// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
+								// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
+								// 「「チェックサム」フィールド：16bit幅」
+								tcp.Checksum = func() uint16 {
+									pseudoTCPHeader := func() []byte {
+										buf := &bytes.Buffer{}
+										packemon.WriteUint32(buf, ipv4.SrcAddr)
+										packemon.WriteUint32(buf, ipv4.DstAddr)
+										padding := byte(0x00)
+										buf.WriteByte(padding)
+										buf.WriteByte(ipv4.Protocol)
+										packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
+										return buf.Bytes()
+									}()
+
+									forTCPChecksum := &bytes.Buffer{}
+									forTCPChecksum.Write(pseudoTCPHeader)
+									forTCPChecksum.Write(tcp.Bytes())
+									return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
+								}()
+								ipv4.Data = tcp.Bytes()
+								ipv4.CalculateTotalLength()
+								ipv4.CalculateChecksum()
+								dst := p.HardwareAddr(firsthopMACAddr)
+								src := p.HardwareAddr(dnw.Intf.HardwareAddr)
+								ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+								if err := dnw.Send(ethernetFrame); err != nil {
+									return err
+								}
 								return nil
 							}
 

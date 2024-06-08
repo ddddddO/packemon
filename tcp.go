@@ -137,7 +137,32 @@ func NewTCPFinAck(srcPort uint16, prevSequence uint32, prevAcknowledgment uint32
 	}
 }
 
-func (*TCP) CheckSum(packet []byte) []byte {
+// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
+// 「「チェックサム」フィールド：16bit幅」
+func (t *TCP) CalculateChecksum(ipv4 *IPv4) {
+	t.Checksum = func() uint16 {
+		pseudoTCPHeader := func() []byte {
+			buf := &bytes.Buffer{}
+			WriteUint32(buf, ipv4.SrcAddr)
+			WriteUint32(buf, ipv4.DstAddr)
+			padding := byte(0x00)
+			buf.WriteByte(padding)
+			buf.WriteByte(ipv4.Protocol)
+			WriteUint16(buf, uint16(len(t.Bytes())))
+			return buf.Bytes()
+		}()
+
+		forTCPChecksum := &bytes.Buffer{}
+		forTCPChecksum.Write(pseudoTCPHeader)
+		forTCPChecksum.Write(t.Bytes())
+		if len(t.Data)%2 != 0 {
+			forTCPChecksum.WriteByte(0x00)
+		}
+		return binary.BigEndian.Uint16(t.checksum(forTCPChecksum.Bytes()))
+	}()
+}
+
+func (*TCP) checksum(packet []byte) []byte {
 	return (*IPv4)(nil).Checksum(packet)
 }
 

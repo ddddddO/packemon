@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"bytes"
 	"encoding/binary"
 
 	"github.com/ddddddO/packemon"
@@ -67,24 +66,7 @@ func (t *tui) tcpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			t.app.SetFocus(t.list)
 		}).
 		AddButton("Send!", func() {
-			tcp.Checksum = func() uint16 {
-				pseudoTCPHeader := func() []byte {
-					buf := &bytes.Buffer{}
-					packemon.WriteUint32(buf, ipv4.SrcAddr)
-					packemon.WriteUint32(buf, ipv4.DstAddr)
-					padding := byte(0x00)
-					buf.WriteByte(padding)
-					buf.WriteByte(ipv4.Protocol)
-					packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
-					return buf.Bytes()
-				}()
-
-				forTCPChecksum := &bytes.Buffer{}
-				forTCPChecksum.Write(pseudoTCPHeader)
-				forTCPChecksum.Write(tcp.Bytes())
-				return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
-			}()
-
+			tcp.CalculateChecksum(ipv4)
 			ipv4.Data = tcp.Bytes()
 			ipv4.CalculateTotalLength()
 			// 前回Send分が残ってると計算誤るため

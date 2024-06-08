@@ -75,31 +75,14 @@ func (dnw *debugNetworkInterface) SendDNSquery(firsthopMACAddr [6]byte) error {
 
 func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 	var srcPort uint16 = 0x9e96
-
+	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
 	tcp := p.NewTCPSyn(srcPort)
-	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
-	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
-	// 「「チェックサム」フィールド：16bit幅」
-	tcp.Checksum = func() uint16 {
-		pseudoTCPHeader := func() []byte {
-			buf := &bytes.Buffer{}
-			packemon.WriteUint32(buf, ipv4.SrcAddr)
-			packemon.WriteUint32(buf, ipv4.DstAddr)
-			padding := byte(0x00)
-			buf.WriteByte(padding)
-			buf.WriteByte(ipv4.Protocol)
-			packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
-			return buf.Bytes()
-		}()
+	tcp.CalculateChecksum(ipv4)
 
-		forTCPChecksum := &bytes.Buffer{}
-		forTCPChecksum.Write(pseudoTCPHeader)
-		forTCPChecksum.Write(tcp.Bytes())
-		return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
-	}()
 	ipv4.Data = tcp.Bytes()
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
+
 	dst := p.HardwareAddr(firsthopMACAddr)
 	src := p.HardwareAddr(dnw.Intf.HardwareAddr)
 	ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
@@ -107,33 +90,16 @@ func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0x9e99
+	var srcPort uint16 = 0x9f02
 
 	tcp := p.NewTCPSyn(srcPort)
-	// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
-	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
-	// 「「チェックサム」フィールド：16bit幅」
-	tcp.Checksum = func() uint16 {
-		pseudoTCPHeader := func() []byte {
-			buf := &bytes.Buffer{}
-			packemon.WriteUint32(buf, ipv4.SrcAddr)
-			packemon.WriteUint32(buf, ipv4.DstAddr)
-			padding := byte(0x00)
-			buf.WriteByte(padding)
-			buf.WriteByte(ipv4.Protocol)
-			packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
-			return buf.Bytes()
-		}()
+	tcp.CalculateChecksum(ipv4)
 
-		forTCPChecksum := &bytes.Buffer{}
-		forTCPChecksum.Write(pseudoTCPHeader)
-		forTCPChecksum.Write(tcp.Bytes())
-		return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
-	}()
 	ipv4.Data = tcp.Bytes()
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
+
 	dst := p.HardwareAddr(firsthopMACAddr)
 	src := p.HardwareAddr(dnw.Intf.HardwareAddr)
 	ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
@@ -194,34 +160,16 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 						case srcPort: // synパケットの送信元ポート
 							if tcp.Flags == p.TCP_FLAGS_SYN_ACK {
 								log.Println("passive TCP_FLAGS_SYN_ACK")
-								// log.Printf("%+v\n", tcp)
 
 								// syn/ackを受け取ったのでack送信
 								tcp := p.NewTCPAck(srcPort, tcp.Sequence, tcp.Acknowledgment)
 								ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
-								// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
-								// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
-								// 「「チェックサム」フィールド：16bit幅」
-								tcp.Checksum = func() uint16 {
-									pseudoTCPHeader := func() []byte {
-										buf := &bytes.Buffer{}
-										packemon.WriteUint32(buf, ipv4.SrcAddr)
-										packemon.WriteUint32(buf, ipv4.DstAddr)
-										padding := byte(0x00)
-										buf.WriteByte(padding)
-										buf.WriteByte(ipv4.Protocol)
-										packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
-										return buf.Bytes()
-									}()
+								tcp.CalculateChecksum(ipv4)
 
-									forTCPChecksum := &bytes.Buffer{}
-									forTCPChecksum.Write(pseudoTCPHeader)
-									forTCPChecksum.Write(tcp.Bytes())
-									return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
-								}()
 								ipv4.Data = tcp.Bytes()
 								ipv4.CalculateTotalLength()
 								ipv4.CalculateChecksum()
+
 								dst := p.HardwareAddr(firsthopMACAddr)
 								src := p.HardwareAddr(dnw.Intf.HardwareAddr)
 								ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
@@ -255,31 +203,15 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 
 									// そのackを返す
 									log.Printf("Length of http resp: %d\n", resp.Len())
+
 									tcp := p.NewTCPAckForHTTPresp(srcPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
 									ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
-									// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
-									// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
-									// 「「チェックサム」フィールド：16bit幅」
-									tcp.Checksum = func() uint16 {
-										pseudoTCPHeader := func() []byte {
-											buf := &bytes.Buffer{}
-											packemon.WriteUint32(buf, ipv4.SrcAddr)
-											packemon.WriteUint32(buf, ipv4.DstAddr)
-											padding := byte(0x00)
-											buf.WriteByte(padding)
-											buf.WriteByte(ipv4.Protocol)
-											packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
-											return buf.Bytes()
-										}()
+									tcp.CalculateChecksum(ipv4)
 
-										forTCPChecksum := &bytes.Buffer{}
-										forTCPChecksum.Write(pseudoTCPHeader)
-										forTCPChecksum.Write(tcp.Bytes())
-										return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
-									}()
 									ipv4.Data = tcp.Bytes()
 									ipv4.CalculateTotalLength()
 									ipv4.CalculateChecksum()
+
 									dst := p.HardwareAddr(firsthopMACAddr)
 									src := p.HardwareAddr(dnw.Intf.HardwareAddr)
 									ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
@@ -290,26 +222,12 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 									// 続けてFinAck
 									tcp = p.NewTCPFinAck(srcPort, tcp.Sequence, tcp.Acknowledgment)
 									ipv4 = NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
-									tcp.Checksum = func() uint16 {
-										pseudoTCPHeader := func() []byte {
-											buf := &bytes.Buffer{}
-											packemon.WriteUint32(buf, ipv4.SrcAddr)
-											packemon.WriteUint32(buf, ipv4.DstAddr)
-											padding := byte(0x00)
-											buf.WriteByte(padding)
-											buf.WriteByte(ipv4.Protocol)
-											packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
-											return buf.Bytes()
-										}()
+									tcp.CalculateChecksum(ipv4)
 
-										forTCPChecksum := &bytes.Buffer{}
-										forTCPChecksum.Write(pseudoTCPHeader)
-										forTCPChecksum.Write(tcp.Bytes())
-										return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
-									}()
 									ipv4.Data = tcp.Bytes()
 									ipv4.CalculateTotalLength()
 									ipv4.CalculateChecksum()
+
 									dst = p.HardwareAddr(firsthopMACAddr)
 									src = p.HardwareAddr(dnw.Intf.HardwareAddr)
 									ethernetFrame = p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
@@ -326,29 +244,12 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 								// それにack
 								tcp := p.NewTCPAck(srcPort, tcp.Sequence, tcp.Acknowledgment)
 								ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
-								// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
-								// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
-								// 「「チェックサム」フィールド：16bit幅」
-								tcp.Checksum = func() uint16 {
-									pseudoTCPHeader := func() []byte {
-										buf := &bytes.Buffer{}
-										packemon.WriteUint32(buf, ipv4.SrcAddr)
-										packemon.WriteUint32(buf, ipv4.DstAddr)
-										padding := byte(0x00)
-										buf.WriteByte(padding)
-										buf.WriteByte(ipv4.Protocol)
-										packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
-										return buf.Bytes()
-									}()
+								tcp.CalculateChecksum(ipv4)
 
-									forTCPChecksum := &bytes.Buffer{}
-									forTCPChecksum.Write(pseudoTCPHeader)
-									forTCPChecksum.Write(tcp.Bytes())
-									return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
-								}()
 								ipv4.Data = tcp.Bytes()
 								ipv4.CalculateTotalLength()
 								ipv4.CalculateChecksum()
+
 								dst := p.HardwareAddr(firsthopMACAddr)
 								src := p.HardwareAddr(dnw.Intf.HardwareAddr)
 								ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
@@ -385,31 +286,12 @@ func (dnw *debugNetworkInterface) SendHTTPget(srcPort uint16, firsthopMACAddr [6
 	http := p.NewHTTP()
 	tcp := p.NewTCPWithData(srcPort, http.Bytes(), prevSequence, prevAcknowledgment)
 	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
-	// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0x88bb0609) // 136.187.6.9 = research.nii.ac.jp
-	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
-	// 「「チェックサム」フィールド：16bit幅」
-	tcp.Checksum = func() uint16 {
-		pseudoTCPHeader := func() []byte {
-			buf := &bytes.Buffer{}
-			packemon.WriteUint32(buf, ipv4.SrcAddr)
-			packemon.WriteUint32(buf, ipv4.DstAddr)
-			padding := byte(0x00)
-			buf.WriteByte(padding)
-			buf.WriteByte(ipv4.Protocol)
-			packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
-			return buf.Bytes()
-		}()
-		forTCPChecksum := &bytes.Buffer{}
-		forTCPChecksum.Write(pseudoTCPHeader)
-		forTCPChecksum.Write(tcp.Bytes())
-		if len(tcp.Data)%2 != 0 {
-			forTCPChecksum.WriteByte(0x00)
-		}
-		return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
-	}()
+	tcp.CalculateChecksum(ipv4)
+
 	ipv4.Data = tcp.Bytes()
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
+
 	dst := p.HardwareAddr(firsthopMACAddr)
 	src := p.HardwareAddr(dnw.Intf.HardwareAddr)
 	ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())

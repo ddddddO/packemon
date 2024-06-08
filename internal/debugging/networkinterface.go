@@ -96,9 +96,11 @@ func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0x9f04
+	var srcPort uint16 = 0xa000
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
+	dstMACAddr := p.HardwareAddr(firsthopMACAddr)
+	srcMACAddr := p.HardwareAddr(dnw.Intf.HardwareAddr)
 
 	tcp := p.NewTCPSyn(srcPort)
 	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
@@ -108,9 +110,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
 
-	dst := p.HardwareAddr(firsthopMACAddr)
-	src := p.HardwareAddr(dnw.Intf.HardwareAddr)
-	ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+	ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
 	if err := dnw.Send(ethernetFrame); err != nil {
 		return err
 	}
@@ -178,9 +178,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 								ipv4.CalculateTotalLength()
 								ipv4.CalculateChecksum()
 
-								dst := p.HardwareAddr(firsthopMACAddr)
-								src := p.HardwareAddr(dnw.Intf.HardwareAddr)
-								ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+								ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
 								if err := dnw.Send(ethernetFrame); err != nil {
 									return err
 								}
@@ -220,9 +218,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 									ipv4.CalculateTotalLength()
 									ipv4.CalculateChecksum()
 
-									dst := p.HardwareAddr(firsthopMACAddr)
-									src := p.HardwareAddr(dnw.Intf.HardwareAddr)
-									ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+									ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
 									if err := dnw.Send(ethernetFrame); err != nil {
 										return err
 									}
@@ -236,9 +232,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 									ipv4.CalculateTotalLength()
 									ipv4.CalculateChecksum()
 
-									dst = p.HardwareAddr(firsthopMACAddr)
-									src = p.HardwareAddr(dnw.Intf.HardwareAddr)
-									ethernetFrame = p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+									ethernetFrame = p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
 									if err := dnw.Send(ethernetFrame); err != nil {
 										return err
 									}
@@ -258,9 +252,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 								ipv4.CalculateTotalLength()
 								ipv4.CalculateChecksum()
 
-								dst := p.HardwareAddr(firsthopMACAddr)
-								src := p.HardwareAddr(dnw.Intf.HardwareAddr)
-								ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+								ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
 								if err := dnw.Send(ethernetFrame); err != nil {
 									return err
 								}
@@ -300,9 +292,9 @@ func (dnw *debugNetworkInterface) SendHTTPget(srcPort uint16, srcIPAddr uint32, 
 	ipv4.CalculateTotalLength()
 	ipv4.CalculateChecksum()
 
-	dst := p.HardwareAddr(firsthopMACAddr)
-	src := p.HardwareAddr(dnw.Intf.HardwareAddr)
-	ethernetFrame := p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+	dstMACAddr := p.HardwareAddr(firsthopMACAddr)
+	srcMACAddr := p.HardwareAddr(dnw.Intf.HardwareAddr)
+	ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
 	return dnw.Send(ethernetFrame)
 }
 

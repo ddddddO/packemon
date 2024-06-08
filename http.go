@@ -11,12 +11,13 @@ const (
 )
 
 type HTTP struct {
-	Method    string
-	Uri       string
-	Version   string
-	Host      string
-	UserAgent string
-	Accept    string
+	Method        string
+	Uri           string
+	Version       string
+	Host          string
+	UserAgent     string
+	Accept        string
+	ContentLength string
 
 	Body string
 }
@@ -56,7 +57,7 @@ func NewHTTP() *HTTP {
 		Uri:       "/",
 		Version:   "HTTP/1.1",
 		Host:      "192.168.10.110",
-		UserAgent: "packemon!!",
+		UserAgent: "packemon/0.0.1",
 		Accept:    "*/*",
 	}
 }

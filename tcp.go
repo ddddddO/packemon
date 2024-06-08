@@ -57,51 +57,49 @@ func ParsedTCP(payload []byte) *TCP {
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPSyn() *TCP {
 	return &TCP{
-		SrcPort:        0x9e66,
+		SrcPort:        0x9e83,
 		DstPort:        0x0050, // 80
-		Sequence:       0x091f58c2,
+		Sequence:       0x091f58c7,
 		Acknowledgment: 0x00000000,
-		HeaderLength:   0x00a0,
+		HeaderLength:   0x0050,
 		Flags:          0x002, // syn
 		Window:         0xfaf0,
 		Checksum:       0x0000,
 		UrgentPointer:  0x0000,
-		Options:        Options(),
+		// Options:        Options(),
 	}
 }
 
-// tcpパケット単発で連続で送るときは port/sequence 変えること
+// tcpパケット連続で送るときは port 変えること
 func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
 	return &TCP{
-		SrcPort:        0x9e66,
+		SrcPort:        0x9e83,
 		DstPort:        0x0050,                    // 80
 		Sequence:       prevAcknowledgment,        // ok
 		Acknowledgment: prevSequence + 0x00000001, // ok
-		HeaderLength:   0x0080,
+		HeaderLength:   0x0050,
 		Flags:          0x010, // ack
 		Window:         0x01f6,
 		Checksum:       0x0000,
 		UrgentPointer:  0x0000,
-		Options:        OptionsOfAck(),
+		// Options:        OptionsOfAck(),
 	}
 }
 
-// tcpパケット単発で連続で送るときは port/sequence 変えること
+// tcpパケット連続で送るときは port 変えること
 func NewTCPWithData(data []byte, prevSequence uint32, prevAcknowledgment uint32) *TCP {
 	return &TCP{
-		SrcPort:        0x9e66,
+		SrcPort:        0x9e83,
 		DstPort:        0x0050, // 80
 		Sequence:       prevSequence,
 		Acknowledgment: prevAcknowledgment,
-		// Sequence:       prevAcknowledgment,
-		// Acknowledgment: prevSequence,
-		HeaderLength:  0x0080,
-		Flags:         0x0018, // psh,ack
-		Window:        0x01f6,
-		Checksum:      0x0000,
-		UrgentPointer: 0x0000,
-		Options:       OptionsOfhttp(),
-		Data:          data,
+		HeaderLength:   0x0050,
+		Flags:          0x0018, // psh,ack
+		Window:         0x01fe,
+		Checksum:       0x0000,
+		UrgentPointer:  0x0000,
+		// Options:       OptionsOfhttp(),
+		Data: data,
 	}
 }
 
@@ -166,26 +164,41 @@ type WindowScale struct {
 func Options() []byte {
 	buf := &bytes.Buffer{}
 
+	// m := &Mss{
+	// 	Kind:   0x02,
+	// 	Length: 0x04,
+	// 	Value:  0x05b4, // 1460
+	// }
 	m := &Mss{
-		Kind:   0x02,
-		Length: 0x04,
-		Value:  0x05b4, // 1460
+		Kind:   0x00,
+		Length: 0x00,
+		Value:  0x0000, // 1460
 	}
 	buf.WriteByte(m.Kind)
 	buf.WriteByte(m.Length)
 	WriteUint16(buf, m.Value)
 
+	// s := &SackPermitted{
+	// 	Kind:   0x04,
+	// 	Length: 0x02,
+	// }
 	s := &SackPermitted{
-		Kind:   0x04,
-		Length: 0x02,
+		Kind:   0x00,
+		Length: 0x00,
 	}
 	buf.WriteByte(s.Kind)
 	buf.WriteByte(s.Length)
 
+	// t := &Timestamps{
+	// 	Kind:      0x08,
+	// 	Length:    0x0a,
+	// 	Value:     0xd4091f09,
+	// 	EchoReply: 0x00000000,
+	// }
 	t := &Timestamps{
-		Kind:      0x08,
-		Length:    0x0a,
-		Value:     0xd4091f09,
+		Kind:      0x00,
+		Length:    0x00,
+		Value:     0x00000000,
 		EchoReply: 0x00000000,
 	}
 	buf.WriteByte(t.Kind)
@@ -193,15 +206,23 @@ func Options() []byte {
 	WriteUint32(buf, t.Value)
 	WriteUint32(buf, t.EchoReply)
 
+	// n := &NoOperation{
+	// 	Kind: 0x01,
+	// }
 	n := &NoOperation{
-		Kind: 0x01,
+		Kind: 0x00,
 	}
 	buf.WriteByte(n.Kind)
 
+	// w := &WindowScale{
+	// 	Kind:       0x03,
+	// 	Length:     0x03,
+	// 	ShiftCount: 0x07,
+	// }
 	w := &WindowScale{
-		Kind:       0x03,
-		Length:     0x03,
-		ShiftCount: 0x07,
+		Kind:       0x00,
+		Length:     0x00,
+		ShiftCount: 0x00,
 	}
 	buf.WriteByte(w.Kind)
 	buf.WriteByte(w.Length)

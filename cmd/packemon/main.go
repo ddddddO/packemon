@@ -63,7 +63,7 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 			// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
 			// $ ip route
 			// $ arp xxx.xx.xxx.1
-			firsthopMACAddr := [6]byte{0x00, 0x15, 0x5d, 0xe0, 0x97, 0x9d}
+			firsthopMACAddr := [6]byte{0x00, 0x15, 0x5d, 0xc2, 0x6c, 0xb4}
 			return debugMode(wantSend, protocol, netIf, firsthopMACAddr)
 		}
 

@@ -187,7 +187,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 						tcp := p.ParsedTCP(ipv4.Data)
 
 						switch tcp.DstPort {
-						case 0x9e66: // synパケットの送信元ポート
+						case 0x9e83: // synパケットの送信元ポート
 							if tcp.Flags == p.TCP_FLAGS_PSH_ACK {
 								lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
 								if lineLength == -1 {
@@ -283,6 +283,9 @@ func (dnw *debugNetworkInterface) SendHTTPget(firsthopMACAddr [6]byte, prevSeque
 		forTCPChecksum := &bytes.Buffer{}
 		forTCPChecksum.Write(pseudoTCPHeader)
 		forTCPChecksum.Write(tcp.Bytes())
+		if len(tcp.Data)%2 != 0 {
+			forTCPChecksum.WriteByte(0x00)
+		}
 		return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
 	}()
 	ipv4.Data = tcp.Bytes()
@@ -415,7 +418,7 @@ func NewIPv4(protocol uint8, dstAddr uint32) *p.IPv4 {
 		Ttl:            0x40,
 		Protocol:       protocol,
 		HeaderChecksum: 0,
-		SrcAddr:        0xac17f24e, // 172.23.242.78
+		SrcAddr:        0xac184fcf, // 172.23.242.78
 		DstAddr:        dstAddr,
 	}
 }

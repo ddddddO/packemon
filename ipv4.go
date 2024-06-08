@@ -108,35 +108,7 @@ func (i *IPv4) CalculateChecksum() {
 	binary.BigEndian.PutUint32(b, i.DstAddr)
 	header = append(header, b...)
 
-	i.HeaderChecksum = binary.BigEndian.Uint16(i.Checksum(header))
-}
-
-// copy of https://github.com/sat0ken/go-curo/blob/main/utils.go#L18
-func (*IPv4) Checksum(packet []byte) []byte {
-	// まず16ビット毎に足す
-	sum := sumByteArr(packet)
-	// あふれた桁を足す
-	sum = (sum & 0xffff) + sum>>16
-	// 論理否定を取った値をbyteにして返す
-	b := make([]byte, 2)
-	binary.BigEndian.PutUint16(b, uint16(sum^0xffff))
-	return b
-}
-
-func sumByteArr(packet []byte) (sum uint) {
-	for i := range packet {
-
-		// ここ足した. icmpのreply返ってきてるし大丈夫そう
-		if (i == len(packet)-2) && (len(packet)%2 != 0) {
-			sum += uint(packet[i])
-			break
-		}
-
-		if i%2 == 0 {
-			sum += uint(binary.BigEndian.Uint16(packet[i:]))
-		}
-	}
-	return sum
+	i.HeaderChecksum = binary.BigEndian.Uint16(calculateChecksum(header))
 }
 
 func (i *IPv4) Bytes() []byte {

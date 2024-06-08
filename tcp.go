@@ -124,7 +124,7 @@ func (t *TCP) CalculateChecksum(ipv4 *IPv4) {
 }
 
 func (*TCP) checksum(packet []byte) []byte {
-	return (*IPv4)(nil).Checksum(packet)
+	return calculateChecksum(packet)
 }
 
 // https://www.infraexpert.com/study/tcpip8.html

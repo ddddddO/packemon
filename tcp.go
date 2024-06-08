@@ -74,28 +74,28 @@ func newTCP(flags uint16, srcPort, dstPort uint16, sequence, acknowledgment uint
 }
 
 // tcpパケット単発で連続で送るときは port/sequence 変えること
-func NewTCPSyn(srcPort uint16) *TCP {
-	return newTCP(0x002 /** syn **/, srcPort, 0x0050 /** 80 **/, 0x091f58c7, 0x00000000, nil)
+func NewTCPSyn(srcPort, dstPort uint16) *TCP {
+	return newTCP(0x002 /** syn **/, srcPort, dstPort, 0x091f58c7, 0x00000000, nil)
 }
 
 // tcpパケット連続で送るときは port 変えること
-func NewTCPAck(srcPort uint16, prevSequence uint32, prevAcknowledgment uint32) *TCP {
-	return newTCP(0x010 /** ack **/, srcPort, 0x0050, prevAcknowledgment, prevSequence+0x00000001, nil)
+func NewTCPAck(srcPort, dstPort uint16, prevSequence uint32, prevAcknowledgment uint32) *TCP {
+	return newTCP(0x010 /** ack **/, srcPort, dstPort, prevAcknowledgment, prevSequence+0x00000001, nil)
 }
 
 // tcpパケット連続で送るときは port 変えること
-func NewTCPWithData(srcPort uint16, data []byte, prevSequence uint32, prevAcknowledgment uint32) *TCP {
-	return newTCP(0x018 /** push/ack **/, srcPort, 0x0050, prevSequence, prevAcknowledgment, data)
+func NewTCPWithData(srcPort, dstPort uint16, data []byte, prevSequence uint32, prevAcknowledgment uint32) *TCP {
+	return newTCP(0x018 /** push/ack **/, srcPort, dstPort, prevSequence, prevAcknowledgment, data)
 }
 
 // tcpパケット連続で送るときは port 変えること
-func NewTCPAckForPassiveData(srcPort uint16, prevSequence uint32, prevAcknowledgment uint32, tcpPayloadLength int) *TCP {
-	return newTCP(0x010 /** ack **/, srcPort, 0x0050, prevAcknowledgment, prevSequence+uint32(tcpPayloadLength), nil)
+func NewTCPAckForPassiveData(srcPort, dstPort uint16, prevSequence uint32, prevAcknowledgment uint32, tcpPayloadLength int) *TCP {
+	return newTCP(0x010 /** ack **/, srcPort, dstPort, prevAcknowledgment, prevSequence+uint32(tcpPayloadLength), nil)
 }
 
 // tcpパケット連続で送るときは port 変えること
-func NewTCPFinAck(srcPort uint16, prevSequence uint32, prevAcknowledgment uint32) *TCP {
-	return newTCP(0x011 /** fin/ack **/, srcPort, 0x0050, prevSequence, prevAcknowledgment, nil)
+func NewTCPFinAck(srcPort, dstPort uint16, prevSequence uint32, prevAcknowledgment uint32) *TCP {
+	return newTCP(0x011 /** fin/ack **/, srcPort, dstPort, prevSequence, prevAcknowledgment, nil)
 }
 
 // https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html

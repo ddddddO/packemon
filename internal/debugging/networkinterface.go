@@ -79,10 +79,11 @@ func (dnw *debugNetworkInterface) SendDNSquery(firsthopMACAddr [6]byte) error {
 
 func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 	var srcPort uint16 = 0x9e96
+	var dstPort uint16 = 0x0050       // 80
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
 	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-	tcp := p.NewTCPSyn(srcPort)
+	tcp := p.NewTCPSyn(srcPort, dstPort)
 	tcp.CalculateChecksum(ipv4)
 
 	ipv4.Data = tcp.Bytes()
@@ -96,13 +97,14 @@ func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa003
+	var srcPort uint16 = 0xa004
+	var dstPort uint16 = 0x0050       // 80
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
 	dstMACAddr := p.HardwareAddr(firsthopMACAddr)
 	srcMACAddr := p.HardwareAddr(dnw.Intf.HardwareAddr)
 
-	tcp := p.NewTCPSyn(srcPort)
+	tcp := p.NewTCPSyn(srcPort, dstPort)
 	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 	tcp.CalculateChecksum(ipv4)
 
@@ -170,7 +172,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 								log.Println("passive TCP_FLAGS_SYN_ACK")
 
 								// syn/ackを受け取ったのでack送信
-								tcp := p.NewTCPAck(srcPort, tcp.Sequence, tcp.Acknowledgment)
+								tcp := p.NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
 								ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 								tcp.CalculateChecksum(ipv4)
 
@@ -183,7 +185,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 									return err
 								}
 
-								if err := dnw.SendHTTPget(srcPort, srcIPAddr, dstIPAddr, firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
+								if err := dnw.SendHTTPget(srcPort, dstPort, srcIPAddr, dstIPAddr, firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
 									return err
 								}
 								continue
@@ -210,7 +212,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 									// そのackを返す
 									log.Printf("Length of http resp: %d\n", resp.Len())
 
-									tcp := p.NewTCPAckForPassiveData(srcPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
+									tcp := p.NewTCPAckForPassiveData(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
 									ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 									tcp.CalculateChecksum(ipv4)
 
@@ -224,7 +226,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 									}
 
 									// 続けてFinAck
-									tcp = p.NewTCPFinAck(srcPort, tcp.Sequence, tcp.Acknowledgment)
+									tcp = p.NewTCPFinAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
 									ipv4 = p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 									tcp.CalculateChecksum(ipv4)
 
@@ -244,7 +246,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 								log.Println("passive TCP_FLAGS_FIN_ACK")
 
 								// それにack
-								tcp := p.NewTCPAck(srcPort, tcp.Sequence, tcp.Acknowledgment)
+								tcp := p.NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
 								ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 								tcp.CalculateChecksum(ipv4)
 
@@ -282,9 +284,9 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 	return nil
 }
 
-func (dnw *debugNetworkInterface) SendHTTPget(srcPort uint16, srcIPAddr uint32, dstIPAddr uint32, firsthopMACAddr [6]byte, prevSequence uint32, prevAcknowledgment uint32) error {
+func (dnw *debugNetworkInterface) SendHTTPget(srcPort, dstPort uint16, srcIPAddr uint32, dstIPAddr uint32, firsthopMACAddr [6]byte, prevSequence uint32, prevAcknowledgment uint32) error {
 	http := p.NewHTTP()
-	tcp := p.NewTCPWithData(srcPort, http.Bytes(), prevSequence, prevAcknowledgment)
+	tcp := p.NewTCPWithData(srcPort, dstPort, http.Bytes(), prevSequence, prevAcknowledgment)
 	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 	tcp.CalculateChecksum(ipv4)
 

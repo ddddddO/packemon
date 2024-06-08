@@ -74,7 +74,9 @@ func (dnw *debugNetworkInterface) SendDNSquery(firsthopMACAddr [6]byte) error {
 }
 
 func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
-	tcp := p.NewTCPSyn()
+	var srcPort uint16 = 0x9e96
+
+	tcp := p.NewTCPSyn(srcPort)
 	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
 	// 「「チェックサム」フィールド：16bit幅」
@@ -105,7 +107,9 @@ func (dnw *debugNetworkInterface) SendTCPsyn(firsthopMACAddr [6]byte) error {
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) error {
-	tcp := p.NewTCPSyn()
+	var srcPort uint16 = 0x9e98
+
+	tcp := p.NewTCPSyn(srcPort)
 	// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
@@ -187,13 +191,13 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 						tcp := p.ParsedTCP(ipv4.Data)
 
 						switch tcp.DstPort {
-						case 0x9e96: // synパケットの送信元ポート
+						case srcPort: // synパケットの送信元ポート
 							if tcp.Flags == p.TCP_FLAGS_SYN_ACK {
 								log.Println("passive TCP_FLAGS_SYN_ACK")
 								// log.Printf("%+v\n", tcp)
 
 								// syn/ackを受け取ったのでack送信
-								tcp := p.NewTCPAck(tcp.Sequence, tcp.Acknowledgment)
+								tcp := p.NewTCPAck(srcPort, tcp.Sequence, tcp.Acknowledgment)
 								ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
 								// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 								// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
@@ -225,7 +229,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 									return err
 								}
 
-								if err := dnw.SendHTTPget(firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
+								if err := dnw.SendHTTPget(srcPort, firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
 									return err
 								}
 								continue
@@ -251,7 +255,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 
 									// そのackを返す
 									log.Printf("Length of http resp: %d\n", resp.Len())
-									tcp := p.NewTCPAckForHTTPresp(tcp.Sequence, tcp.Acknowledgment, resp.Len())
+									tcp := p.NewTCPAckForHTTPresp(srcPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
 									ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
 									// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xa32b661d) // 163.43.102.29 = tools.m-bsys.com こちらで、ack返ってきた
 									// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
@@ -282,7 +286,43 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 									if err := dnw.Send(ethernetFrame); err != nil {
 										return err
 									}
+
+									// 続けてFinAck
+									tcp = p.NewTCPFinAck(srcPort, tcp.Sequence, tcp.Acknowledgment)
+									ipv4 = NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
+									tcp.Checksum = func() uint16 {
+										pseudoTCPHeader := func() []byte {
+											buf := &bytes.Buffer{}
+											packemon.WriteUint32(buf, ipv4.SrcAddr)
+											packemon.WriteUint32(buf, ipv4.DstAddr)
+											padding := byte(0x00)
+											buf.WriteByte(padding)
+											buf.WriteByte(ipv4.Protocol)
+											packemon.WriteUint16(buf, uint16(len(tcp.Bytes())))
+											return buf.Bytes()
+										}()
+
+										forTCPChecksum := &bytes.Buffer{}
+										forTCPChecksum.Write(pseudoTCPHeader)
+										forTCPChecksum.Write(tcp.Bytes())
+										return binary.BigEndian.Uint16(tcp.CheckSum(forTCPChecksum.Bytes()))
+									}()
+									ipv4.Data = tcp.Bytes()
+									ipv4.CalculateTotalLength()
+									ipv4.CalculateChecksum()
+									dst = p.HardwareAddr(firsthopMACAddr)
+									src = p.HardwareAddr(dnw.Intf.HardwareAddr)
+									ethernetFrame = p.NewEthernetFrame(dst, src, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+									if err := dnw.Send(ethernetFrame); err != nil {
+										return err
+									}
 								}
+								continue
+							}
+
+							if tcp.Flags == p.TCP_FLAGS_FIN_ACK {
+								log.Println("passive TCP_FLAGS_FIN_ACK")
+								return nil
 							}
 
 							// dnw.PassiveCh <- &p.Passive{
@@ -308,9 +348,9 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 	return nil
 }
 
-func (dnw *debugNetworkInterface) SendHTTPget(firsthopMACAddr [6]byte, prevSequence uint32, prevAcknowledgment uint32) error {
+func (dnw *debugNetworkInterface) SendHTTPget(srcPort uint16, firsthopMACAddr [6]byte, prevSequence uint32, prevAcknowledgment uint32) error {
 	http := p.NewHTTP()
-	tcp := p.NewTCPWithData(http.Bytes(), prevSequence, prevAcknowledgment)
+	tcp := p.NewTCPWithData(srcPort, http.Bytes(), prevSequence, prevAcknowledgment)
 	ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0xc0a80a6e) // raspberry pi
 	// ipv4 := NewIPv4(p.IPv4_PROTO_TCP, 0x88bb0609) // 136.187.6.9 = research.nii.ac.jp
 	// https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html

@@ -112,7 +112,8 @@ func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface,
 		case "tcp-3way-http":
 			return debugNetIf.SendTCP3wayhandshake(dstMacAddr)
 		case "http":
-			return debugNetIf.SendHTTPget(dstMacAddr, 0x00000000, 0x00000000)
+			var srcPort uint16 = 0x9e98
+			return debugNetIf.SendHTTPget(srcPort, dstMacAddr, 0x00000000, 0x00000000)
 		default:
 			return errors.New("not supported protocol")
 		}

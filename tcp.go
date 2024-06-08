@@ -10,6 +10,7 @@ const (
 	TCP_FLAGS_SYN         = 0x0020
 	TCP_FLAGS_SYN_ACK     = 0x0120
 	TCP_FLAGS_ACK         = 0x0100
+	TCP_FLAGS_FIN_ACK     = 0x0110
 	TCP_FLAGS_PSH_ACK     = 0x0180 // データを上位層へ渡してという信号
 	TCP_FLAGS_FIN_PSH_ACK = 0x0190
 )
@@ -56,9 +57,9 @@ func ParsedTCP(payload []byte) *TCP {
 }
 
 // tcpパケット単発で連続で送るときは port/sequence 変えること
-func NewTCPSyn() *TCP {
+func NewTCPSyn(srcPort uint16) *TCP {
 	return &TCP{
-		SrcPort:        0x9e96,
+		SrcPort:        srcPort,
 		DstPort:        0x0050, // 80
 		Sequence:       0x091f58c7,
 		Acknowledgment: 0x00000000,
@@ -72,9 +73,9 @@ func NewTCPSyn() *TCP {
 }
 
 // tcpパケット連続で送るときは port 変えること
-func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
+func NewTCPAck(srcPort uint16, prevSequence uint32, prevAcknowledgment uint32) *TCP {
 	return &TCP{
-		SrcPort:        0x9e96,
+		SrcPort:        srcPort,
 		DstPort:        0x0050,                    // 80
 		Sequence:       prevAcknowledgment,        // ok
 		Acknowledgment: prevSequence + 0x00000001, // ok
@@ -88,9 +89,9 @@ func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
 }
 
 // tcpパケット連続で送るときは port 変えること
-func NewTCPWithData(data []byte, prevSequence uint32, prevAcknowledgment uint32) *TCP {
+func NewTCPWithData(srcPort uint16, data []byte, prevSequence uint32, prevAcknowledgment uint32) *TCP {
 	return &TCP{
-		SrcPort:        0x9e96,
+		SrcPort:        srcPort,
 		DstPort:        0x0050, // 80
 		Sequence:       prevSequence,
 		Acknowledgment: prevAcknowledgment,
@@ -105,14 +106,30 @@ func NewTCPWithData(data []byte, prevSequence uint32, prevAcknowledgment uint32)
 }
 
 // tcpパケット連続で送るときは port 変えること
-func NewTCPAckForHTTPresp(prevSequence uint32, prevAcknowledgment uint32, tcpPayloadLength int) *TCP {
+func NewTCPAckForHTTPresp(srcPort uint16, prevSequence uint32, prevAcknowledgment uint32, tcpPayloadLength int) *TCP {
 	return &TCP{
-		SrcPort:        0x9e96,
+		SrcPort:        srcPort,
 		DstPort:        0x0050,                                  // 80
 		Sequence:       prevAcknowledgment,                      // ok
 		Acknowledgment: prevSequence + uint32(tcpPayloadLength), // ok
 		HeaderLength:   0x0050,
 		Flags:          0x010, // ack
+		Window:         0x01f6,
+		Checksum:       0x0000,
+		UrgentPointer:  0x0000,
+		// Options:        OptionsOfAck(),
+	}
+}
+
+// tcpパケット連続で送るときは port 変えること
+func NewTCPFinAck(srcPort uint16, prevSequence uint32, prevAcknowledgment uint32) *TCP {
+	return &TCP{
+		SrcPort:        srcPort,
+		DstPort:        0x0050,             // 80
+		Sequence:       prevSequence,       // ok
+		Acknowledgment: prevAcknowledgment, // ok
+		HeaderLength:   0x0050,
+		Flags:          0x011, // fin/ack
 		Window:         0x01f6,
 		Checksum:       0x0000,
 		UrgentPointer:  0x0000,

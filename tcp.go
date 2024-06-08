@@ -45,19 +45,20 @@ func ParsedTCP(payload []byte) *TCP {
 
 	// Wiresharkとpackemonのパケット詳細見比べるに、
 	// ( tcpヘッダーのheader lengthを10進数に変換した値 / 4 ) - 20 = options のbyte数 になるよう
-	optionLength := tcp.HeaderLength>>2 - 20
-	if optionLength > 0 {
-		tcp.Options = payload[20 : optionLength+20]
-	}
-	tcp.Data = payload[optionLength+20:]
+	// optionLength := tcp.HeaderLength>>2 - 20
+	// if optionLength > 0 {
+	// 	tcp.Options = payload[20 : optionLength+20]
+	// }
+	// tcp.Data = payload[optionLength+20:]
 
+	tcp.Data = payload[20:]
 	return tcp
 }
 
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPSyn() *TCP {
 	return &TCP{
-		SrcPort:        0x9e83,
+		SrcPort:        0x9e96,
 		DstPort:        0x0050, // 80
 		Sequence:       0x091f58c7,
 		Acknowledgment: 0x00000000,
@@ -73,7 +74,7 @@ func NewTCPSyn() *TCP {
 // tcpパケット連続で送るときは port 変えること
 func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
 	return &TCP{
-		SrcPort:        0x9e83,
+		SrcPort:        0x9e96,
 		DstPort:        0x0050,                    // 80
 		Sequence:       prevAcknowledgment,        // ok
 		Acknowledgment: prevSequence + 0x00000001, // ok
@@ -89,7 +90,7 @@ func NewTCPAck(prevSequence uint32, prevAcknowledgment uint32) *TCP {
 // tcpパケット連続で送るときは port 変えること
 func NewTCPWithData(data []byte, prevSequence uint32, prevAcknowledgment uint32) *TCP {
 	return &TCP{
-		SrcPort:        0x9e83,
+		SrcPort:        0x9e96,
 		DstPort:        0x0050, // 80
 		Sequence:       prevSequence,
 		Acknowledgment: prevAcknowledgment,
@@ -100,6 +101,22 @@ func NewTCPWithData(data []byte, prevSequence uint32, prevAcknowledgment uint32)
 		UrgentPointer:  0x0000,
 		// Options:       OptionsOfhttp(),
 		Data: data,
+	}
+}
+
+// tcpパケット連続で送るときは port 変えること
+func NewTCPAckForHTTPresp(prevSequence uint32, prevAcknowledgment uint32, tcpPayloadLength int) *TCP {
+	return &TCP{
+		SrcPort:        0x9e96,
+		DstPort:        0x0050,                                  // 80
+		Sequence:       prevAcknowledgment,                      // ok
+		Acknowledgment: prevSequence + uint32(tcpPayloadLength), // ok
+		HeaderLength:   0x0050,
+		Flags:          0x010, // ack
+		Window:         0x01f6,
+		Checksum:       0x0000,
+		UrgentPointer:  0x0000,
+		// Options:        OptionsOfAck(),
 	}
 }
 

@@ -3,6 +3,8 @@ package packemon
 import (
 	"bytes"
 	"fmt"
+	"log"
+	"strconv"
 	"strings"
 )
 
@@ -75,20 +77,70 @@ func (h *HTTP) Bytes() []byte {
 
 type HTTPResponse struct {
 	StatusLine string
-	Header     string
+	Header     *HTTPResponseHeader
 	Body       string
+
+	len int
+}
+
+type HTTPResponseHeader struct {
+	Date          string
+	ContentLength int
+	ContentType   string
 }
 
 func ParsedHTTPResponse(payload []byte) *HTTPResponse {
-	lineLength := bytes.Index(payload, []byte{0x0d, 0x0a}) // "\r\n"
+	sep := []byte{0x0d, 0x0a} // "\r\n"
 
-	line := payload[0 : lineLength+1]
-	split := bytes.Split(line, []byte{0x20}) // 半角スペース
-	if len(split) < 3 {
-		return nil
+	statusLine := ""
+	header := &HTTPResponseHeader{}
+	length := bytes.Count(payload, sep) * 2
+	split := bytes.Split(payload, sep)
+	for i, s := range split {
+		// ここでやると、recievedで確保した余分な要素分入ってくる
+		// length += len(s)
+
+		if i == 0 {
+			statusLine = string(s)
+			length += len(s)
+			continue
+		}
+		if bytes.Contains(s, []byte("Date: ")) {
+			length += len(s)
+			header.Date = string(bytes.TrimPrefix(s, []byte("Date: ")))
+			continue
+		}
+		if bytes.Contains(s, []byte("Content-Length: ")) {
+			length += len(s)
+
+			var err error
+			header.ContentLength, err = strconv.Atoi(string(bytes.TrimPrefix(s, []byte("Content-Length: "))))
+			if err != nil {
+				log.Printf("failed to Atoi: %s\n", err)
+			}
+			continue
+		}
+		if bytes.Contains(s, []byte("Content-Type: ")) {
+			length += len(s)
+			header.ContentType = string(bytes.TrimPrefix(s, []byte("Content-Type: ")))
+			continue
+		}
+
+		log.Printf("not suported header: %s, len: %d\n", string(s), len(bytes.TrimSpace(s)))
 	}
+	b := bytes.SplitAfter(payload, append(sep, sep...))
+	body := string(b[len(b)-1][0:header.ContentLength])
+	length += header.ContentLength
 
 	return &HTTPResponse{
-		StatusLine: fmt.Sprintf("%s %s %s", string(split[0]), string(split[1]), string(split[2])),
+		StatusLine: statusLine,
+		Header:     header,
+		Body:       body,
+
+		len: length,
 	}
+}
+
+func (h *HTTPResponse) Len() int {
+	return h.len
 }

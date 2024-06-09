@@ -88,12 +88,6 @@ func (nw *NetworkInterface) Send(ethernetFrame *EthernetFrame) error {
 	return unix.Sendto(nw.Socket, ethernetFrame.Bytes(), 0, &nw.SocketAddr)
 }
 
-func (nw *NetworkInterface) SendTCPPayloadWithEstablishConnection() error {
-	// TODO: debugNetworkInterface の SendTCP3wayhandshake をベースに
-	// L7用のコールバックを渡すようにするとイイかも。引数にtcpのシーケンスと確認応答の番号、返り値にEthernetFrameな感じで。引数はもう少し必要なものあるかな
-	return nil
-}
-
 func (nw *NetworkInterface) Recieve() error {
 	epollfd, err := unix.EpollCreate1(0)
 	if err != nil {

@@ -2,12 +2,31 @@ package tui
 
 import (
 	"encoding/binary"
+	"os"
 
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
 )
 
-func (t *tui) httpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, tcp *packemon.TCP, http *packemon.HTTP) *tview.Form {
+// var threeWayHandshakeDescription = "When 3-way handshake for TCP is enabled, only \n\n  - HTTP section\n  - TCP Destination Port\n  - IPv4 Destination IP Addr\n\nare reflected as input."
+
+var threeWayHandshakeDescription = "" +
+	"When 3-way handshake for TCP is enabled, only" + "\n\n" +
+	"  HTTP" + "\n" +
+	"    - All" + "\n" +
+	"  TCP" + "\n" +
+	"    - Source Port" + "\n" +
+	"    - Destination Port" + "\n" +
+	"  IPv4" + "\n" +
+	"    - Source IP Addr" + "\n" +
+	"    - Destination IP Addr" + "\n" +
+	"  Ethernet" + "\n" +
+	"    - Destination MAC Addr" + "\n" +
+	"    - Source MAC Addr" + "\n" +
+	"\n" +
+	"are reflected as input."
+
+func (t *tui) httpForm(stop <-chan os.Signal, sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, tcp *packemon.TCP, http *packemon.HTTP) *tview.Form {
 	do3wayHandshake := false
 
 	httpForm := tview.NewForm().
@@ -15,7 +34,7 @@ func (t *tui) httpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 		AddCheckbox("Do 3way handshake ?", do3wayHandshake, func(checked bool) {
 			do3wayHandshake = checked
 		}).
-		AddTextView("", "When 3-way handshake for TCP is enabled, only \n\n  - HTTP section\n  - TCP Destination Port\n  - IPv4 Destination IP Addr\n\nare reflected as input.", 60, 7, true, true).
+		AddTextView("", threeWayHandshakeDescription, 60, 15, true, true).
 		AddInputField("Method", DEFAULT_HTTP_METHOD, 10, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) <= 10 {
 				http.Method = textToCheck
@@ -65,16 +84,30 @@ func (t *tui) httpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 			if do3wayHandshake {
 				dstIPAddr := make([]byte, 4)
 				binary.BigEndian.PutUint32(dstIPAddr, ipv4.DstAddr)
-				if err := packemon.EstablishConnectionAndSendPayload(
-					DEFAULT_NW_INTERFACE,
-					dstIPAddr,
-					tcp.DstPort,
-					// []byte{0xc0, 0xa8, 0x0a, 0x6e},
-					// 0x0050,
-					http.Bytes(),
-				); err != nil {
-					t.addErrPage(err)
-				}
+				// if err := packemon.EstablishConnectionAndSendPayload(
+				// 	DEFAULT_NW_INTERFACE,
+				// 	dstIPAddr,
+				// 	tcp.DstPort,
+				// 	// []byte{0xc0, 0xa8, 0x0a, 0x6e},
+				// 	// 0x0050,
+				// 	http.Bytes(),
+				// ); err != nil {
+				// 	t.addErrPage(err)
+				// }
+
+				go func() {
+					if err := packemon.EstablishConnectionAndSendPayloadXxx(
+						stop,
+						DEFAULT_NW_INTERFACE,
+						ethernetHeader,
+						ipv4,
+						tcp,
+						http,
+					); err != nil {
+						t.addErrPage(err)
+					}
+				}()
+
 				return
 			}
 

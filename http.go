@@ -126,7 +126,7 @@ func ParsedHTTPResponse(payload []byte) *HTTPResponse {
 			continue
 		}
 
-		log.Printf("not suported header: %s, len: %d\n", string(s), len(bytes.TrimSpace(s)))
+		// log.Printf("not suported header: %s, len: %d\n", string(s), len(bytes.TrimSpace(s)))
 	}
 	b := bytes.SplitAfter(payload, append(sep, sep...))
 	body := string(b[len(b)-1][0:header.ContentLength])

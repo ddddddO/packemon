@@ -3,6 +3,9 @@ package packemon
 import (
 	"bytes"
 	"encoding/binary"
+	"os"
+
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -171,8 +174,204 @@ func EstablishConnectionAndSendPayload(nwInterface string, dstIPAddr []byte, dst
 	return nil
 }
 
-// TODO: debugNetworkInterface の SendTCP3wayhandshake をベースに。上の関数はOSが良しなに3way handshakeしてくれるやつ
-// L7用のコールバックを渡すようにするとイイかも。引数にtcpのシーケンスと確認応答の番号、返り値にEthernetFrameな感じで。引数はもう少し必要なものあるかな
-func EstablishConnectionAndSendPayloadXxx() error {
-	return nil
+// このなかで、ログ出力などしないこと。Monitor の下に出てくる
+// 挙動を詳細に確認する場合は、internal内の SendTCP3wayhandshake 関数でやること
+// TODO: 対向からRST,RST/ACKが来た時にreturnするようにする
+// TODO: http専用になっちゃってるから、他のプロトコルでも使えるよう汎用的にする
+func EstablishConnectionAndSendPayloadXxx(stop <-chan os.Signal, nwInterface string, fEthrh *EthernetHeader, fIpv4 *IPv4, fTcp *TCP, fHttp *HTTP) error {
+	nw, err := NewNetworkInterface(nwInterface)
+	if err != nil {
+		return err
+	}
+
+	var srcPort uint16 = fTcp.SrcPort
+	var dstPort uint16 = fTcp.DstPort
+	var srcIPAddr uint32 = fIpv4.SrcAddr
+	var dstIPAddr uint32 = fIpv4.DstAddr
+	dstMACAddr := fEthrh.Dst
+	srcMACAddr := fEthrh.Src
+
+	tcp := NewTCPSyn(srcPort, dstPort)
+	ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+	tcp.CalculateChecksum(ipv4)
+
+	ipv4.Data = tcp.Bytes()
+	ipv4.CalculateTotalLength()
+	ipv4.CalculateChecksum()
+
+	ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+	if err := nw.Send(ethernetFrame); err != nil {
+		return err
+	}
+
+	epollfd, err := unix.EpollCreate1(0)
+	if err != nil {
+		return err
+	}
+
+	if err := unix.EpollCtl(
+		epollfd,
+		unix.EPOLL_CTL_ADD,
+		nw.Socket,
+		&unix.EpollEvent{
+			Events: unix.EPOLLIN,
+			Fd:     int32(nw.Socket),
+		},
+	); err != nil {
+		return err
+	}
+
+	events := make([]unix.EpollEvent, 10)
+	for {
+		select {
+		case <-stop:
+			return nil
+
+		default:
+			fds, err := unix.EpollWait(epollfd, events, -1)
+			if err != nil {
+				return err
+			}
+
+			for i := 0; i < fds; i++ {
+				select {
+				case <-stop:
+					return nil
+				default:
+					if events[i].Fd == int32(nw.Socket) {
+						recieved := make([]byte, 1500)
+						n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
+						if err != nil {
+							if n == -1 {
+								continue
+							}
+							return err
+						}
+
+						ethernetFrame := ParsedEthernetFrame(recieved)
+
+						switch ethernetFrame.Header.Typ {
+						case ETHER_TYPE_IPv4:
+							ipv4 := ParsedIPv4(ethernetFrame.Data)
+
+							switch ipv4.Protocol {
+							case IPv4_PROTO_TCP:
+								tcp := ParsedTCP(ipv4.Data)
+
+								switch tcp.DstPort {
+								case srcPort: // synパケットの送信元ポート
+									if tcp.Flags == TCP_FLAGS_SYN_ACK {
+										// log.Println("passive TCP_FLAGS_SYN_ACK")
+
+										// syn/ackを受け取ったのでack送信
+										tcp := NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+										ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+										tcp.CalculateChecksum(ipv4)
+
+										ipv4.Data = tcp.Bytes()
+										ipv4.CalculateTotalLength()
+										ipv4.CalculateChecksum()
+
+										ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+										if err := nw.Send(ethernetFrame); err != nil {
+											return err
+										}
+
+										tcp = NewTCPWithData(srcPort, dstPort, fHttp.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+										ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+										tcp.CalculateChecksum(ipv4)
+
+										ipv4.Data = tcp.Bytes()
+										ipv4.CalculateTotalLength()
+										ipv4.CalculateChecksum()
+
+										ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+										if err := nw.Send(ethernetFrame); err != nil {
+											return err
+										}
+
+										continue
+									}
+
+									if tcp.Flags == TCP_FLAGS_ACK {
+										// log.Println("passive TCP_FLAGS_ACK")
+										continue
+									}
+
+									if tcp.Flags == TCP_FLAGS_PSH_ACK {
+										lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
+										if lineLength == -1 {
+											// log.Println("-1")
+											continue
+										}
+										// log.Println("passive TCP_FLAGS_PSH_ACK")
+
+										// HTTPレスポンス受信
+										if tcp.SrcPort == PORT_HTTP {
+											resp := ParsedHTTPResponse(tcp.Data)
+											// log.Printf("%+v\n", resp)
+
+											// そのackを返す
+											// log.Printf("Length of http resp: %d\n", resp.Len())
+
+											tcp := NewTCPAckForPassiveData(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
+											ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+											tcp.CalculateChecksum(ipv4)
+
+											ipv4.Data = tcp.Bytes()
+											ipv4.CalculateTotalLength()
+											ipv4.CalculateChecksum()
+
+											ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+											if err := nw.Send(ethernetFrame); err != nil {
+												return err
+											}
+
+											// 続けてFinAck
+											tcp = NewTCPFinAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+											ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+											tcp.CalculateChecksum(ipv4)
+
+											ipv4.Data = tcp.Bytes()
+											ipv4.CalculateTotalLength()
+											ipv4.CalculateChecksum()
+
+											ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+											if err := nw.Send(ethernetFrame); err != nil {
+												return err
+											}
+										}
+										continue
+									}
+
+									if tcp.Flags == TCP_FLAGS_FIN_ACK {
+										// log.Println("passive TCP_FLAGS_FIN_ACK")
+
+										// それにack
+										tcp := NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+										ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+										tcp.CalculateChecksum(ipv4)
+
+										ipv4.Data = tcp.Bytes()
+										ipv4.CalculateTotalLength()
+										ipv4.CalculateChecksum()
+
+										ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+										if err := nw.Send(ethernetFrame); err != nil {
+											return err
+										}
+										return nil
+									}
+
+									continue
+								default:
+									// noop
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }

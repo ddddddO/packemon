@@ -4,12 +4,20 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log"
+	"net"
 	"os"
+	"os/signal"
 	"strings"
 
+	"github.com/cilium/ebpf"
+	"github.com/cilium/ebpf/rlimit"
 	"github.com/ddddddO/packemon"
 	"github.com/ddddddO/packemon/internal/debugging"
 	"github.com/ddddddO/packemon/internal/tui"
+	"github.com/vishvananda/netlink"
+
+	"golang.org/x/sys/unix"
 )
 
 const DEFAULT_TARGET_NW_INTERFACE = "eth0"
@@ -25,13 +33,94 @@ func main() {
 	flag.StringVar(&protocol, "proto", "", "Specify either 'arp', 'icmp', 'tcp', 'dns' or 'http'.")
 	flag.Parse()
 
-	if err := run(nwInterface, wantSend, debug, protocol); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	if wantSend {
+		// Generator で3way handshake する際に、カーネルが自動でRSTパケットを送ってたため、ドロップするため
+		ebpfProg, qdisc, err := prepareDropingRSTPacket(nwInterface)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+		defer func() {
+			ebpfProg.Close()
+			// 以下で消しておかないと、再起動やtcコマンド使わない限り、RSTパケットがカーネルから送信されない状態になる
+			if err := netlink.QdiscDel(qdisc); err != nil {
+				log.Printf("Failed to QdiscDel. Please PC reboot... Error: %s\n", err)
+			}
+		}()
 	}
+
+	stop := make(chan os.Signal, 5)
+	signal.Notify(stop, os.Interrupt)
+	// 以下でもctl-cしないといけない
+	go run(stop, nwInterface, wantSend, debug, protocol)
+	<-stop
+	log.Print("Received signal, exiting...")
 }
 
-func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
+func prepareDropingRSTPacket(nwInterface string) (*egress_packetObjects, *netlink.GenericQdisc, error) {
+	// Remove resource limits for kernels <5.11.
+	if err := rlimit.RemoveMemlock(); err != nil {
+		return nil, nil, fmt.Errorf("removing memlock: %w", err)
+	}
+
+	// Load the compiled eBPF ELF and load it into the kernel.
+	var objs egress_packetObjects
+	if err := loadEgress_packetObjects(&objs, nil); err != nil {
+		return nil, nil, fmt.Errorf("loading eBPF objects: %w", err)
+	}
+
+	qdisc, err := attachFilter(nwInterface, objs.egress_packetPrograms.ControlEgress)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to attach: %w", err)
+	}
+
+	return &objs, qdisc, nil
+}
+
+// https://github.com/fedepaol/tc-return/blob/main/main.go
+func attachFilter(attachTo string, program *ebpf.Program) (*netlink.GenericQdisc, error) {
+	devID, err := net.InterfaceByName(attachTo)
+	if err != nil {
+		return nil, fmt.Errorf("could not get interface ID: %w", err)
+	}
+
+	qdisc := &netlink.GenericQdisc{
+		QdiscAttrs: netlink.QdiscAttrs{
+			LinkIndex: devID.Index,
+			Handle:    netlink.MakeHandle(0xffff, 0),
+			Parent:    netlink.HANDLE_CLSACT,
+		},
+		QdiscType: "clsact",
+	}
+
+	err = netlink.QdiscReplace(qdisc)
+	if err != nil {
+		return nil, fmt.Errorf("could not get replace qdisc: %w", err)
+	}
+
+	filter := &netlink.BpfFilter{
+		FilterAttrs: netlink.FilterAttrs{
+			LinkIndex: devID.Index,
+			Parent:    netlink.HANDLE_MIN_EGRESS,
+			Handle:    1,
+			Protocol:  unix.ETH_P_ALL,
+		},
+		Fd:           program.FD(),
+		Name:         program.String(),
+		DirectAction: true,
+	}
+
+	if err := netlink.FilterReplace(filter); err != nil {
+		return nil, fmt.Errorf("failed to replace tc filter: %w", err)
+	}
+
+	return qdisc, nil
+}
+
+func run(stop <-chan os.Signal, nwInterface string, wantSend bool, debug bool, protocol string) error {
+	// packemonを終了した後でsignal飛ばしてもらって終了させてもらう、一旦
+	fmt.Println("Terminate packemon <Monitor> with ctl-c.")
+
 	netIf, err := packemon.NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
@@ -40,8 +129,6 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 
 	tui.DEFAULT_MAC_SOURCE = fmt.Sprintf("0x%s", strings.ReplaceAll(netIf.Intf.HardwareAddr.String(), ":", ""))
 	tui.DEFAULT_ARP_SENDER_MAC = tui.DEFAULT_MAC_SOURCE
-
-	fmt.Printf("Monitor interface: %v\n", netIf.Intf)
 
 	ipAddr, err := netIf.Intf.Addrs()
 	if err != nil {
@@ -68,31 +155,33 @@ func run(nwInterface string, wantSend bool, debug bool, protocol string) error {
 		}
 
 		// Monitor の debug は本チャンの networkinterface.go 使うようにする
-		go netIf.Recieve()
-		return debugPrint(netIf.PassiveCh)
+		go netIf.Recieve(stop)
+		return debugPrint(stop, netIf.PassiveCh)
 	}
 
 	if wantSend {
 		tui.DEFAULT_NW_INTERFACE = nwInterface
 		tui := tui.NewTUI(wantSend)
-		return tui.Generator(netIf.Send)
+		return tui.Generator(stop, netIf.Send)
 	} else {
 		tui := tui.NewTUI(wantSend)
-		go netIf.Recieve()
+		go netIf.Recieve(stop)
 		return tui.Monitor(netIf.PassiveCh)
 	}
 }
 
-func debugPrint(passive <-chan *packemon.Passive) error {
-	for p := range passive {
-		if p.HighLayerProto() == "IPv6" {
-			fmt.Println("Passive!")
-			fmt.Printf("%x\n", p.IPv6)
+func debugPrint(stop <-chan os.Signal, passive <-chan *packemon.Passive) error {
+	for {
+		select {
+		case <-stop:
+			return nil
+		case p := <-passive:
+			if p.HighLayerProto() == "IPv6" {
+				fmt.Println("Passive!")
+				fmt.Printf("%x\n", p.IPv6)
+			}
 		}
-
 	}
-
-	return nil
 }
 
 func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface, dstMacAddr [6]byte) error {

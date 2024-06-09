@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"net"
+	"os"
 	"strings"
 
 	"golang.org/x/sys/unix"
@@ -88,7 +89,7 @@ func (nw *NetworkInterface) Send(ethernetFrame *EthernetFrame) error {
 	return unix.Sendto(nw.Socket, ethernetFrame.Bytes(), 0, &nw.SocketAddr)
 }
 
-func (nw *NetworkInterface) Recieve() error {
+func (nw *NetworkInterface) Recieve(stop <-chan os.Signal) error {
 	epollfd, err := unix.EpollCreate1(0)
 	if err != nil {
 		return err
@@ -108,28 +109,36 @@ func (nw *NetworkInterface) Recieve() error {
 
 	events := make([]unix.EpollEvent, 10)
 	for {
-		fds, err := unix.EpollWait(epollfd, events, -1)
-		if err != nil {
-			return err
-		}
+		select {
+		case <-stop:
+			return nil
+		default:
+			fds, err := unix.EpollWait(epollfd, events, -1)
+			if err != nil {
+				return err
+			}
 
-		for i := 0; i < fds; i++ {
-			if events[i].Fd == int32(nw.Socket) {
-				recieved := make([]byte, 1500)
-				n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
-				if err != nil {
-					if n == -1 {
-						continue
+			for i := 0; i < fds; i++ {
+				select {
+				case <-stop:
+					return nil
+				default:
+					if events[i].Fd == int32(nw.Socket) {
+						recieved := make([]byte, 1500)
+						n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
+						if err != nil {
+							if n == -1 {
+								continue
+							}
+							return err
+						}
+
+						nw.PassiveCh <- ParsedPacket(recieved)
 					}
-					return err
 				}
-
-				nw.PassiveCh <- ParsedPacket(recieved)
 			}
 		}
 	}
-
-	return nil
 }
 
 func (nw *NetworkInterface) Close() error {

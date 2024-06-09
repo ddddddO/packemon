@@ -29,9 +29,6 @@ type HistoryRow struct {
 	sourceMAC      *tview.TableCell
 	typ            *tview.TableCell
 
-	// arp
-
-	// ipv4
 	protocol          *tview.TableCell
 	sourceIPAddr      *tview.TableCell
 	destinationIPAddr *tview.TableCell
@@ -46,10 +43,11 @@ func (t *tui) insertToTable(r *HistoryRow) {
 	t.table.SetCell(0, 2, r.sourceMAC)
 	t.table.SetCell(0, 3, r.typ)
 
-	// ipv4
 	t.table.SetCell(0, 4, r.protocol)
 	t.table.SetCell(0, 5, r.destinationIPAddr)
 	t.table.SetCell(0, 6, r.sourceIPAddr)
+
+	t.table.ScrollToBeginning()
 }
 
 func (t *tui) updateTable(passiveCh <-chan *packemon.Passive) {

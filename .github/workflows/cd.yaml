@@ -4,8 +4,8 @@ on:
     tags:
     - "v[0-9]+.[0-9]+.[0-9]+"
     # デバッグ用
-    branches:
-    - drop_rst
+    # branches:
+    # - drop_rst
 
 
 env:

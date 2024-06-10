@@ -119,7 +119,7 @@ func attachFilter(attachTo string, program *ebpf.Program) (*netlink.GenericQdisc
 
 func run(stop <-chan os.Signal, nwInterface string, wantSend bool, debug bool, protocol string) error {
 	// packemonを終了した後でsignal飛ばしてもらって終了させてもらう、一旦
-	fmt.Println("Terminate packemon <Monitor> with ctl-c.")
+	fmt.Println("Terminate packemon with ctl-c.")
 
 	netIf, err := packemon.NewNetworkInterface(nwInterface)
 	if err != nil {

@@ -97,6 +97,7 @@ $ apk add --allow-untrusted packemon.apk
 ## Related tools
 - netcat
 - [Nmap](https://nmap.org/)
+- [Scapy](https://github.com/secdev/scapy)
 
 ## Acknowledgment
 - [rivo/tview](https://github.com/rivo/tview)

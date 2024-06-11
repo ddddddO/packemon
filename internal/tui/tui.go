@@ -1,7 +1,7 @@
 package tui
 
 import (
-	"os"
+	"context"
 	"sync"
 
 	"github.com/ddddddO/packemon"
@@ -58,8 +58,8 @@ func newMonitor() *tui {
 	}
 }
 
-func (t *tui) Generator(stop <-chan os.Signal, sendFn func(*packemon.EthernetFrame) error) error {
-	if err := t.form(stop, sendFn); err != nil {
+func (t *tui) Generator(ctx context.Context, sendFn func(*packemon.EthernetFrame) error) error {
+	if err := t.form(ctx, sendFn); err != nil {
 		return err
 	}
 	return t.app.SetRoot(t.grid, true).EnableMouse(true).SetFocus(t.grid).Run()

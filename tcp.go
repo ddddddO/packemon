@@ -2,8 +2,8 @@ package packemon
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
-	"os"
 
 	"golang.org/x/sys/unix"
 )
@@ -178,7 +178,7 @@ func EstablishConnectionAndSendPayload(nwInterface string, dstIPAddr []byte, dst
 // 挙動を詳細に確認する場合は、internal内の SendTCP3wayhandshake 関数でやること
 // TODO: 対向からRST,RST/ACKが来た時にreturnするようにする
 // TODO: http専用になっちゃってるから、他のプロトコルでも使えるよう汎用的にする
-func EstablishConnectionAndSendPayloadXxx(stop <-chan os.Signal, nwInterface string, fEthrh *EthernetHeader, fIpv4 *IPv4, fTcp *TCP, fHttp *HTTP) error {
+func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv4 *IPv4, fTcp *TCP, fHttp *HTTP) error {
 	nw, err := NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
@@ -206,7 +206,7 @@ func EstablishConnectionAndSendPayloadXxx(stop <-chan os.Signal, nwInterface str
 
 	for {
 		select {
-		case <-stop:
+		case <-ctx.Done():
 			return nil
 
 		default:

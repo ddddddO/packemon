@@ -1,10 +1,10 @@
 package packemon
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"net"
-	"os"
 	"strings"
 
 	"golang.org/x/sys/unix"
@@ -89,10 +89,10 @@ func (nw *NetworkInterface) Send(ethernetFrame *EthernetFrame) error {
 	return unix.Sendto(nw.Socket, ethernetFrame.Bytes(), 0, &nw.SocketAddr)
 }
 
-func (nw *NetworkInterface) Recieve(stop <-chan os.Signal) error {
+func (nw *NetworkInterface) Recieve(ctx context.Context) error {
 	for {
 		select {
-		case <-stop:
+		case <-ctx.Done():
 			return nil
 		default:
 			recieved := make([]byte, 1500)

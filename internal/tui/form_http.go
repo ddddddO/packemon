@@ -1,8 +1,8 @@
 package tui
 
 import (
+	"context"
 	"encoding/binary"
-	"os"
 
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
@@ -26,7 +26,7 @@ var threeWayHandshakeDescription = "" +
 	"\n" +
 	"are reflected as input."
 
-func (t *tui) httpForm(stop <-chan os.Signal, sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, tcp *packemon.TCP, http *packemon.HTTP) *tview.Form {
+func (t *tui) httpForm(ctx context.Context, sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, tcp *packemon.TCP, http *packemon.HTTP) *tview.Form {
 	do3wayHandshake := false
 
 	httpForm := tview.NewForm().
@@ -97,7 +97,7 @@ func (t *tui) httpForm(stop <-chan os.Signal, sendFn func(*packemon.EthernetFram
 
 				go func() {
 					if err := packemon.EstablishConnectionAndSendPayloadXxx(
-						stop,
+						ctx,
 						DEFAULT_NW_INTERFACE,
 						ethernetHeader,
 						ipv4,

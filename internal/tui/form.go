@@ -1,8 +1,8 @@
 package tui
 
 import (
+	"context"
 	"encoding/binary"
-	"os"
 	"strconv"
 	"strings"
 
@@ -69,14 +69,14 @@ var (
 
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
 // とすると、高レイヤーの入力から埋めて進めていくようにしないといけなさそう. ユーザーが選べるようにするのがいいかも
-func (t *tui) form(stop <-chan os.Signal, sendFn func(*packemon.EthernetFrame) error) error {
+func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) error) error {
 	d, err := defaultPackets()
 	if err != nil {
 		return err
 	}
 	ethernetHeader, arp, ipv4, icmp, udp, tcp, dns, http := d.e, d.a, d.ip, d.ic, d.u, d.t, d.d, d.h
 
-	httpForm := t.httpForm(stop, sendFn, ethernetHeader, ipv4, tcp, http)
+	httpForm := t.httpForm(ctx, sendFn, ethernetHeader, ipv4, tcp, http)
 	httpForm.SetBorder(true).SetTitle(" HTTP ").SetTitleAlign(tview.AlignLeft)
 	dnsForm := t.dnsForm(sendFn, ethernetHeader, ipv4, udp, dns)
 	dnsForm.SetBorder(true).SetTitle(" DNS ").SetTitleAlign(tview.AlignLeft)

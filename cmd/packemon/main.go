@@ -1,13 +1,13 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"net"
 	"os"
-	"os/signal"
 	"strings"
 
 	"github.com/cilium/ebpf"
@@ -49,12 +49,13 @@ func main() {
 		}()
 	}
 
-	stop := make(chan os.Signal, 5)
-	signal.Notify(stop, os.Interrupt)
-	// 以下でもctl-cしないといけない
-	go run(stop, nwInterface, wantSend, debug, protocol)
-	<-stop
-	log.Print("Received signal, exiting...")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := run(ctx, nwInterface, wantSend, debug, protocol); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return
+	}
 }
 
 func prepareDropingRSTPacket(nwInterface string) (*egress_packetObjects, *netlink.GenericQdisc, error) {
@@ -117,10 +118,7 @@ func attachFilter(attachTo string, program *ebpf.Program) (*netlink.GenericQdisc
 	return qdisc, nil
 }
 
-func run(stop <-chan os.Signal, nwInterface string, wantSend bool, debug bool, protocol string) error {
-	// packemonを終了した後でsignal飛ばしてもらって終了させてもらう、一旦
-	fmt.Println("Terminate packemon with ctl-c.")
-
+func run(ctx context.Context, nwInterface string, wantSend bool, debug bool, protocol string) error {
 	netIf, err := packemon.NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
@@ -155,25 +153,25 @@ func run(stop <-chan os.Signal, nwInterface string, wantSend bool, debug bool, p
 		}
 
 		// Monitor の debug は本チャンの networkinterface.go 使うようにする
-		go netIf.Recieve(stop)
-		return debugPrint(stop, netIf.PassiveCh)
+		go netIf.Recieve(ctx)
+		return debugPrint(ctx, netIf.PassiveCh)
 	}
 
 	if wantSend {
 		tui.DEFAULT_NW_INTERFACE = nwInterface
 		tui := tui.NewTUI(wantSend)
-		return tui.Generator(stop, netIf.Send)
+		return tui.Generator(ctx, netIf.Send)
 	} else {
 		tui := tui.NewTUI(wantSend)
-		go netIf.Recieve(stop)
+		go netIf.Recieve(ctx)
 		return tui.Monitor(netIf.PassiveCh)
 	}
 }
 
-func debugPrint(stop <-chan os.Signal, passive <-chan *packemon.Passive) error {
+func debugPrint(ctx context.Context, passive <-chan *packemon.Passive) error {
 	for {
 		select {
-		case <-stop:
+		case <-ctx.Done():
 			return nil
 		case p := <-passive:
 			if p.HighLayerProto() == "IPv6" {

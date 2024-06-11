@@ -90,53 +90,21 @@ func (nw *NetworkInterface) Send(ethernetFrame *EthernetFrame) error {
 }
 
 func (nw *NetworkInterface) Recieve(stop <-chan os.Signal) error {
-	epollfd, err := unix.EpollCreate1(0)
-	if err != nil {
-		return err
-	}
-
-	if err := unix.EpollCtl(
-		epollfd,
-		unix.EPOLL_CTL_ADD,
-		nw.Socket,
-		&unix.EpollEvent{
-			Events: unix.EPOLLIN,
-			Fd:     int32(nw.Socket),
-		},
-	); err != nil {
-		return err
-	}
-
-	events := make([]unix.EpollEvent, 10)
 	for {
 		select {
 		case <-stop:
 			return nil
 		default:
-			fds, err := unix.EpollWait(epollfd, events, -1)
+			recieved := make([]byte, 1500)
+			n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
 			if err != nil {
+				if n == -1 {
+					continue
+				}
 				return err
 			}
 
-			for i := 0; i < fds; i++ {
-				select {
-				case <-stop:
-					return nil
-				default:
-					if events[i].Fd == int32(nw.Socket) {
-						recieved := make([]byte, 1500)
-						n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
-						if err != nil {
-							if n == -1 {
-								continue
-							}
-							return err
-						}
-
-						nw.PassiveCh <- ParsedPacket(recieved)
-					}
-				}
-			}
+			nw.PassiveCh <- ParsedPacket(recieved)
 		}
 	}
 }

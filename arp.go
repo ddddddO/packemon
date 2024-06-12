@@ -5,7 +5,17 @@ import (
 	"encoding/binary"
 )
 
+const ARP_HARDWARE_TYPE_THERNET = 0x0001
+
+const ARP_PROTO_TYPE_IPv4 = 0x0800
+
+const (
+	ARP_OPERATION_CODE_REQUEST = 0x0001
+	ARP_OPERATION_CODE_REPLY   = 0x0002
+)
+
 // https://ja.wikipedia.org/wiki/Address_Resolution_Protocol#%E3%83%91%E3%82%B1%E3%83%83%E3%83%88%E6%A7%8B%E9%80%A0
+// https://beginners-network.com/supplement/arp_packet_format.html
 type ARP struct {
 	HardwareType       uint16
 	ProtocolType       uint16
@@ -50,18 +60,32 @@ func ParsedARP(payload []byte) *ARP {
 	}
 }
 
-func NewARP() *ARP {
+func NewARPRequest(sMACAdder HardwareAddr, sIPAddr uint32, tMACAddr HardwareAddr, tIPAddr uint32) *ARP {
 	return &ARP{
-		HardwareType:       0x0001,
-		ProtocolType:       ETHER_TYPE_IPv4,
+		HardwareType:       ARP_HARDWARE_TYPE_THERNET,
+		ProtocolType:       ARP_PROTO_TYPE_IPv4,
+		HardwareAddrLength: 0x06, // イーサネットは6固定
+		ProtocolLength:     0x04, // IPv4は4固定
+		Operation:          ARP_OPERATION_CODE_REQUEST,
+
+		SenderHardwareAddr: sMACAdder,
+		SenderIPAddr:       sIPAddr,
+		TargetHardwareAddr: tMACAddr,
+		TargetIPAddr:       tIPAddr,
+	}
+}
+
+func NewARPReply(sMACAdder HardwareAddr, sIPAddr uint32, tMACAddr HardwareAddr, tIPAddr uint32) *ARP {
+	return &ARP{
+		HardwareType:       ARP_HARDWARE_TYPE_THERNET,
+		ProtocolType:       ARP_PROTO_TYPE_IPv4,
 		HardwareAddrLength: 0x06,
 		ProtocolLength:     0x04,
-		Operation:          0x0001,
+		Operation:          ARP_OPERATION_CODE_REPLY,
 
-		SenderHardwareAddr: [6]byte{0x00, 0x15, 0x5d, 0xdc, 0x7e, 0xe9},
-		SenderIPAddr:       0xac17f24e,
-
-		TargetHardwareAddr: [6]uint8{0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-		TargetIPAddr:       0xac17f001,
+		SenderHardwareAddr: sMACAdder,
+		SenderIPAddr:       sIPAddr,
+		TargetHardwareAddr: tMACAddr,
+		TargetIPAddr:       tIPAddr,
 	}
 }

@@ -15,8 +15,11 @@ import (
 	"github.com/ddddddO/packemon"
 	"github.com/ddddddO/packemon/internal/debugging"
 	"github.com/ddddddO/packemon/internal/tui"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/vishvananda/netlink"
 
+	"golang.org/x/net/websocket"
 	"golang.org/x/sys/unix"
 )
 
@@ -31,9 +34,17 @@ func main() {
 	flag.BoolVar(&debug, "debug", false, "Debugging mode.")
 	var protocol string
 	flag.StringVar(&protocol, "proto", "", "Specify either 'arp', 'icmp', 'tcp', 'dns' or 'http'.")
+
+	// TODO: これはフラグはでなくサブコマンドとした方がいいかも
+	var bidirectional bool
+	flag.BoolVar(&bidirectional, "bi-direct", false, "Server-Client")
+	// TODO: bidirectional の clientかどうかなので、ちゃんと親子関係で扱うように変更
+	var isClient bool
+	flag.BoolVar(&isClient, "client", false, "Client of bidirectional")
+
 	flag.Parse()
 
-	if wantSend {
+	if wantSend && !isClient {
 		// Generator で3way handshake する際に、カーネルが自動でRSTパケットを送ってたため、ドロップするため
 		ebpfProg, qdisc, err := prepareDropingRSTPacket(nwInterface)
 		if err != nil {
@@ -52,9 +63,16 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := run(ctx, nwInterface, wantSend, debug, protocol); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
+	if bidirectional {
+		if err := runBidirectional(ctx, isClient, nwInterface); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+	} else {
+		if err := run(ctx, nwInterface, wantSend, debug, protocol); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
 	}
 }
 
@@ -210,4 +228,65 @@ func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface,
 	}
 
 	return debugNetIf.Recieve()
+}
+
+func runBidirectional(ctx context.Context, isClient bool, nwInterface string) error {
+	if isClient {
+		// TODO:
+		return nil
+	}
+
+	netIf, err := packemon.NewNetworkInterface(nwInterface)
+	if err != nil {
+		return err
+	}
+	defer netIf.Close()
+	go netIf.Recieve(ctx)
+
+	// TODO: netIf.PassiveCh を返す
+	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Static("/", "public")
+	e.GET("/ws", handleWebSocket(netIf.PassiveCh))
+	e.Logger.Fatal(e.Start(":8081"))
+
+	return nil
+}
+
+// https://zenn.dev/empenguin/articles/bcf95c19451020 参考
+func handleWebSocket(passiveCh chan *packemon.Passive) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		websocket.Handler(func(ws *websocket.Conn) {
+			defer ws.Close()
+
+			// 初回のメッセージを送信
+			err := websocket.Message.Send(ws, "Connected to Packemon server!")
+			if err != nil {
+				c.Logger().Error(err)
+			}
+
+			for {
+				// Client からのメッセージを読み込む
+				// msg := ""
+				// err = websocket.Message.Receive(ws, &msg)
+				// if err != nil {
+				// 	c.Logger().Error(err)
+				// }
+
+				// Client からのメッセージを元に返すメッセージを作成し送信する
+				// err := websocket.Message.Send(ws, fmt.Sprintf("Server: \"%s\" received!", msg))
+				// if err != nil {
+				// 	c.Logger().Error(err)
+				// }
+
+				for p := range passiveCh {
+					err := websocket.Message.Send(ws, fmt.Sprintf("Server: \"%s\" received!", p.HighLayerProto()))
+					if err != nil {
+						c.Logger().Error(err)
+					}
+				}
+			}
+		}).ServeHTTP(c.Response(), c.Request())
+		return nil
+	}
 }

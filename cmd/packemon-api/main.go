@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"embed"
 	"flag"
 	"fmt"
+	"io/fs"
+	"net/http"
 	"os"
 
 	"github.com/ddddddO/packemon"
@@ -14,6 +17,12 @@ import (
 )
 
 const DEFAULT_TARGET_NW_INTERFACE = "eth0"
+
+// ref: https://medium.com/@pavelfokin/how-to-embed-react-app-into-go-binary-12905d5963f0
+// ref: https://echo.labstack.com/docs/cookbook/embed-resources#with-go-116-embed-feature
+//
+//go:embed public
+var public embed.FS
 
 func main() {
 	var nwInterface string
@@ -57,11 +66,24 @@ func run(ctx context.Context, isClient bool, nwInterface string) error {
 
 	e := echo.New()
 	e.Use(middleware.Logger())
-	e.Static("/", "public")
 	e.GET("/ws", handleWebSocket(netIf.PassiveCh))
-	e.Logger.Fatal(e.Start(":8081"))
+
+	e.GET("/*", echo.WrapHandler(handleAsset()))
+	e.Logger.Fatal(e.Start(":8082"))
 
 	return nil
+}
+
+func handleAsset() http.Handler {
+	return http.FileServer(getFileSystem())
+}
+
+func getFileSystem() http.FileSystem {
+	fsys, err := fs.Sub(public, "public")
+	if err != nil {
+		panic(err)
+	}
+	return http.FS(fsys)
 }
 
 // https://zenn.dev/empenguin/articles/bcf95c19451020 参考

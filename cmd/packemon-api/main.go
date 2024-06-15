@@ -21,8 +21,8 @@ const DEFAULT_TARGET_NW_INTERFACE = "eth0"
 // ref: https://medium.com/@pavelfokin/how-to-embed-react-app-into-go-binary-12905d5963f0
 // ref: https://echo.labstack.com/docs/cookbook/embed-resources#with-go-116-embed-feature
 //
-//go:embed public
-var public embed.FS
+//go:embed web/dist
+var web embed.FS
 
 func main() {
 	var nwInterface string
@@ -79,7 +79,7 @@ func handleAsset() http.Handler {
 }
 
 func getFileSystem() http.FileSystem {
-	fsys, err := fs.Sub(public, "public")
+	fsys, err := fs.Sub(web, "web/dist")
 	if err != nil {
 		panic(err)
 	}

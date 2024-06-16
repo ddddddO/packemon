@@ -1,9 +1,7 @@
 package tui
 
 import (
-	"encoding/binary"
 	"fmt"
-	"net"
 
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
@@ -62,18 +60,4 @@ func (i *IPv4) viewTable() *tview.Table {
 	table.SetCell(11, 1, tview.NewTableCell(padding(i.StrDstIPAddr())))
 
 	return table
-}
-
-func (i *IPv4) StrSrcIPAddr() string {
-	return uint32ToStrIPv4Addr(i.SrcAddr)
-}
-
-func (i *IPv4) StrDstIPAddr() string {
-	return uint32ToStrIPv4Addr(i.DstAddr)
-}
-
-func uint32ToStrIPv4Addr(byteAddr uint32) string {
-	b := make([]byte, 4)
-	binary.BigEndian.PutUint32(b, byteAddr)
-	return net.IPv4(b[0], b[1], b[2], b[3]).String()
 }

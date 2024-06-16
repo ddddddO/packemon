@@ -18,9 +18,18 @@ type Props = {
   onChange: (arg0: number) => void
 }
 
+type Packet = {
+  dstMAC: string
+  srcMAC: string
+  type: string
+  proto: string
+  dstIP: string
+  srcIP: string
+}
+
 // ref: https://qiita.com/_ytori/items/a92d69760e8e8a2047ac#3hello-world---react-x-websocket-%E3%81%AE%E5%9F%BA%E6%9C%AC%E5%BD%A2
 export default ({ onChange }: Props) => {
-  const [packets, setPackets] = useState<string[]>([])
+  const [packets, setPackets] = useState<Packet[]>([])
   const socketRef = useRef<WebSocket>()
 
   // #0.WebSocket関連の処理は副作用なので、useEffect内で実装
@@ -32,7 +41,17 @@ export default ({ onChange }: Props) => {
 
     // #2.メッセージ受信時のイベントハンドラを設定
     const onMessage = (event: MessageEvent<string>) => {
-      setPackets((prev) => [event.data, ...prev])
+      const parsed = JSON.parse(event.data)
+      const packet: Packet = {
+        dstMAC: parsed.dst_mac,
+        srcMAC: parsed.src_mac,
+        type: parsed.type,
+        proto: parsed.proto,
+        dstIP: parsed.dst_ip,
+        srcIP: parsed.src_ip,
+      }
+
+      setPackets((prev) => [packet, ...prev])
       onChange(packets.length)
     }
     websocket.addEventListener('message', onMessage)
@@ -48,7 +67,7 @@ export default ({ onChange }: Props) => {
 
   return (
     <>
-      <p>{`New!: ${packets[0]} / ${count}`}</p>
+      <p>{`New!: ${packets[0] ? packets[0].proto: "-"} / ${count}`}</p>
 
       <Table striped bordered variant="dark">
         <thead>
@@ -67,12 +86,12 @@ export default ({ onChange }: Props) => {
             return (
               <tr>
                 <td>{count-index}</td>
-                <td>x</td>
-                <td>x</td>
-                <td>x</td>
-                <td>{p}</td>
-                <td>x</td>
-                <td>x</td>
+                <td>{p.dstMAC}</td>
+                <td>{p.srcMAC}</td>
+                <td>{p.type}</td>
+                <td>{p.proto}</td>
+                <td>{p.dstIP}</td>
+                <td>{p.srcIP}</td>
               </tr>
             )
           })}

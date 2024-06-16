@@ -86,11 +86,22 @@ func getFileSystem() http.FileSystem {
 	return http.FS(fsys)
 }
 
+type PassiveJSON struct {
+	DestinationMACAddr string `json:"dst_mac"`
+	SourceMACAddr      string `json:"src_mac"`
+	Type               string `json:"type"`
+	Proto              string `json:"proto"`
+	DestinationIPAddr  string `json:"dst_ip"`
+	SourceIPAddr       string `json:"src_ip"`
+}
+
 // https://zenn.dev/empenguin/articles/bcf95c19451020 参考
 func handleWebSocket(passiveCh chan *packemon.Passive) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		websocket.Handler(func(ws *websocket.Conn) {
 			defer ws.Close()
+
+			c.Logger().Infof("Client IP: %s, Server IP: %s", ws.RemoteAddr().String(), ws.LocalAddr().String())
 
 			// 初回のメッセージを送信
 			// err := websocket.Message.Send(ws, "Connected to Packemon server!")
@@ -113,7 +124,22 @@ func handleWebSocket(passiveCh chan *packemon.Passive) func(c echo.Context) erro
 				// }
 
 				for p := range passiveCh {
-					err := websocket.Message.Send(ws, fmt.Sprintf("Server: \"%s\" received!", p.HighLayerProto()))
+					pj := PassiveJSON{
+						DestinationMACAddr: p.EthernetFrame.Header.Dst.String(),
+						SourceMACAddr:      p.EthernetFrame.Header.Src.String(),
+						Type:               fmt.Sprintf("%x", p.EthernetFrame.Header.Typ),
+						Proto:              p.HighLayerProto(),
+					}
+					if p.IPv4 != nil {
+						pj.DestinationIPAddr = p.IPv4.StrDstIPAddr()
+						pj.SourceIPAddr = p.IPv4.StrSrcIPAddr()
+					}
+					if p.IPv6 != nil {
+						pj.DestinationIPAddr = p.IPv6.StrDstIPAddr()
+						pj.SourceIPAddr = p.IPv6.StrSrcIPAddr()
+					}
+					err := websocket.JSON.Send(ws, pj)
+					// err := websocket.Message.Send(ws, fmt.Sprintf("Server: \"%s\" received!", p.HighLayerProto()))
 					if err != nil {
 						c.Logger().Error(err)
 						return

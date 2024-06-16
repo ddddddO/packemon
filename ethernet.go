@@ -3,6 +3,7 @@ package packemon
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 func NewEthernetFrame(dst HardwareAddr, src HardwareAddr, typ uint16, payload []byte) *EthernetFrame {
@@ -48,6 +49,10 @@ type EthernetHeader struct {
 }
 
 type HardwareAddr [6]uint8
+
+func (h *HardwareAddr) String() string {
+	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", h[0], h[1], h[2], h[3], h[4], h[5])
+}
 
 const ETHER_TYPE_IPv4 uint16 = 0x0800
 const ETHER_TYPE_IPv6 uint16 = 0x86dd

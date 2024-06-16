@@ -93,10 +93,10 @@ func handleWebSocket(passiveCh chan *packemon.Passive) func(c echo.Context) erro
 			defer ws.Close()
 
 			// 初回のメッセージを送信
-			err := websocket.Message.Send(ws, "Connected to Packemon server!")
-			if err != nil {
-				c.Logger().Error(err)
-			}
+			// err := websocket.Message.Send(ws, "Connected to Packemon server!")
+			// if err != nil {
+			// 	c.Logger().Error(err)
+			// }
 
 			for {
 				// Client からのメッセージを読み込む
@@ -116,6 +116,7 @@ func handleWebSocket(passiveCh chan *packemon.Passive) func(c echo.Context) erro
 					err := websocket.Message.Send(ws, fmt.Sprintf("Server: \"%s\" received!", p.HighLayerProto()))
 					if err != nil {
 						c.Logger().Error(err)
+						return
 					}
 				}
 			}

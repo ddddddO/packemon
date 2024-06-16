@@ -15,6 +15,26 @@ type EthernetInputs = {
   type: string
 }
 
+const handleSend = (endpoint: string, input: EthernetInputs) => {
+  const body = {
+    dst_mac: input.dstMAC,
+    src_mac: input.srcMAC,
+    type: input.type,
+  }
+  const params = {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json; charset=UTF-8',
+    },
+    body: JSON.stringify(body),
+  }
+
+  fetch(endpoint, params)
+    .then((data) => data.json())
+    .then((resp) => console.log(resp))
+    .catch((error) => console.error(error))
+}
+
 const Ethernet = () => {
   const etherTypes: Option[] = [{value: "0x0800", label: "IPv4"}, {value: "0x0806", label: "ARP"}]
   const {
@@ -23,7 +43,15 @@ const Ethernet = () => {
     watch,
     formState: { errors },
   } = useForm<EthernetInputs>()
-  const onSubmit: SubmitHandler<EthernetInputs> = (data) => console.log(data)
+
+  const loc = window.location
+  const endpoint = loc.protocol + '//' + loc.host + '/packet'
+  const onSubmit: SubmitHandler<EthernetInputs> = (data) => {
+    handleSend(endpoint, data)
+
+    console.log('Send data')
+    console.log(data)
+  }
 
   const macAddressValidation = { required: true, minLength: 14, maxLength: 14 }
 

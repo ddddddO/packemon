@@ -9,10 +9,6 @@ const ENDPOINT: string = (() => {
 
 const ENDPOINT_DEV: string = "ws://localhost:8082/ws"
 
-type Props = {
-  onChange: (arg0: number) => void
-}
-
 type Packet = {
   dstMAC: string
   srcMAC: string
@@ -23,7 +19,7 @@ type Packet = {
 }
 
 // ref: https://qiita.com/_ytori/items/a92d69760e8e8a2047ac#3hello-world---react-x-websocket-%E3%81%AE%E5%9F%BA%E6%9C%AC%E5%BD%A2
-export default ({ onChange }: Props) => {
+export default () => {
   const [packets, setPackets] = useState<Packet[]>([])
   const socketRef = useRef<WebSocket>()
   const endpoint = !window.location.host.match(/8082/) ? ENDPOINT_DEV : ENDPOINT
@@ -47,7 +43,6 @@ export default ({ onChange }: Props) => {
       }
 
       setPackets((prev) => [packet, ...prev])
-      onChange(packets.length)
     }
     websocket.addEventListener('message', onMessage)
 

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"embed"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/ddddddO/packemon"
 	ec "github.com/ddddddO/packemon/egress_control"
+	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
@@ -74,10 +76,12 @@ func run(ctx context.Context, isClient bool, nwInterface string) error {
 	go netIf.Recieve(ctx)
 
 	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
 	e.Use(middleware.Logger())
 	e.Logger.SetLevel(log.INFO)
 
 	e.GET("/ws", handleWebSocket(netIf.PassiveCh))
+	e.POST("/packet", handlePacket(netIf))
 
 	e.GET("/*", echo.WrapHandler(handleAsset()))
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", DEFAULT_SERVER_PORT)))
@@ -95,6 +99,65 @@ func getFileSystem() http.FileSystem {
 		panic(err)
 	}
 	return http.FS(fsys)
+}
+
+type CustomValidator struct {
+	validator *validator.Validate
+}
+
+func (cv *CustomValidator) Validate(i interface{}) error {
+	if err := cv.validator.Struct(i); err != nil {
+		// Optionally, you could return the error to give each route more control over the status code
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	return nil
+}
+
+type RequestJSON struct {
+	DestinationMACAddr string `json:"dst_mac" validate:"required"`
+	SourceMACAddr      string `json:"src_mac" validate:"required"`
+	Type               string `json:"type" validate:"required"`
+}
+
+func handlePacket(netIf *packemon.NetworkInterface) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		req := &RequestJSON{}
+		if err := c.Bind(req); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+		if err := c.Validate(req); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
+
+		{ // Ethernet
+			dstMAC, err := packemon.StrHexToBytes(req.DestinationMACAddr)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+			}
+			srcMAC, err := packemon.StrHexToBytes(req.SourceMACAddr)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+			}
+			typ, err := packemon.StrHexToBytes2(req.Type)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+			}
+
+			ethernetFrame := &packemon.EthernetFrame{
+				Header: &packemon.EthernetHeader{
+					Dst: packemon.HardwareAddr(dstMAC),
+					Src: packemon.HardwareAddr(srcMAC),
+					Typ: binary.BigEndian.Uint16(typ),
+				},
+			}
+
+			if err := netIf.Send(ethernetFrame); err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			}
+		}
+
+		return c.JSON(http.StatusAccepted, nil)
+	}
 }
 
 type PassiveJSON struct {

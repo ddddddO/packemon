@@ -174,41 +174,41 @@ func defaultPackets() (*defaults, error) {
 	}
 
 	dns := &packemon.DNS{}
-	dnsTransactionID, err := strHexToBytes2(DEFAULT_DNS_TRANSACTION)
+	dnsTransactionID, err := packemon.StrHexToBytes2(DEFAULT_DNS_TRANSACTION)
 	if err != nil {
 		return nil, err
 	}
 	dns.TransactionID = binary.BigEndian.Uint16(dnsTransactionID)
-	dnsFlags, err := strHexToBytes2(DEFAULT_DNS_FLAGS)
+	dnsFlags, err := packemon.StrHexToBytes2(DEFAULT_DNS_FLAGS)
 	if err != nil {
 		return nil, err
 	}
 	dns.Flags = binary.BigEndian.Uint16(dnsFlags)
-	dnsQuestions, err := strHexToBytes2(DEFAULT_DNS_QUESTIONS)
+	dnsQuestions, err := packemon.StrHexToBytes2(DEFAULT_DNS_QUESTIONS)
 	if err != nil {
 		return nil, err
 	}
 	dns.Questions = binary.BigEndian.Uint16(dnsQuestions)
-	dnsAnswerRRs, err := strHexToBytes2(DEFAULT_DNS_ANSWERS_RRs)
+	dnsAnswerRRs, err := packemon.StrHexToBytes2(DEFAULT_DNS_ANSWERS_RRs)
 	if err != nil {
 		return nil, err
 	}
 	dns.AnswerRRs = binary.BigEndian.Uint16(dnsAnswerRRs)
-	dnsAuthorityRRs, err := strHexToBytes2(DEFAULT_DNS_AUTHORITYR_Rs)
+	dnsAuthorityRRs, err := packemon.StrHexToBytes2(DEFAULT_DNS_AUTHORITYR_Rs)
 	if err != nil {
 		return nil, err
 	}
 	dns.AuthorityRRs = binary.BigEndian.Uint16(dnsAuthorityRRs)
-	dnsAdditionalRRs, err := strHexToBytes2(DEFAULT_DNS_ADDITIONAL_RRs)
+	dnsAdditionalRRs, err := packemon.StrHexToBytes2(DEFAULT_DNS_ADDITIONAL_RRs)
 	if err != nil {
 		return nil, err
 	}
 	dns.AdditionalRRs = binary.BigEndian.Uint16(dnsAdditionalRRs)
-	dnsQueriesType, err := strHexToBytes2(DEFAULT_DNS_QUERIES_TYPE)
+	dnsQueriesType, err := packemon.StrHexToBytes2(DEFAULT_DNS_QUERIES_TYPE)
 	if err != nil {
 		return nil, err
 	}
-	dnsQueriesClass, err := strHexToBytes2(DEFAULT_DNS_QUERIES_CLASS)
+	dnsQueriesClass, err := packemon.StrHexToBytes2(DEFAULT_DNS_QUERIES_CLASS)
 	if err != nil {
 		return nil, err
 	}
@@ -219,15 +219,15 @@ func defaultPackets() (*defaults, error) {
 	dns.Queries = queries
 	dns.Domain("go.dev")
 
-	udpSrcPort, err := strIntToUint16(DEFAULT_UDP_PORT_SOURCE)
+	udpSrcPort, err := packemon.StrIntToUint16(DEFAULT_UDP_PORT_SOURCE)
 	if err != nil {
 		return nil, err
 	}
-	udpDstPort, err := strIntToUint16(DEFAULT_UDP_PORT_DESTINATION)
+	udpDstPort, err := packemon.StrIntToUint16(DEFAULT_UDP_PORT_DESTINATION)
 	if err != nil {
 		return nil, err
 	}
-	udpLength, err := strHexToBytes2(DEFAULT_UDP_LENGTH)
+	udpLength, err := packemon.StrHexToBytes2(DEFAULT_UDP_LENGTH)
 	if err != nil {
 		return nil, err
 	}
@@ -246,12 +246,12 @@ func defaultPackets() (*defaults, error) {
 		UrgentPointer:  0x0000,
 		Options:        packemon.Options(),
 	}
-	tcpSrcPort, err := strIntToUint16(DEFAULT_TCP_PORT_SOURCE)
+	tcpSrcPort, err := packemon.StrIntToUint16(DEFAULT_TCP_PORT_SOURCE)
 	if err != nil {
 		return nil, err
 	}
 	tcp.SrcPort = tcpSrcPort
-	tcpDstPort, err := strIntToUint16(DEFAULT_TCP_PORT_DESTINATION)
+	tcpDstPort, err := packemon.StrIntToUint16(DEFAULT_TCP_PORT_DESTINATION)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +261,7 @@ func defaultPackets() (*defaults, error) {
 		return nil, err
 	}
 	tcp.Sequence = binary.BigEndian.Uint32(tcpSequence)
-	tcpFlags, err := strHexToBytes2(DEFAULT_TCP_FLAGS)
+	tcpFlags, err := packemon.StrHexToBytes2(DEFAULT_TCP_FLAGS)
 	if err != nil {
 		return nil, err
 	}
@@ -275,11 +275,11 @@ func defaultPackets() (*defaults, error) {
 	if err != nil {
 		return nil, err
 	}
-	icmpIdentifier, err := strHexToBytes2(DEFAULT_ICMP_IDENTIFIER)
+	icmpIdentifier, err := packemon.StrHexToBytes2(DEFAULT_ICMP_IDENTIFIER)
 	if err != nil {
 		return nil, err
 	}
-	icmpSequence, err := strHexToBytes2(DEFAULT_ICMP_SEQUENCE)
+	icmpSequence, err := packemon.StrHexToBytes2(DEFAULT_ICMP_SEQUENCE)
 	if err != nil {
 		return nil, err
 	}
@@ -314,11 +314,11 @@ func defaultPackets() (*defaults, error) {
 		DstAddr:        binary.BigEndian.Uint32(dstIP),
 	}
 
-	hardwareType, err := strHexToBytes2(DEFAULT_ARP_HARDWARE_TYPE)
+	hardwareType, err := packemon.StrHexToBytes2(DEFAULT_ARP_HARDWARE_TYPE)
 	if err != nil {
 		return nil, err
 	}
-	protocolType, err := strHexToBytes2(DEFAULT_ARP_PROTOCOL_TYPE)
+	protocolType, err := packemon.StrHexToBytes2(DEFAULT_ARP_PROTOCOL_TYPE)
 	if err != nil {
 		return nil, err
 	}
@@ -330,11 +330,11 @@ func defaultPackets() (*defaults, error) {
 	if err != nil {
 		return nil, err
 	}
-	operation, err := strHexToBytes2(DEFAULT_ARP_OPERATION)
+	operation, err := packemon.StrHexToBytes2(DEFAULT_ARP_OPERATION)
 	if err != nil {
 		return nil, err
 	}
-	senderMac, err := strHexToBytes(DEFAULT_ARP_SENDER_MAC)
+	senderMac, err := packemon.StrHexToBytes(DEFAULT_ARP_SENDER_MAC)
 	if err != nil {
 		return nil, err
 	}
@@ -342,7 +342,7 @@ func defaultPackets() (*defaults, error) {
 	if err != nil {
 		return nil, err
 	}
-	targetMac, err := strHexToBytes(DEFAULT_ARP_TARGET_MAC)
+	targetMac, err := packemon.StrHexToBytes(DEFAULT_ARP_TARGET_MAC)
 	if err != nil {
 		return nil, err
 	}
@@ -365,11 +365,11 @@ func defaultPackets() (*defaults, error) {
 		TargetIPAddr:       binary.BigEndian.Uint32(targetIP),
 	}
 
-	dstMAC, err := strHexToBytes(DEFAULT_MAC_DESTINATION)
+	dstMAC, err := packemon.StrHexToBytes(DEFAULT_MAC_DESTINATION)
 	if err != nil {
 		return nil, err
 	}
-	srcMAC, err := strHexToBytes(DEFAULT_MAC_SOURCE)
+	srcMAC, err := packemon.StrHexToBytes(DEFAULT_MAC_SOURCE)
 	if err != nil {
 		return nil, err
 	}
@@ -392,30 +392,6 @@ func defaultPackets() (*defaults, error) {
 }
 
 // TODO: rename or refactor
-func strHexToBytes(s string) ([]byte, error) {
-	n, err := strconv.ParseUint(s, 0, 48)
-	if err != nil {
-		return nil, err
-	}
-
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, n)
-	return buf[2:], nil
-}
-
-// TODO: rename or refactor
-func strHexToBytes2(s string) ([]byte, error) {
-	n, err := strconv.ParseUint(s, 0, 16)
-	if err != nil {
-		return nil, err
-	}
-
-	buf := make([]byte, 2)
-	binary.BigEndian.PutUint16(buf, uint16(n))
-	return buf, nil
-}
-
-// TODO: rename or refactor
 func strHexToBytes3(s string) ([]byte, error) {
 	n, err := strconv.ParseUint(s, 0, 32)
 	if err != nil {
@@ -425,14 +401,6 @@ func strHexToBytes3(s string) ([]byte, error) {
 	buf := make([]byte, 4)
 	binary.BigEndian.PutUint32(buf, uint32(n))
 	return buf, nil
-}
-
-func strIntToUint16(s string) (uint16, error) {
-	n, err := strconv.ParseUint(s, 0, 16)
-	if err != nil {
-		return 0, err
-	}
-	return uint16(n), nil
 }
 
 func strHexToUint8(s string) (uint8, error) {

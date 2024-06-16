@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import Generator from './generator/Generator'
 import Monitor from './monitor/Monitor'
 import reactLogo from './assets/react.svg'
@@ -7,8 +6,6 @@ import './App.css'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
 function App() {
-  const [count, setCount] = useState<number>(0)
-
   return (
     <>
       <div>
@@ -31,10 +28,8 @@ function App() {
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p> */}
-        <p>{`count: ${count}`}</p>
-
         <h2>Monitor</h2>
-        <Monitor onChange={(len: number) => setCount(len)}/>
+        <Monitor />
       </div>
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more

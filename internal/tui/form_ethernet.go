@@ -15,7 +15,7 @@ func (t *tui) ethernetForm(sendFn func(*packemon.EthernetFrame) error, ethernetH
 				return false
 			}
 
-			b, err := strHexToBytes(textToCheck)
+			b, err := packemon.StrHexToBytes(textToCheck)
 			if err != nil {
 				return false
 			}
@@ -30,7 +30,7 @@ func (t *tui) ethernetForm(sendFn func(*packemon.EthernetFrame) error, ethernetH
 				return false
 			}
 
-			b, err := strHexToBytes(textToCheck)
+			b, err := packemon.StrHexToBytes(textToCheck)
 			if err != nil {
 				return false
 			}

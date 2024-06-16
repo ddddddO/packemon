@@ -12,7 +12,7 @@ func (t *tui) tcpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 		AddTextView("TCP", "This section generates the TCP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Source Port", DEFAULT_TCP_PORT_SOURCE, 5, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) <= 5 {
-				n, err := strIntToUint16(textToCheck)
+				n, err := packemon.StrIntToUint16(textToCheck)
 				if err != nil {
 					return false
 				}
@@ -23,7 +23,7 @@ func (t *tui) tcpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 		}, nil).
 		AddInputField("Destination Port", DEFAULT_TCP_PORT_DESTINATION, 5, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) <= 5 {
-				n, err := strIntToUint16(textToCheck)
+				n, err := packemon.StrIntToUint16(textToCheck)
 				if err != nil {
 					return false
 				}
@@ -54,7 +54,7 @@ func (t *tui) tcpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 				return false
 			}
 
-			b, err := strHexToBytes2(textToCheck)
+			b, err := packemon.StrHexToBytes2(textToCheck)
 			if err != nil {
 				return false
 			}

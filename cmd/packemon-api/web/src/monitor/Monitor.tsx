@@ -7,7 +7,7 @@ const ENDPOINT: string = (() => {
   return protocol + '//' + loc.host + loc.pathname + 'ws'
 })()
 
-// const ENDPOINT_DEV: string = "ws://localhost:8082/ws"
+const ENDPOINT_DEV: string = "ws://localhost:8082/ws"
 
 type Props = {
   onChange: (arg0: number) => void
@@ -26,12 +26,12 @@ type Packet = {
 export default ({ onChange }: Props) => {
   const [packets, setPackets] = useState<Packet[]>([])
   const socketRef = useRef<WebSocket>()
+  const endpoint = !window.location.host.match(/8082/) ? ENDPOINT_DEV : ENDPOINT
 
   // #0.WebSocket関連の処理は副作用なので、useEffect内で実装
   useEffect(() => {
     // #1.WebSocketオブジェクトを生成しサーバとの接続を開始
-    // const websocket = new WebSocket(ENDPOINT_DEV)
-    const websocket = new WebSocket(ENDPOINT)
+    const websocket = new WebSocket(endpoint)
     socketRef.current = websocket
 
     // #2.メッセージ受信時のイベントハンドラを設定

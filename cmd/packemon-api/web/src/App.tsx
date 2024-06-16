@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Generator from './generator/Generator'
 import Monitor from './monitor/Monitor'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
@@ -19,6 +20,10 @@ function App() {
         </a>
       </div>
       <h1>Vite + React</h1>
+      <div className="card">
+        <h2>Generator</h2>
+        <Generator />
+      </div>
       <div className="card">
         {/* <button onClick={() => setCount((count) => count + 1)}>
           count is {count}

@@ -19,6 +19,38 @@ func WriteUint32(buf *bytes.Buffer, target uint32) {
 	buf.Write(b)
 }
 
+// TODO: rename or refactor
+func StrHexToBytes(s string) ([]byte, error) {
+	n, err := strconv.ParseUint(s, 0, 48)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, n)
+	return buf[2:], nil
+}
+
+// TODO: rename or refactor
+func StrHexToBytes2(s string) ([]byte, error) {
+	n, err := strconv.ParseUint(s, 0, 16)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, uint16(n))
+	return buf, nil
+}
+
+func StrIntToUint16(s string) (uint16, error) {
+	n, err := strconv.ParseUint(s, 0, 16)
+	if err != nil {
+		return 0, err
+	}
+	return uint16(n), nil
+}
+
 // stringのIPv4アドレスをbytesに変換
 func strIPToBytes(s string) ([]byte, error) {
 	b := make([]byte, 4)

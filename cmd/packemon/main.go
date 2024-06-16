@@ -5,19 +5,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"log"
-	"net"
 	"os"
 	"strings"
 
-	"github.com/cilium/ebpf"
-	"github.com/cilium/ebpf/rlimit"
 	"github.com/ddddddO/packemon"
+	ec "github.com/ddddddO/packemon/egress_control"
 	"github.com/ddddddO/packemon/internal/debugging"
 	"github.com/ddddddO/packemon/internal/tui"
-	"github.com/vishvananda/netlink"
-
-	"golang.org/x/sys/unix"
 )
 
 const DEFAULT_TARGET_NW_INTERFACE = "eth0"
@@ -31,20 +25,20 @@ func main() {
 	flag.BoolVar(&debug, "debug", false, "Debugging mode.")
 	var protocol string
 	flag.StringVar(&protocol, "proto", "", "Specify either 'arp', 'icmp', 'tcp', 'dns' or 'http'.")
+
 	flag.Parse()
 
 	if wantSend {
 		// Generator で3way handshake する際に、カーネルが自動でRSTパケットを送ってたため、ドロップするため
-		ebpfProg, qdisc, err := prepareDropingRSTPacket(nwInterface)
+		ebpfProg, qdisc, err := ec.PrepareDropingRSTPacket(nwInterface)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			// error出力するが、処理は進める
+			// os.Exit(1)
 		}
 		defer func() {
-			ebpfProg.Close()
-			// 以下で消しておかないと、再起動やtcコマンド使わない限り、RSTパケットがカーネルから送信されない状態になる
-			if err := netlink.QdiscDel(qdisc); err != nil {
-				log.Printf("Failed to QdiscDel. Please PC reboot... Error: %s\n", err)
+			if err := ec.Close(ebpfProg, qdisc); err != nil {
+				fmt.Fprintln(os.Stderr, err)
 			}
 		}()
 	}
@@ -56,66 +50,6 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
-}
-
-func prepareDropingRSTPacket(nwInterface string) (*egress_packetObjects, *netlink.GenericQdisc, error) {
-	// Remove resource limits for kernels <5.11.
-	if err := rlimit.RemoveMemlock(); err != nil {
-		return nil, nil, fmt.Errorf("removing memlock: %w", err)
-	}
-
-	// Load the compiled eBPF ELF and load it into the kernel.
-	var objs egress_packetObjects
-	if err := loadEgress_packetObjects(&objs, nil); err != nil {
-		return nil, nil, fmt.Errorf("loading eBPF objects: %w", err)
-	}
-
-	qdisc, err := attachFilter(nwInterface, objs.egress_packetPrograms.ControlEgress)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to attach: %w", err)
-	}
-
-	return &objs, qdisc, nil
-}
-
-// https://github.com/fedepaol/tc-return/blob/main/main.go
-func attachFilter(attachTo string, program *ebpf.Program) (*netlink.GenericQdisc, error) {
-	devID, err := net.InterfaceByName(attachTo)
-	if err != nil {
-		return nil, fmt.Errorf("could not get interface ID: %w", err)
-	}
-
-	qdisc := &netlink.GenericQdisc{
-		QdiscAttrs: netlink.QdiscAttrs{
-			LinkIndex: devID.Index,
-			Handle:    netlink.MakeHandle(0xffff, 0),
-			Parent:    netlink.HANDLE_CLSACT,
-		},
-		QdiscType: "clsact",
-	}
-
-	err = netlink.QdiscReplace(qdisc)
-	if err != nil {
-		return nil, fmt.Errorf("could not get replace qdisc: %w", err)
-	}
-
-	filter := &netlink.BpfFilter{
-		FilterAttrs: netlink.FilterAttrs{
-			LinkIndex: devID.Index,
-			Parent:    netlink.HANDLE_MIN_EGRESS,
-			Handle:    1,
-			Protocol:  unix.ETH_P_ALL,
-		},
-		Fd:           program.FD(),
-		Name:         program.String(),
-		DirectAction: true,
-	}
-
-	if err := netlink.FilterReplace(filter); err != nil {
-		return nil, fmt.Errorf("failed to replace tc filter: %w", err)
-	}
-
-	return qdisc, nil
 }
 
 func run(ctx context.Context, nwInterface string, wantSend bool, debug bool, protocol string) error {

@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"net"
 
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
@@ -49,17 +48,4 @@ func (i *IPv6) viewTable() *tview.Table {
 	table.SetCell(7, 1, tview.NewTableCell(padding(i.StrDstIPAddr())))
 
 	return table
-}
-
-func (i *IPv6) StrSrcIPAddr() string {
-	return uintsToStrIPv6Addr(i.SrcAddr)
-}
-
-func (i *IPv6) StrDstIPAddr() string {
-	return uintsToStrIPv6Addr(i.DstAddr)
-}
-
-func uintsToStrIPv6Addr(byteAddr []uint8) string {
-	ipv6Addr := net.IP(byteAddr)
-	return ipv6Addr.To16().String()
 }

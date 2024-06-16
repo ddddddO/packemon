@@ -18,7 +18,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 				return false
 			}
 
-			b, err := strHexToBytes2(textToCheck)
+			b, err := packemon.StrHexToBytes2(textToCheck)
 			if err != nil {
 				return false
 			}
@@ -33,7 +33,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 				return false
 			}
 
-			b, err := strHexToBytes2(textToCheck)
+			b, err := packemon.StrHexToBytes2(textToCheck)
 			if err != nil {
 				return false
 			}
@@ -78,7 +78,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 				return false
 			}
 
-			b, err := strHexToBytes2(textToCheck)
+			b, err := packemon.StrHexToBytes2(textToCheck)
 			if err != nil {
 				return false
 			}
@@ -93,7 +93,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 				return false
 			}
 
-			b, err := strHexToBytes(textToCheck)
+			b, err := packemon.StrHexToBytes(textToCheck)
 			if err != nil {
 				return false
 			}
@@ -124,7 +124,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 				return false
 			}
 
-			b, err := strHexToBytes(textToCheck)
+			b, err := packemon.StrHexToBytes(textToCheck)
 			if err != nil {
 				return false
 			}

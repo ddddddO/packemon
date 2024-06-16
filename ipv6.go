@@ -1,5 +1,7 @@
 package packemon
 
+import "net"
+
 // https://atmarkit.itmedia.co.jp/ait/articles/1201/05/news113.html
 type IPv6 struct {
 	Version       uint8 // 4bit
@@ -33,3 +35,16 @@ const (
 	IPv6_NEXT_HEADER_UDP    = 0x11
 	IPv6_NEXT_HEADER_ICMPv6 = 0x3a
 )
+
+func (i *IPv6) StrSrcIPAddr() string {
+	return uintsToStrIPv6Addr(i.SrcAddr)
+}
+
+func (i *IPv6) StrDstIPAddr() string {
+	return uintsToStrIPv6Addr(i.DstAddr)
+}
+
+func uintsToStrIPv6Addr(byteAddr []uint8) string {
+	ipv6Addr := net.IP(byteAddr)
+	return ipv6Addr.To16().String()
+}

@@ -48,7 +48,7 @@ func (t *tui) icmpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 				return false
 			}
 
-			b, err := strHexToBytes2(textToCheck)
+			b, err := packemon.StrHexToBytes2(textToCheck)
 			if err != nil {
 				return false
 			}
@@ -63,7 +63,7 @@ func (t *tui) icmpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 				return false
 			}
 
-			b, err := strHexToBytes2(textToCheck)
+			b, err := packemon.StrHexToBytes2(textToCheck)
 			if err != nil {
 				return false
 			}

@@ -33,9 +33,14 @@ func main() {
 		ebpfProg, qdisc, err := ec.PrepareDropingRSTPacket(nwInterface)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			// error出力するが、処理は進める
+			// os.Exit(1)
 		}
-		defer ec.Close(ebpfProg, qdisc)
+		defer func() {
+			if err := ec.Close(ebpfProg, qdisc); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
+		}()
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

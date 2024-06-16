@@ -32,11 +32,17 @@ func PrepareDropingRSTPacket(nwInterface string) (*egress_packetObjects, *netlin
 }
 
 func Close(ebpfProg *egress_packetObjects, qdisc *netlink.GenericQdisc) error {
-	ebpfProg.Close()
-	// 以下で消しておかないと、再起動やtcコマンド使わない限り、RSTパケットがカーネルから送信されない状態になる
-	if err := netlink.QdiscDel(qdisc); err != nil {
-		return fmt.Errorf("Failed to QdiscDel. Please PC reboot... Error: %s\n", err)
+	if ebpfProg != nil {
+		ebpfProg.Close()
 	}
+
+	if qdisc != nil {
+		// 以下で消しておかないと、再起動やtcコマンド使わない限り、RSTパケットがカーネルから送信されない状態になる
+		if err := netlink.QdiscDel(qdisc); err != nil {
+			return fmt.Errorf("Failed to QdiscDel. Please PC reboot... Error: %s\n", err)
+		}
+	}
+
 	return nil
 }
 

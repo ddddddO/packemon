@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import Monitor from './Monitor'
+import Monitor from './monitor/Monitor'
 import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'

@@ -2,14 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import Table from 'react-bootstrap/Table'
 
 const ENDPOINT: string = (() => {
-  let loc = window.location;
-  let uri = 'ws:';
-  if (loc.protocol === 'https:') {
-      uri = 'wss:';
-  }
-  uri += '//' + loc.host;
-  uri += loc.pathname + 'ws';
-  return uri
+  const loc = window.location
+  const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:'
+  return protocol + '//' + loc.host + loc.pathname + 'ws'
 })()
 
 // const ENDPOINT_DEV: string = "ws://localhost:8082/ws"

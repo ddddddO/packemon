@@ -13,10 +13,14 @@ import (
 	ec "github.com/ddddddO/packemon/egress_control"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/gommon/log"
 	"golang.org/x/net/websocket"
 )
 
-const DEFAULT_TARGET_NW_INTERFACE = "eth0"
+const (
+	DEFAULT_TARGET_NW_INTERFACE = "eth0"
+	DEFAULT_SERVER_PORT         = 8082
+)
 
 // ref: https://medium.com/@pavelfokin/how-to-embed-react-app-into-go-binary-12905d5963f0
 // ref: https://echo.labstack.com/docs/cookbook/embed-resources#with-go-116-embed-feature
@@ -71,10 +75,12 @@ func run(ctx context.Context, isClient bool, nwInterface string) error {
 
 	e := echo.New()
 	e.Use(middleware.Logger())
+	e.Logger.SetLevel(log.INFO)
+
 	e.GET("/ws", handleWebSocket(netIf.PassiveCh))
 
 	e.GET("/*", echo.WrapHandler(handleAsset()))
-	e.Logger.Fatal(e.Start(":8082"))
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", DEFAULT_SERVER_PORT)))
 
 	return nil
 }
@@ -102,6 +108,8 @@ type PassiveJSON struct {
 
 // https://zenn.dev/empenguin/articles/bcf95c19451020 参考
 func handleWebSocket(passiveCh chan *packemon.Passive) func(c echo.Context) error {
+	servePort := fmt.Sprintf("%d", DEFAULT_SERVER_PORT)
+
 	return func(c echo.Context) error {
 		websocket.Handler(func(ws *websocket.Conn) {
 			defer ws.Close()
@@ -129,6 +137,16 @@ func handleWebSocket(passiveCh chan *packemon.Passive) func(c echo.Context) erro
 				// }
 
 				for p := range passiveCh {
+					if p.TCP != nil {
+						dstPort := fmt.Sprintf("%d", p.TCP.DstPort)
+						srcPort := fmt.Sprintf("%d", p.TCP.SrcPort)
+
+						// TODO: 一旦、ポート番号だけで、websocketの通信とみなして除外する
+						if dstPort == servePort || srcPort == servePort {
+							continue
+						}
+					}
+
 					pj := PassiveJSON{
 						DestinationMACAddr: p.EthernetFrame.Header.Dst.String(),
 						SourceMACAddr:      p.EthernetFrame.Header.Src.String(),

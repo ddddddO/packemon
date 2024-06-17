@@ -148,7 +148,7 @@ func handlePacket(nwInterface string) func(c echo.Context) error {
 			if err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 			}
-			defer netIf.Close()
+			// defer netIf.Close()
 
 			if err := netIf.Send(ethernetFrame); err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -175,8 +175,8 @@ func handleWebSocket(nwInterface string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		websocket.Handler(func(ws *websocket.Conn) {
 			defer ws.Close()
-
-			c.Logger().Infof("Client IP: %s, Server IP: %s", ws.RemoteAddr().String(), ws.LocalAddr().String())
+			defer c.Logger().Info("End websocket")
+			c.Logger().Info("Start websocket")
 
 			// 初回のメッセージを送信
 			// err := websocket.Message.Send(ws, "Connected to Packemon server!")
@@ -184,7 +184,8 @@ func handleWebSocket(nwInterface string) func(c echo.Context) error {
 			// 	c.Logger().Error(err)
 			// }
 
-			ctx := context.Background()
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
 			netIf, err := packemon.NewNetworkInterface(nwInterface)
 			if err != nil {
 				c.Logger().Error(err)
@@ -212,7 +213,7 @@ func handleWebSocket(nwInterface string) func(c echo.Context) error {
 						dstPort := fmt.Sprintf("%d", p.TCP.DstPort)
 						srcPort := fmt.Sprintf("%d", p.TCP.SrcPort)
 
-						// TODO: 一旦、ポート番号だけで、websocketの通信とみなして除外する
+						// TODO: 一旦、ポート番号だけで、client/server間の通信とみなして除外する
 						if dstPort == servePort || srcPort == servePort {
 							continue
 						}

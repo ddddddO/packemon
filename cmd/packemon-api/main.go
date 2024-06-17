@@ -81,7 +81,7 @@ func run(ctx context.Context, isClient bool, nwInterface string) error {
 	e.Logger.SetLevel(log.INFO)
 
 	e.GET("/ws", handleWebSocket(netIf.PassiveCh))
-	e.POST("/packet", handlePacket(netIf))
+	e.POST("/packet", handlePacket(nwInterface)) // netIf 渡してSendするとダメっぽい
 
 	e.GET("/*", echo.WrapHandler(handleAsset()))
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", DEFAULT_SERVER_PORT)))
@@ -119,7 +119,7 @@ type RequestJSON struct {
 	Type               string `json:"type" validate:"required"`
 }
 
-func handlePacket(netIf *packemon.NetworkInterface) func(c echo.Context) error {
+func handlePacket(nwInterface string) func(c echo.Context) error {
 	return func(c echo.Context) error {
 		req := &RequestJSON{}
 		if err := c.Bind(req); err != nil {
@@ -150,6 +150,12 @@ func handlePacket(netIf *packemon.NetworkInterface) func(c echo.Context) error {
 					Typ: binary.BigEndian.Uint16(typ),
 				},
 			}
+
+			netIf, err := packemon.NewNetworkInterface(nwInterface)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			}
+			defer netIf.Close()
 
 			if err := netIf.Send(ethernetFrame); err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())

@@ -62,30 +62,19 @@ func main() {
 	}
 }
 
-var netIf *packemon.NetworkInterface
-
 func run(ctx context.Context, isClient bool, nwInterface string) error {
 	if isClient {
 		// TODO:
 		return nil
 	}
 
-	var err error
-	netIf, err = packemon.NewNetworkInterface(nwInterface)
-	if err != nil {
-		return err
-	}
-	defer netIf.Close()
-	go netIf.Recieve(ctx)
-
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
 	e.Use(middleware.Logger())
 	e.Logger.SetLevel(log.INFO)
 
-	e.GET("/ws", handleWebSocket(netIf.PassiveCh))
-	e.POST("/packet", handlePacket(nwInterface))    // netIf 渡してSendするとダメっぽい
-	e.GET("/recovery", handleRecovery(nwInterface)) // raspberry pi へ POST /packet 1回した後、RecieveのnetIfが死ぬ
+	e.GET("/ws", handleWebSocket(nwInterface))
+	e.POST("/packet", handlePacket(nwInterface)) // netIf 渡してSendするとダメっぽい
 
 	e.GET("/*", echo.WrapHandler(handleAsset()))
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", DEFAULT_SERVER_PORT)))
@@ -170,18 +159,6 @@ func handlePacket(nwInterface string) func(c echo.Context) error {
 	}
 }
 
-func handleRecovery(nwInterface string) func(c echo.Context) error {
-	return func(c echo.Context) error {
-		var err error
-		netIf, err = packemon.NewNetworkInterface(nwInterface)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
-		}
-
-		return c.JSON(http.StatusAccepted, nil)
-	}
-}
-
 type PassiveJSON struct {
 	DestinationMACAddr string `json:"dst_mac"`
 	SourceMACAddr      string `json:"src_mac"`
@@ -192,7 +169,7 @@ type PassiveJSON struct {
 }
 
 // https://zenn.dev/empenguin/articles/bcf95c19451020 参考
-func handleWebSocket(passiveCh chan *packemon.Passive) func(c echo.Context) error {
+func handleWebSocket(nwInterface string) func(c echo.Context) error {
 	servePort := fmt.Sprintf("%d", DEFAULT_SERVER_PORT)
 
 	return func(c echo.Context) error {
@@ -206,6 +183,15 @@ func handleWebSocket(passiveCh chan *packemon.Passive) func(c echo.Context) erro
 			// if err != nil {
 			// 	c.Logger().Error(err)
 			// }
+
+			ctx := context.Background()
+			netIf, err := packemon.NewNetworkInterface(nwInterface)
+			if err != nil {
+				c.Logger().Error(err)
+				return
+			}
+			defer netIf.Close()
+			go netIf.Recieve(ctx)
 
 			for {
 				// Client からのメッセージを読み込む
@@ -221,7 +207,7 @@ func handleWebSocket(passiveCh chan *packemon.Passive) func(c echo.Context) erro
 				// 	c.Logger().Error(err)
 				// }
 
-				for p := range passiveCh {
+				for p := range netIf.PassiveCh {
 					if p.TCP != nil {
 						dstPort := fmt.Sprintf("%d", p.TCP.DstPort)
 						srcPort := fmt.Sprintf("%d", p.TCP.SrcPort)

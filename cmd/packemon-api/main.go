@@ -62,13 +62,16 @@ func main() {
 	}
 }
 
+var netIf *packemon.NetworkInterface
+
 func run(ctx context.Context, isClient bool, nwInterface string) error {
 	if isClient {
 		// TODO:
 		return nil
 	}
 
-	netIf, err := packemon.NewNetworkInterface(nwInterface)
+	var err error
+	netIf, err = packemon.NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
 	}
@@ -81,7 +84,8 @@ func run(ctx context.Context, isClient bool, nwInterface string) error {
 	e.Logger.SetLevel(log.INFO)
 
 	e.GET("/ws", handleWebSocket(netIf.PassiveCh))
-	e.POST("/packet", handlePacket(nwInterface)) // netIf 渡してSendするとダメっぽい
+	e.POST("/packet", handlePacket(nwInterface))    // netIf 渡してSendするとダメっぽい
+	e.GET("/recovery", handleRecovery(nwInterface)) // raspberry pi へ POST /packet 1回した後、RecieveのnetIfが死ぬ
 
 	e.GET("/*", echo.WrapHandler(handleAsset()))
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", DEFAULT_SERVER_PORT)))
@@ -160,6 +164,18 @@ func handlePacket(nwInterface string) func(c echo.Context) error {
 			if err := netIf.Send(ethernetFrame); err != nil {
 				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 			}
+		}
+
+		return c.JSON(http.StatusAccepted, nil)
+	}
+}
+
+func handleRecovery(nwInterface string) func(c echo.Context) error {
+	return func(c echo.Context) error {
+		var err error
+		netIf, err = packemon.NewNetworkInterface(nwInterface)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
 		return c.JSON(http.StatusAccepted, nil)

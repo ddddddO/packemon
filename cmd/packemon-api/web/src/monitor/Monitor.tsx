@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import Col from 'react-bootstrap/Col'
 import Table from 'react-bootstrap/Table'
 
 const ENDPOINT: string = (() => {
@@ -56,8 +57,9 @@ export default () => {
   const count = packets.length
 
   return (
-    <>
-      <p>{`New!: ${packets[0] ? packets[0].proto: "-"} / ${count}`}</p>
+    <Col sm={8}>
+      <h2>Monitor</h2>
+      {/* <p>{`New!: ${packets[0] ? packets[0].proto: "-"} / ${count}`}</p> */}
 
       <Table striped bordered variant="dark">
         <thead>
@@ -87,6 +89,6 @@ export default () => {
           })}
         </tbody>
       </Table>
-    </>
+    </Col>
   )
 }

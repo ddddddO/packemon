@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import Col from 'react-bootstrap/Col'
 import Table from 'react-bootstrap/Table'
+import Pagination from 'react-bootstrap/Pagination'
+import _ from 'lodash'
 
 const ENDPOINT: string = (() => {
   const loc = window.location
@@ -24,6 +26,10 @@ export default () => {
   const [packets, setPackets] = useState<Packet[]>([])
   const socketRef = useRef<WebSocket>()
   const endpoint = !window.location.host.match(/8082/) ? ENDPOINT_DEV : ENDPOINT
+  const [pageNum, setPageNum] = useState(1)
+  const handlePagination = (e: any) => {
+    setPageNum(e.target.text)
+  }
 
   // #0.WebSocket関連の処理は副作用なので、useEffect内で実装
   useEffect(() => {
@@ -55,11 +61,19 @@ export default () => {
   }, [])
 
   const count = packets.length
+  const range = 10
 
   return (
     <Col sm={8}>
       <h2>Monitor</h2>
       {/* <p>{`New!: ${packets[0] ? packets[0].proto: "-"} / ${count}`}</p> */}
+
+      <Pagination size='sm'>
+        {_.range(packets.length / range).map((v: number) => {
+          const page = v + 1
+          return <Pagination.Item key={page} active={page === pageNum} onClick={handlePagination}>{page}</Pagination.Item>
+        })}
+      </Pagination>
 
       <Table striped bordered variant="dark">
         <thead>
@@ -74,10 +88,10 @@ export default () => {
           </tr>
         </thead>
         <tbody>
-          {packets.map((p, index) => {
+          {_.slice(packets, (pageNum-1)*range, pageNum*range).map((p: Packet, i: number) => {
             return (
               <tr>
-                <td>{count-index}</td>
+                <td>{count - ((pageNum-1)*range + i)}</td>
                 <td>{p.dstMAC}</td>
                 <td>{p.srcMAC}</td>
                 <td>{p.type}</td>

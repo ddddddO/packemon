@@ -11,12 +11,14 @@
   },
   "dependencies": {
     "bootstrap": "^5.3.3",
+    "lodash": "^4.17.21",
     "react": "^18.2.0",
     "react-bootstrap": "^2.10.2",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.52.0"
   },
   "devDependencies": {
+    "@types/lodash": "^4.17.5",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@typescript-eslint/eslint-plugin": "^7.2.0",

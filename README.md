@@ -94,6 +94,17 @@ $ apk add --allow-untrusted packemon.apk
   sudo packemon
   ```
 
+## Another feature
+
+The local node's browser can monitor packets from remote nodes or send arbitrary packets from remote nodes.
+
+- Remote node
+  ![](./assets/packemon_api_remote.png)
+
+- Local node
+  ![](./assets/packemon_api_local.png)
+
+
 ## Related tools
 - netcat
 - [Nmap](https://nmap.org/)

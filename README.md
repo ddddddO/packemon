@@ -98,6 +98,18 @@ $ apk add --allow-untrusted packemon.apk
 
 The local node's browser can monitor packets from remote nodes or send arbitrary packets from remote nodes.
 
+```
+                                         +-------------------------------------+
++----------------------+                 | REMOTE NODE                         |
+| LOCAL NODE (Browser) |                 | $ sudo packemon-api --interface xxx |
+|  Monitor   <---------|-- WebSocket   --|--> HTTP GET  /ws  <-----+           |
+|  Generator  ---------|-- POST packet --|--> HTTP POST /packet    |           |
++----------------------+                 |      -> parse packet    |           |                  +---------------+
+                                         |           -> Network Interface -----|-- Send packet -->| TARGET NODE x |
+                                         +-------------------------------------+                  |               |
+                                                                                                  +---------------+
+```
+
 - Remote node
   ![](./assets/packemon_api_remote.png)
 

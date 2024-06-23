@@ -31,6 +31,8 @@ const (
 var web embed.FS
 
 func main() {
+	var port int
+	flag.IntVar(&port, "port", DEFAULT_SERVER_PORT, "Server port. Default is 8082.")
 	var nwInterface string
 	flag.StringVar(&nwInterface, "interface", DEFAULT_TARGET_NW_INTERFACE, "Specify name of network interface to be sent/received. Default is 'eth0'.")
 	var isClient bool
@@ -56,13 +58,13 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := run(ctx, isClient, nwInterface); err != nil {
+	if err := run(ctx, port, isClient, nwInterface); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 }
 
-func run(ctx context.Context, isClient bool, nwInterface string) error {
+func run(ctx context.Context, port int, isClient bool, nwInterface string) error {
 	if isClient {
 		// TODO:
 		return nil
@@ -70,14 +72,16 @@ func run(ctx context.Context, isClient bool, nwInterface string) error {
 
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
-	e.Use(middleware.Logger())
+	e.Use(middleware.Logger(), middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:5173"},
+	}))
 	e.Logger.SetLevel(log.INFO)
 
 	e.GET("/ws", handleWebSocket(nwInterface))
 	e.POST("/packet", handlePacket(nwInterface)) // netIf 渡してSendするとダメっぽい
 
 	e.GET("/*", echo.WrapHandler(handleAsset()))
-	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", DEFAULT_SERVER_PORT)))
+	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", port)))
 
 	return nil
 }
@@ -114,6 +118,9 @@ type RequestJSON struct {
 
 func handlePacket(nwInterface string) func(c echo.Context) error {
 	return func(c echo.Context) error {
+		defer c.Logger().Info("End handlePacket")
+		c.Logger().Info("Start handlePacket")
+
 		req := &RequestJSON{}
 		if err := c.Bind(req); err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())

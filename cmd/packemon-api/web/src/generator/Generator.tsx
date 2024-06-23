@@ -46,7 +46,7 @@ const Ethernet = () => {
   } = useForm<EthernetInputs>()
 
   const loc = window.location
-  const endpoint = loc.protocol + '//' + loc.host + '/packet'
+  const endpoint = !window.location.host.match(/8082/) ? 'http://localhost:8082/packet' : loc.protocol + '//' + loc.host + '/packet'
   const onSubmit: SubmitHandler<EthernetInputs> = (data) => {
     handleSend(endpoint, data)
 

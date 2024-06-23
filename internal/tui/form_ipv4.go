@@ -41,7 +41,7 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 			if count < 3 {
 				return true
 			} else if count == 3 {
-				ip, err := strIPToBytes(textToCheck)
+				ip, err := packemon.StrIPToBytes(textToCheck)
 				if err != nil {
 					return false
 				}
@@ -56,7 +56,7 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 			if count < 3 {
 				return true
 			} else if count == 3 {
-				ip, err := strIPToBytes(textToCheck)
+				ip, err := packemon.StrIPToBytes(textToCheck)
 				if err != nil {
 					return false
 				}

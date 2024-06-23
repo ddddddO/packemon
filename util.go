@@ -19,6 +19,23 @@ func WriteUint32(buf *bytes.Buffer, target uint32) {
 	buf.Write(b)
 }
 
+func StrIPToBytes(s string) ([]byte, error) {
+	b := make([]byte, 4)
+	src := strings.Split(s, ".")
+
+	for i := range src {
+		if len(src[i]) == 0 {
+			continue
+		}
+		ip, err := strconv.ParseUint(src[i], 10, 8)
+		if err != nil {
+			return nil, err
+		}
+		b[i] = byte(ip)
+	}
+	return b, nil
+}
+
 // TODO: rename or refactor
 func StrHexToBytes(s string) ([]byte, error) {
 	n, err := strconv.ParseUint(s, 0, 48)
@@ -41,6 +58,16 @@ func StrHexToBytes2(s string) ([]byte, error) {
 	buf := make([]byte, 2)
 	binary.BigEndian.PutUint16(buf, uint16(n))
 	return buf, nil
+}
+
+// TODO: rename or refactor
+func StrHexToBytes3(s string) (byte, error) {
+	n, err := strconv.ParseUint(s, 0, 8)
+	if err != nil {
+		return 0, err
+	}
+
+	return uint8(n), nil
 }
 
 func StrIntToUint16(s string) (uint16, error) {

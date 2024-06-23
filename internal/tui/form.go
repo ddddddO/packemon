@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"strconv"
-	"strings"
 
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
@@ -290,11 +289,11 @@ func defaultPackets() (*defaults, error) {
 		Sequence:   binary.BigEndian.Uint16(icmpSequence),
 	}
 
-	srcIP, err := strIPToBytes(DEFAULT_IP_SOURCE)
+	srcIP, err := packemon.StrIPToBytes(DEFAULT_IP_SOURCE)
 	if err != nil {
 		return nil, err
 	}
-	dstIP, err := strIPToBytes(DEFAULT_IP_DESTINATION)
+	dstIP, err := packemon.StrIPToBytes(DEFAULT_IP_DESTINATION)
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +337,7 @@ func defaultPackets() (*defaults, error) {
 	if err != nil {
 		return nil, err
 	}
-	senderIP, err := strIPToBytes(DEFAULT_ARP_SENDER_IP)
+	senderIP, err := packemon.StrIPToBytes(DEFAULT_ARP_SENDER_IP)
 	if err != nil {
 		return nil, err
 	}
@@ -346,7 +345,7 @@ func defaultPackets() (*defaults, error) {
 	if err != nil {
 		return nil, err
 	}
-	targetIP, err := strIPToBytes(DEFAULT_ARP_TARGET_IP)
+	targetIP, err := packemon.StrIPToBytes(DEFAULT_ARP_TARGET_IP)
 	if err != nil {
 		return nil, err
 	}
@@ -409,21 +408,4 @@ func strHexToUint8(s string) (uint8, error) {
 		return 0, err
 	}
 	return uint8(n), nil
-}
-
-func strIPToBytes(s string) ([]byte, error) {
-	b := make([]byte, 4)
-	src := strings.Split(s, ".")
-
-	for i := range src {
-		if len(src[i]) == 0 {
-			continue
-		}
-		ip, err := strconv.ParseUint(src[i], 10, 8)
-		if err != nil {
-			return nil, err
-		}
-		b[i] = byte(ip)
-	}
-	return b, nil
 }

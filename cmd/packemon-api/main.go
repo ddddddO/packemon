@@ -111,6 +111,10 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 }
 
 type RequestJSON struct {
+	Protocol          string `json:"protocol"`
+	SourceIPAddr      string `json:"src_ip"`
+	DestinationIPAddr string `json:"dst_ip"`
+
 	DestinationMACAddr string `json:"dst_mac" validate:"required"`
 	SourceMACAddr      string `json:"src_mac" validate:"required"`
 	Type               string `json:"type" validate:"required"`
@@ -129,6 +133,7 @@ func handlePacket(nwInterface string) func(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 
+		var ethernetFrame *packemon.EthernetFrame
 		{ // Ethernet
 			dstMAC, err := packemon.StrHexToBytes(req.DestinationMACAddr)
 			if err != nil {
@@ -143,23 +148,49 @@ func handlePacket(nwInterface string) func(c echo.Context) error {
 				return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 			}
 
-			ethernetFrame := &packemon.EthernetFrame{
+			ethernetFrame = &packemon.EthernetFrame{
 				Header: &packemon.EthernetHeader{
 					Dst: packemon.HardwareAddr(dstMAC),
 					Src: packemon.HardwareAddr(srcMAC),
 					Typ: binary.BigEndian.Uint16(typ),
 				},
 			}
+		}
 
-			netIf, err := packemon.NewNetworkInterface(nwInterface)
+		// IPv4
+		if ethernetFrame.Header.Typ == packemon.ETHER_TYPE_IPv4 {
+			protocol, err := packemon.StrHexToBytes3(req.Protocol)
 			if err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+				return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 			}
-			// defer netIf.Close()
+			if _, ok := packemon.IPv4Protocols[protocol]; !ok {
+				return echo.NewHTTPError(http.StatusBadRequest, "not supported protocol...")
+			}
 
-			if err := netIf.Send(ethernetFrame); err != nil {
-				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			srcIP, err := packemon.StrIPToBytes(req.SourceIPAddr)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 			}
+
+			dstIP, err := packemon.StrIPToBytes(req.DestinationIPAddr)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+			}
+
+			ipv4 := packemon.NewIPv4(protocol, binary.BigEndian.Uint32(srcIP), binary.BigEndian.Uint32(dstIP))
+			ipv4.CalculateTotalLength()
+			ipv4.CalculateChecksum()
+			ethernetFrame.Data = ipv4.Bytes()
+		}
+
+		netIf, err := packemon.NewNetworkInterface(nwInterface)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+		}
+		// defer netIf.Close()
+
+		if err := netIf.Send(ethernetFrame); err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 		}
 
 		return c.JSON(http.StatusAccepted, nil)

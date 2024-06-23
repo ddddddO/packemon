@@ -1,26 +1,16 @@
 import Button from 'react-bootstrap/Button'
 import Col from 'react-bootstrap/Col'
 import Form from 'react-bootstrap/Form'
-import InputGroup from 'react-bootstrap/InputGroup'
 // ref: https://react-hook-form.com/get-started
 import { useForm, SubmitHandler } from 'react-hook-form'
+import Ethernet from './Ethernet'
+import { FormInput } from './inputTypes'
 
-type Option = {
-  value: string
-  label: string
-}
-
-type EthernetInputs = {
-  dstMAC: string
-  srcMAC: string
-  type: string
-}
-
-const handleSend = (endpoint: string, input: EthernetInputs) => {
+const handleSend = (endpoint: string, input: FormInput) => {
   const body = {
-    dst_mac: input.dstMAC,
-    src_mac: input.srcMAC,
-    type: input.type,
+    dst_mac: input.ethernet.dstMAC,
+    src_mac: input.ethernet.srcMAC,
+    type: input.ethernet.type,
   }
   const params = {
     method: 'POST',
@@ -36,79 +26,32 @@ const handleSend = (endpoint: string, input: EthernetInputs) => {
     .catch((error) => console.error(error))
 }
 
-const Ethernet = () => {
-  const etherTypes: Option[] = [{value: "0x0800", label: "IPv4"}, {value: "0x0806", label: "ARP"}]
+export default () => {
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors },
-  } = useForm<EthernetInputs>()
+    formState,
+  } = useForm<FormInput>()
 
   const loc = window.location
   const endpoint = !window.location.host.match(/8082/) ? 'http://localhost:8082/packet' : loc.protocol + '//' + loc.host + '/packet'
-  const onSubmit: SubmitHandler<EthernetInputs> = (data) => {
+  const onSubmit: SubmitHandler<FormInput> = (data) => {
     handleSend(endpoint, data)
 
     console.log('Send data')
     console.log(data)
   }
 
-  const macAddressValidation = { required: true, minLength: 14, maxLength: 14 }
-
-  console.log(watch('srcMAC'))
-
   return (
-    <>
-      <h3>Ethernet</h3>
+    <Col sm={3}>
+      <h2>Generator</h2>
       <Form onSubmit={handleSubmit(onSubmit)}>
-        <Form.Group className="mb-3" controlId="formDstMAC">
-          <InputGroup.Text>Destination MAC Address</InputGroup.Text>
-          <Form.Control
-            placeholder="e.g.) 0x00155de44d64"
-            {...register('dstMAC', macAddressValidation)}
-            aria-invalid={errors.dstMAC ? "true" : "false"}
-          />
-          {errors.dstMAC?.type === 'required' && <span>This field is required</span>}
-          {errors.dstMAC?.type === 'minLength' && <span>This field is required 14 chars</span>}
-          {errors.dstMAC?.type === 'maxLength' && <span>This field is max 14 chars</span>}
-        </Form.Group>
-
-        <Form.Group className="mb-3" controlId="formSrcMAC">
-          <InputGroup.Text>Source MAC Address</InputGroup.Text>
-          <Form.Control
-            placeholder="e.g.) 0x00155db4ff71"
-            {...register('srcMAC', macAddressValidation)}
-            aria-invalid={errors.srcMAC ? "true" : "false"}
-          />
-          {errors.srcMAC?.type === 'required' && <span>This field is required</span>}
-          {errors.srcMAC?.type === 'minLength' && <span>This field is required 14 chars</span>}
-          {errors.srcMAC?.type === 'maxLength' && <span>This field is max 14 chars</span>}
-        </Form.Group>
-
-        <Form.Group className="mb-3" controlId="formEtherType">
-          <InputGroup.Text>Ether Type</InputGroup.Text>
-          <Form.Select 
-            aria-label="Default select example"
-            {...register('type')}
-          >
-            {etherTypes.map((e) => <option value={e.value}>{e.label}</option>)}
-          </Form.Select>
-        </Form.Group>
-
+        <Ethernet register={register} watch={watch} formState={formState} />
         <Button variant="primary" type="submit">
           Send
         </Button>
       </Form>
-    </>
-  )
-}
-
-export default () => {
-  return (
-    <Col sm={3}>
-      <h2>Generator</h2>
-      <Ethernet />
     </Col>
   )
 }

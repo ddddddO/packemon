@@ -3,14 +3,7 @@ import Col from 'react-bootstrap/Col'
 import Table from 'react-bootstrap/Table'
 import Pagination from 'react-bootstrap/Pagination'
 import _ from 'lodash'
-
-const ENDPOINT: string = (() => {
-  const loc = window.location
-  const protocol = loc.protocol === 'https:' ? 'wss:' : 'ws:'
-  return protocol + '//' + loc.host + loc.pathname + 'ws'
-})()
-
-const ENDPOINT_DEV: string = "ws://localhost:8082/ws"
+import { getEndpointWS } from '../endpoint'
 
 type Packet = {
   dstMAC: string
@@ -25,7 +18,7 @@ type Packet = {
 export default () => {
   const [packets, setPackets] = useState<Packet[]>([])
   const socketRef = useRef<WebSocket>()
-  const endpoint = window.location.host.match(/8082/) ? ENDPOINT_DEV : ENDPOINT
+  const endpoint = getEndpointWS()
   const [pageNum, setPageNum] = useState(1)
   const handlePagination = (e: any) => {
     setPageNum(e.target.text)

@@ -73,7 +73,7 @@ func run(ctx context.Context, port int, isClient bool, nwInterface string) error
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
 	e.Use(middleware.Logger(), middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost:5173"},
+		AllowOrigins: []string{"*"}, //[]string{"http://localhost:5173"}, // TODO: 外から指定できるようにする
 	}))
 	e.Logger.SetLevel(log.INFO)
 

@@ -32,7 +32,7 @@ func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 		return nil, errors.New("network interface may not have IP address configured")
 	}
 
-	ipAddr, err := strIPToBytes(strings.Split(ipAddrs[0].String(), "/")[0])
+	ipAddr, err := StrIPToBytes(strings.Split(ipAddrs[0].String(), "/")[0])
 	if err != nil {
 		return nil, err
 	}

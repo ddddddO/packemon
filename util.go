@@ -19,6 +19,7 @@ func WriteUint32(buf *bytes.Buffer, target uint32) {
 	buf.Write(b)
 }
 
+// stringのIPv4アドレスをbytesに変換
 func StrIPToBytes(s string) ([]byte, error) {
 	b := make([]byte, 4)
 	src := strings.Split(s, ".")
@@ -76,24 +77,6 @@ func StrIntToUint16(s string) (uint16, error) {
 		return 0, err
 	}
 	return uint16(n), nil
-}
-
-// stringのIPv4アドレスをbytesに変換
-func strIPToBytes(s string) ([]byte, error) {
-	b := make([]byte, 4)
-	src := strings.Split(s, ".")
-
-	for i := range src {
-		if len(src[i]) == 0 {
-			continue
-		}
-		ip, err := strconv.ParseUint(src[i], 10, 8)
-		if err != nil {
-			return nil, err
-		}
-		b[i] = byte(ip)
-	}
-	return b, nil
 }
 
 // copy of https://github.com/sat0ken/go-curo/blob/main/utils.go#L18

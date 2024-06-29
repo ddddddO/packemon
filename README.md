@@ -117,6 +117,22 @@ The local node's browser can monitor packets from remote nodes or send arbitrary
   ![](./assets/packemon_api_local.png)
 
 
+>[!WARNING]
+> Please note that the following is dangerous.
+
+The following procedure is an example of how you can expose packemon-api to the outside world and monitor and send remote node packets on your browser.
+
+1. (REMOTE) Please install `packemon-api` and run.
+  ```console
+  $ go install github.com/ddddddO/packemon/cmd/packemon-api@latest
+  $ sudo packemon-api --interface wlan0
+  ```
+1. (REMOTE) Run [`ngrok`](https://ngrok.com/) and note the URL to be paid out.
+  ```console
+  $ ngrok http 8082
+  ```
+1. (LOCAL) Enter the dispensed URL into your browser and you will be able to monitor and send packets to remote node.
+
 ## Related tools
 - netcat
 - [Nmap](https://nmap.org/)

@@ -1,6 +1,5 @@
 >[!WARNING]
 > - フロントいじったら、`npm run build` -> push 忘れない
-> - local開発時の `const endpoint` 面倒だけど一旦手動で変えてやる
 
 # memo
 - https://x.com/honey321998/status/1785882749670396269

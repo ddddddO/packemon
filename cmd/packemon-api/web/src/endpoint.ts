@@ -3,7 +3,6 @@ export const getEndpoint = (): string => {
   return loc.hostname === 'localhost'
         ? 'http://localhost:8082/packet'
         : loc.protocol + '//' + loc.host + '/packet'
-
 }
 
 export const getEndpointWS = (): string => {

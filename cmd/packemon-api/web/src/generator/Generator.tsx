@@ -40,7 +40,7 @@ export default () => {
   } = useForm<FormInput>()
 
   const loc = window.location
-  const endpoint = !window.location.host.match(/8082/) ? 'http://localhost:8082/packet' : loc.protocol + '//' + loc.host + '/packet'
+  const endpoint = window.location.host.match(/8082/) ? 'http://localhost:8082/packet' : loc.protocol + '//' + loc.host + '/packet'
   const onSubmit: SubmitHandler<FormInput> = (data) => {
     handleSend(endpoint, data)
 

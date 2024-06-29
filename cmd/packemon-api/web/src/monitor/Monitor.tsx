@@ -25,7 +25,7 @@ type Packet = {
 export default () => {
   const [packets, setPackets] = useState<Packet[]>([])
   const socketRef = useRef<WebSocket>()
-  const endpoint = !window.location.host.match(/8082/) ? ENDPOINT_DEV : ENDPOINT
+  const endpoint = window.location.host.match(/8082/) ? ENDPOINT_DEV : ENDPOINT
   const [pageNum, setPageNum] = useState(1)
   const handlePagination = (e: any) => {
     setPageNum(e.target.text)

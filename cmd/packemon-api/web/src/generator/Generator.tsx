@@ -6,8 +6,9 @@ import { useForm, SubmitHandler } from 'react-hook-form'
 import Ethernet from './Ethernet'
 import IPv4 from './IPv4'
 import { FormInput } from './inputTypes'
+import { getEndpoint } from '../endpoint'
 
-const handleSend = (endpoint: string, input: FormInput) => {
+const handleSend = (input: FormInput) => {
   const body = {
     protocol: input.ipv4.protocol,
     src_ip: input.ipv4.srcIP,
@@ -25,7 +26,7 @@ const handleSend = (endpoint: string, input: FormInput) => {
     body: JSON.stringify(body),
   }
 
-  fetch(endpoint, params)
+  fetch(getEndpoint(), params)
     .then((data) => data.json())
     .then((resp) => console.log(resp))
     .catch((error) => console.error(error))
@@ -38,11 +39,8 @@ export default () => {
     watch,
     formState,
   } = useForm<FormInput>()
-
-  const loc = window.location
-  const endpoint = window.location.host.match(/8082/) ? 'http://localhost:8082/packet' : loc.protocol + '//' + loc.host + '/packet'
   const onSubmit: SubmitHandler<FormInput> = (data) => {
-    handleSend(endpoint, data)
+    handleSend(data)
 
     console.log('Send data')
     console.log(data)

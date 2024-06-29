@@ -121,6 +121,7 @@ The local node's browser can monitor packets from remote nodes or send arbitrary
 - netcat
 - [Nmap](https://nmap.org/)
 - [Scapy](https://github.com/secdev/scapy)
+- [google/gopacket](https://github.com/google/gopacket)
 
 ## Acknowledgment
 - [rivo/tview](https://github.com/rivo/tview)

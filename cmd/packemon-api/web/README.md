@@ -1,3 +1,6 @@
+>[!WARNING]
+>フロントいじったら、`npm run build` -> push 忘れない
+
 # memo
 - https://x.com/honey321998/status/1785882749670396269
   - `create-react-app` は開発止まってるそう

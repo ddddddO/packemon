@@ -285,7 +285,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa021
+	var srcPort uint16 = 0xa022
 	var dstPort uint16 = 0x01BB       // 443
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 	var dstIPAddr uint32 = 0xac4348dc // zenn / 172.67.72.220
@@ -373,9 +373,14 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 									return err
 								}
 
-								if err := dnw.SendHTTPget(srcPort, dstPort, srcIPAddr, dstIPAddr, firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
+								// TODO: ここで、TLS Client Helloを送る
+								if err := dnw.SendTLSClientHello(srcPort, dstPort, srcIPAddr, dstIPAddr, firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
 									return err
 								}
+
+								// if err := dnw.SendHTTPget(srcPort, dstPort, srcIPAddr, dstIPAddr, firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
+								// 	return err
+								// }
 								continue
 							}
 
@@ -470,6 +475,22 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 	}
 
 	return nil
+}
+
+func (dnw *debugNetworkInterface) SendTLSClientHello(srcPort, dstPort uint16, srcIPAddr uint32, dstIPAddr uint32, firsthopMACAddr [6]byte, prevSequence uint32, prevAcknowledgment uint32) error {
+	clientHello := p.NewTLSClientHello()
+	tcp := p.NewTCPWithData(srcPort, dstPort, clientHello.Bytes(), prevSequence, prevAcknowledgment)
+	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+	tcp.CalculateChecksum(ipv4)
+
+	ipv4.Data = tcp.Bytes()
+	ipv4.CalculateTotalLength()
+	ipv4.CalculateChecksum()
+
+	dstMACAddr := p.HardwareAddr(firsthopMACAddr)
+	srcMACAddr := p.HardwareAddr(dnw.Intf.HardwareAddr)
+	ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+	return dnw.Send(ethernetFrame)
 }
 
 func (dnw *debugNetworkInterface) SendHTTPget(srcPort, dstPort uint16, srcIPAddr uint32, dstIPAddr uint32, firsthopMACAddr [6]byte, prevSequence uint32, prevAcknowledgment uint32) error {

@@ -18,8 +18,8 @@ func NewTLSClientHello() *TLSClientHello {
 
 	return &TLSClientHello{
 		// 03 03 = TLS1.2
-		RecordHeader:      []byte{0x16, 0x03, 0x03, 0x00, 0x4d}, // 4d = 77byte len
-		HandshakeHeader:   []byte{CLIENT_HELLO, 0x00, 0x00, 0xa1},
+		RecordHeader:      []byte{0x16, 0x03, 0x01, 0x00, 0x4d}, // 4d = 77byte len
+		HandshakeHeader:   []byte{CLIENT_HELLO, 0x00, 0x00, 0x49},
 		ClientVersion:     []byte{0x03, 0x03},
 		ClientRandom:      make([]byte, 32),
 		SessionID:         []byte{0x00},

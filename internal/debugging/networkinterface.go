@@ -286,9 +286,9 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
 	var srcPort uint16 = 0xa033
-	var dstPort uint16 = 0x01BB       // 443
+	var dstPort uint16 = 0x28cb       // 10443
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
-	var dstIPAddr uint32 = 0xac4348dc // zenn / 172.67.72.220
+	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
 	dstMACAddr := p.HardwareAddr(firsthopMACAddr)
 	srcMACAddr := p.HardwareAddr(dnw.Intf.HardwareAddr)
 

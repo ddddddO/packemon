@@ -33,7 +33,7 @@ func main() {
 	config := &tls.Config{
 		Certificates: []tls.Certificate{cert},
 		Rand:         zeroSource{}, // for example only; don't do this.
-		MinVersion:   tls.VersionTLS13,
+		MinVersion:   tls.VersionTLS12,
 		MaxVersion:   tls.VersionTLS13,
 		CipherSuites: []uint16{tls.TLS_RSA_WITH_AES_128_GCM_SHA256},
 		//CurvePreferences: []tls.CurveID{tls.X25519},

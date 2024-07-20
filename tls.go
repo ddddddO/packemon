@@ -40,7 +40,8 @@ func (p *TLSHandshakeProtocol) Bytes() []byte {
 	buf = append(buf, p.Version...)
 	buf = append(buf, p.Random...)
 	buf = append(buf, p.SessionID...)
-	buf = append(buf, p.CipherSuitesLength...)
+	// buf = append(buf, p.CipherSuitesLength...)
+	buf = append(buf, p.lengthCipherSuites()...)
 	buf = append(buf, p.bytesCipherSuites()...)
 	buf = append(buf, p.CompressionMethodsLength...)
 	buf = append(buf, p.CompressionMethods...)
@@ -57,6 +58,12 @@ func (p *TLSHandshakeProtocol) bytesCipherSuites() []byte {
 	return buf
 }
 
+func (p *TLSHandshakeProtocol) lengthCipherSuites() []byte {
+	buf := make([]byte, 2)
+	binary.BigEndian.PutUint16(buf, uint16(len(p.CipherSuites)*2)) // 2byteなため×2
+	return buf
+}
+
 // ref: https://tls12.xargs.org/#client-hello/annotated
 // 以下のフィールドはWiresharkを見て
 type TLSClientHello struct {
@@ -67,6 +74,7 @@ type TLSClientHello struct {
 func NewTLSClientHello() *TLSClientHello {
 	const CLIENT_HELLO = 0x01
 	const COMPRESSION_METHOD_NULL = 0x00
+	var TLS_VERSION_1_2 = []byte{0x03, 0x03}
 
 	return &TLSClientHello{
 		RecordLayer: &TLSRecordLayer{
@@ -75,13 +83,11 @@ func NewTLSClientHello() *TLSClientHello {
 			Length:      []byte{0x00, 0x4d}, // 4d = 77byte len
 		},
 		HandshakeProtocol: &TLSHandshakeProtocol{
-			HandshakeType:      []byte{CLIENT_HELLO},
-			Length:             []byte{0x00, 0x00, 0x49}, // 49 = 73byte
-			Version:            []byte{0x03, 0x03},       // TLS1.2
-			Random:             make([]byte, 32),         // 000000....
-			SessionID:          []byte{0x00},
-			CipherSuitesLength: []byte{0x00, 0x20}, // 32
-			// CipherSuites:             []byte{0xcc, 0xa8, 0xcc, 0xa9, 0xc0, 0x2f, 0xc0, 0x30, 0xc0, 0x2b, 0xc0, 0x2c, 0xc0, 0x13, 0xc0, 0x09, 0xc0, 0x14, 0xc0, 0x0a, 0x00, 0x9c, 0x00, 0x9d, 0x00, 0x2f, 0x00, 0x35, 0xc0, 0x12, 0x00, 0x0a},
+			HandshakeType: []byte{CLIENT_HELLO},
+			Length:        []byte{0x00, 0x00, 0x49}, // 49 = 73byte
+			Version:       TLS_VERSION_1_2,
+			Random:        make([]byte, 32), // 000000....
+			SessionID:     []byte{0x00},
 			CipherSuites: []uint16{
 				tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
 				tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,

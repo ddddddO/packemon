@@ -285,7 +285,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa050
+	var srcPort uint16 = 0xa054
 	var dstPort uint16 = 0x28cb       // 10443
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
@@ -390,49 +390,56 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 							}
 
 							if tcp.Flags == p.TCP_FLAGS_PSH_ACK {
-								lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
-								if lineLength == -1 {
-									log.Println("-1")
-									continue
-								}
-								log.Println("passive TCP_FLAGS_PSH_ACK")
+								log.Println("passive TLS ServerHello")
+								tlsServerHello := p.ParsedTLSServerHello(tcp.Data)
 
-								// HTTPレスポンス受信
-								if tcp.SrcPort == packemon.PORT_HTTP {
-									resp := p.ParsedHTTPResponse(tcp.Data)
-									log.Printf("%+v\n", resp)
+								log.Printf("\tServerHello.RecordLayer.ContentType: %x\n", tlsServerHello.ServerHello.RecordLayer.ContentType)
+								log.Printf("\tServerHello.HandshakeProtocol.Version: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.Version)
+								log.Printf("\tServerHello.HandshakeProtocol.CipherSuites: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.CipherSuites)
 
-									// そのackを返す
-									log.Printf("Length of http resp: %d\n", resp.Len())
+								// lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
+								// if lineLength == -1 {
+								// 	log.Println("-1")
+								// 	continue
+								// }
+								// log.Println("passive TCP_FLAGS_PSH_ACK")
 
-									tcp := p.NewTCPAckForPassiveData(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
-									ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-									tcp.CalculateChecksum(ipv4)
+								// // HTTPレスポンス受信
+								// if tcp.SrcPort == packemon.PORT_HTTP {
+								// 	resp := p.ParsedHTTPResponse(tcp.Data)
+								// 	log.Printf("%+v\n", resp)
 
-									ipv4.Data = tcp.Bytes()
-									ipv4.CalculateTotalLength()
-									ipv4.CalculateChecksum()
+								// 	// そのackを返す
+								// 	log.Printf("Length of http resp: %d\n", resp.Len())
 
-									ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
-									if err := dnw.Send(ethernetFrame); err != nil {
-										return err
-									}
+								// 	tcp := p.NewTCPAckForPassiveData(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
+								// 	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+								// 	tcp.CalculateChecksum(ipv4)
 
-									// 続けてFinAck
-									tcp = p.NewTCPFinAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
-									ipv4 = p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-									tcp.CalculateChecksum(ipv4)
+								// 	ipv4.Data = tcp.Bytes()
+								// 	ipv4.CalculateTotalLength()
+								// 	ipv4.CalculateChecksum()
 
-									ipv4.Data = tcp.Bytes()
-									ipv4.CalculateTotalLength()
-									ipv4.CalculateChecksum()
+								// 	ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+								// 	if err := dnw.Send(ethernetFrame); err != nil {
+								// 		return err
+								// 	}
 
-									ethernetFrame = p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
-									if err := dnw.Send(ethernetFrame); err != nil {
-										return err
-									}
-								}
-								continue
+								// 	// 続けてFinAck
+								// 	tcp = p.NewTCPFinAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+								// 	ipv4 = p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+								// 	tcp.CalculateChecksum(ipv4)
+
+								// 	ipv4.Data = tcp.Bytes()
+								// 	ipv4.CalculateTotalLength()
+								// 	ipv4.CalculateChecksum()
+
+								// 	ethernetFrame = p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+								// 	if err := dnw.Send(ethernetFrame); err != nil {
+								// 		return err
+								// 	}
+								// }
+								// continue
 							}
 
 							if tcp.Flags == p.TCP_FLAGS_FIN_ACK {

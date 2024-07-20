@@ -1,8 +1,10 @@
 package packemon
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/binary"
+	"log"
 )
 
 type TLSRecordLayer struct {
@@ -119,4 +121,55 @@ func (tch *TLSClientHello) Bytes() []byte {
 	buf = append(buf, tch.RecordLayer.Bytes()...)
 	buf = append(buf, tch.HandshakeProtocol.Bytes()...)
 	return buf
+}
+
+type TLSServerHello struct {
+	ServerHello     *ServerHello
+	Certificate     *Certificate
+	ServerHelloDone *ServerHelloDone
+}
+
+type ServerHello struct {
+	RecordLayer       *TLSRecordLayer
+	HandshakeProtocol *TLSHandshakeProtocol
+}
+
+type Certificate struct {
+	RecordLayer       *TLSRecordLayer
+	HandshakeProtocol *TLSHandshakeProtocol
+}
+
+type ServerHelloDone struct {
+	RecordLayer       *TLSRecordLayer
+	HandshakeProtocol *TLSHandshakeProtocol
+}
+
+func ParsedTLSServerHello(b []byte) *TLSServerHello {
+	return &TLSServerHello{
+		ServerHello: &ServerHello{
+			RecordLayer: &TLSRecordLayer{
+				ContentType: []byte{b[0]},
+				Version:     b[1:3],
+				Length:      b[3:5],
+			},
+			HandshakeProtocol: &TLSHandshakeProtocol{
+				HandshakeType:      []byte{b[5]},
+				Length:             b[6:9],
+				Version:            b[9:11],
+				Random:             b[11:43],
+				SessionID:          []byte{b[43]},
+				CipherSuites:       []uint16{parsedCipherSuites(b[44:46])},
+				CompressionMethods: []byte{b[46]},
+			},
+		},
+	}
+}
+
+func parsedCipherSuites(b []byte) uint16 {
+	if bytes.Equal(b, []byte{0x00, 0x9c}) {
+		return tls.TLS_RSA_WITH_AES_128_GCM_SHA256
+	}
+
+	log.Printf("TLS not parsed CipherSuites: %x\n", b)
+	return tls.TLS_RSA_WITH_AES_128_GCM_SHA256
 }

@@ -82,8 +82,16 @@ func run(ctx context.Context, nwInterface string, wantSend bool, debug bool, pro
 			// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
 			// $ ip route
 			// $ arp xxx.xx.xxx.1
-			firsthopMACAddr := [6]byte{0x00, 0x15, 0x5d, 0xa6, 0x6a, 0x9d}
-			return debugMode(wantSend, protocol, netIf, firsthopMACAddr)
+			rawDefaultRouteMAC, err := packemon.GetDefaultRouteMAC()
+			if err != nil {
+				return err
+			}
+			firsthopMACAddr, err := packemon.StrHexToBytes(fmt.Sprintf("0x%s", strings.ReplaceAll(rawDefaultRouteMAC, ":", "")))
+			if err != nil {
+				return err
+			}
+
+			return debugMode(wantSend, protocol, netIf, packemon.HardwareAddr(firsthopMACAddr))
 		}
 
 		// Monitor の debug は本チャンの networkinterface.go 使うようにする

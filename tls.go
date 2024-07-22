@@ -688,3 +688,57 @@ func verifyTLSFinished(target []byte, v *ForVerifing) bool {
 
 	return bytes.Equal(target[4:], ret)
 }
+
+// こちらで作る分にはこのstructは不要
+type TLSApplicationData struct {
+	RecordLayer              *TLSRecordLayer
+	EncryptedApplicationData []byte
+}
+
+func NewTLSApplicationData(data string, keyblock *KeyBlock, clientSequence int) []byte {
+	encrypted, _ := encryptApplicationData(keyblock, []byte(data), clientSequence)
+	return encrypted
+}
+
+const TLS_CONTENT_TYPE_APPLICATION_DATA = 0x17
+
+// TODO: encryptClientMessage func と共通化を...
+func encryptApplicationData(keyblock *KeyBlock, plaintext []byte, clientSequence int) ([]byte, int) {
+	length := &bytes.Buffer{}
+	WriteUint16(length, uint16(len(plaintext)))
+
+	log.Printf("length.Bytes(): %x\n", length.Bytes())
+
+	h := &TLSRecordLayer{
+		ContentType: []byte{TLS_CONTENT_TYPE_APPLICATION_DATA},
+		Version:     TLS_VERSION_1_2,
+		Length:      length.Bytes(),
+	}
+	header := h.Bytes()
+	record_seq := append(header, getNonce(clientSequence, 8)...)
+
+	nonce := keyblock.ClientWriteIV
+	nonce = append(nonce, getNonce(clientSequence, 8)...)
+
+	add := getNonce(clientSequence, 8)
+	add = append(add, header...)
+
+	block, _ := aes.NewCipher(keyblock.ClientWriteKey)
+	aesgcm, _ := cipher.NewGCM(block)
+
+	encryptedMessage := aesgcm.Seal(record_seq, nonce, plaintext, add)
+	tmp := &bytes.Buffer{}
+	WriteUint16(tmp, uint16(len(encryptedMessage)-5))
+	updatelength := tmp.Bytes()
+	encryptedMessage[3] = updatelength[0]
+	encryptedMessage[4] = updatelength[1]
+
+	return encryptedMessage, clientSequence
+}
+
+func (a *TLSApplicationData) Bytes() []byte {
+	b := []byte{}
+	b = append(b, a.RecordLayer.Bytes()...)
+	b = append(b, a.EncryptedApplicationData...)
+	return b
+}

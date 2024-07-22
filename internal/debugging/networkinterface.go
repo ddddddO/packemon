@@ -285,7 +285,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa231
+	var srcPort uint16 = 0xa263
 	var dstPort uint16 = 0x28cb       // 10443
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
@@ -411,13 +411,13 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 									log.Println("passive TLS ServerHello")
 									tlsServerHello = p.ParsedTLSServerHello(tcp.Data)
 
-									log.Printf("\tServerHello.RecordLayer.ContentType: %x\n", tlsServerHello.ServerHello.RecordLayer.ContentType)
-									log.Printf("\tServerHello.HandshakeProtocol.Version: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.Version)
-									log.Printf("\tServerHello.HandshakeProtocol.CipherSuites: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.CipherSuites)
-									log.Printf("\tServerHello.HandshakeProtocol.Random:\n%x\n", tlsServerHello.ServerHello.HandshakeProtocol.Random)
-									log.Printf("\tServerHelloDone.RecordLayer.ContentType: %x\n", tlsServerHello.ServerHelloDone.RecordLayer.ContentType)
-									log.Printf("\tServerHelloDone.HandshakeProtocol.HandshakeType: %x\n", tlsServerHello.ServerHelloDone.HandshakeProtocol.HandshakeType)
-									log.Printf("\tServerHelloDone.HandshakeProtocol.Length: %x\n", tlsServerHello.ServerHelloDone.HandshakeProtocol.Length)
+									// log.Printf("\tServerHello.RecordLayer.ContentType: %x\n", tlsServerHello.ServerHello.RecordLayer.ContentType)
+									// log.Printf("\tServerHello.HandshakeProtocol.Version: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.Version)
+									// log.Printf("\tServerHello.HandshakeProtocol.CipherSuites: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.CipherSuites)
+									// log.Printf("\tServerHello.HandshakeProtocol.Random:\n%x\n", tlsServerHello.ServerHello.HandshakeProtocol.Random)
+									// log.Printf("\tServerHelloDone.RecordLayer.ContentType: %x\n", tlsServerHello.ServerHelloDone.RecordLayer.ContentType)
+									// log.Printf("\tServerHelloDone.HandshakeProtocol.HandshakeType: %x\n", tlsServerHello.ServerHelloDone.HandshakeProtocol.HandshakeType)
+									// log.Printf("\tServerHelloDone.HandshakeProtocol.Length: %x\n", tlsServerHello.ServerHelloDone.HandshakeProtocol.Length)
 
 									if err := tlsServerHello.Certificate.Validate(); err != nil {
 										return err
@@ -474,6 +474,26 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 									tlsChangeCiperSpecAndFinished := p.ParsedTLSChangeCipherSpecAndFinished(tcp.Data, keyblock, clientSequence, verifingData)
 									log.Printf("\tChangeCipherSpecProtocol.RecordLayer.ContentType: %x\n", tlsChangeCiperSpecAndFinished.ChangeCipherSpecProtocol.RecordLayer.ContentType)
 									log.Printf("\tFinished.RawEncrypted:\n%x\n", tlsChangeCiperSpecAndFinished.Finished.RawEncrypted)
+
+									// TODO: 上のParsed内でserverからきたFinishedの検証してるけど、この辺りに持ってきた方がいいかも
+
+									// Finishedの検証が成功したので、以降からApplicationDataをやりとり
+									log.Println("Send TLS Application DATA")
+
+									clientSequence++
+									tlsApplicationData := p.NewTLSApplicationData("Hellooooooo!!\n", keyblock, clientSequence)
+									tcp = p.NewTCPWithData(srcPort, dstPort, tlsApplicationData, tcp.Acknowledgment, tcp.Sequence)
+									ipv4 = p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+									tcp.CalculateChecksum(ipv4)
+
+									ipv4.Data = tcp.Bytes()
+									ipv4.CalculateTotalLength()
+									ipv4.CalculateChecksum()
+
+									ethernetFrame = p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+									if err := dnw.Send(ethernetFrame); err != nil {
+										return err
+									}
 
 									continue
 								}

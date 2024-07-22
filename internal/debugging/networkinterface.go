@@ -285,7 +285,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa215
+	var srcPort uint16 = 0xa231
 	var dstPort uint16 = 0x28cb       // 10443
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
@@ -323,6 +323,14 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 	}
 
 	tlsClientHello := p.NewTLSClientHello()
+	var tlsServerHello *p.TLSServerHello
+	var tlsClientKeyExchange *p.TLSClientKeyExchange
+	var tlsClientFinished []byte
+
+	var keyblock *p.KeyBlock
+	var clientSequence int
+	var master []byte
+
 	events := make([]unix.EpollEvent, 10)
 	for {
 		log.Println("in outer loop")
@@ -401,7 +409,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 									log.Printf("tlsHandshakeType: %x\n", tlsHandshakeType)
 
 									log.Println("passive TLS ServerHello")
-									tlsServerHello := p.ParsedTLSServerHello(tcp.Data)
+									tlsServerHello = p.ParsedTLSServerHello(tcp.Data)
 
 									log.Printf("\tServerHello.RecordLayer.ContentType: %x\n", tlsServerHello.ServerHello.RecordLayer.ContentType)
 									log.Printf("\tServerHello.HandshakeProtocol.Version: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.Version)
@@ -430,7 +438,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 									}
 
 									// TODO: さらにClientKeyExchangeなどを返す
-									tlsClientKeyExchange := p.NewTLSClientKeyExchange(
+									tlsClientKeyExchange, keyblock, clientSequence, master, tlsClientFinished = p.NewTLSClientKeyExchange(
 										tlsClientHello,
 										tlsServerHello,
 									)
@@ -446,6 +454,26 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 									if err := dnw.Send(ethernetFrame); err != nil {
 										return err
 									}
+
+									continue
+								}
+
+								// ChangeCipherSpec/Finishedを受信
+								// TODO: (10)443ポートがdstとかもっと絞った方がいいかも
+								// Handshake(0x14)
+								if bytes.Equal(tlsContentType, []byte{0x14}) {
+									log.Println("recieved ChangeCipherSpec/Finished !!")
+
+									verifingData := &p.ForVerifing{
+										Master:            master,
+										ClientHello:       tlsClientHello,
+										ServerHello:       tlsServerHello,
+										ClientKeyExchange: tlsClientKeyExchange.ClientKeyExchange,
+										ClientFinished:    tlsClientFinished,
+									}
+									tlsChangeCiperSpecAndFinished := p.ParsedTLSChangeCipherSpecAndFinished(tcp.Data, keyblock, clientSequence, verifingData)
+									log.Printf("\tChangeCipherSpecProtocol.RecordLayer.ContentType: %x\n", tlsChangeCiperSpecAndFinished.ChangeCipherSpecProtocol.RecordLayer.ContentType)
+									log.Printf("\tFinished.RawEncrypted:\n%x\n", tlsChangeCiperSpecAndFinished.Finished.RawEncrypted)
 
 									continue
 								}

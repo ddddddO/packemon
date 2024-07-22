@@ -365,7 +365,7 @@ const TLS_HANDSHAKE_TYPE_CLIENT_KEY_EXCHANGE = 0x10
 const TLS_HANDSHAKE_TYPE_FINISHED = 0x14
 const TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC = 0x14
 
-func NewTLSClientKeyExchange(clientHello *TLSClientHello, serverHello *TLSServerHello) *TLSClientKeyExchange {
+func NewTLSClientKeyExchange(clientHello *TLSClientHello, serverHello *TLSServerHello) (*TLSClientKeyExchange, *KeyBlock, int, []byte, []byte) {
 	publicKey := serverHello.Certificate.ServerPublicKey()
 	preMastersecret, encryptedPreMastersecret := generatePreMasterSecret(publicKey)
 
@@ -402,14 +402,14 @@ func NewTLSClientKeyExchange(clientHello *TLSClientHello, serverHello *TLSServer
 		ChangeCipherSpecMessage: []byte{0x01},
 	}
 
-	encrypted := generateEncryptedHandshakeMessage(preMastersecret, clientHello, serverHello, clientKeyExchange, changeCipherSpecProtocol)
+	rawFinished, encrypted, keyblock, clientSequence, master := generateEncryptedHandshakeMessage(preMastersecret, clientHello, serverHello, clientKeyExchange)
 	log.Printf("Encrypted:\n%x\n", encrypted)
 
 	return &TLSClientKeyExchange{
 		ClientKeyExchange:         clientKeyExchange,
 		ChangeCipherSpecProtocol:  changeCipherSpecProtocol,
 		EncryptedHandshakeMessage: encrypted,
-	}
+	}, keyblock, clientSequence, master, rawFinished
 }
 
 func lengthEncryptedHandshakeMessage_(b []byte) []byte {
@@ -447,7 +447,7 @@ type KeyBlock struct {
 	ServerWriteIV  []byte
 }
 
-func generateEncryptedHandshakeMessage(preMasterSecret []byte, clientHello *TLSClientHello, serverHello *TLSServerHello, clientKeyExchange *ClientKeyExchange, changeCipherSpecProtocol *ChangeCipherSpecProtocol) []byte {
+func generateEncryptedHandshakeMessage(preMasterSecret []byte, clientHello *TLSClientHello, serverHello *TLSServerHello, clientKeyExchange *ClientKeyExchange) ([]byte, []byte, *KeyBlock, int, []byte) {
 	var random []byte
 	random = append(random, clientHello.HandshakeProtocol.Random...)
 	random = append(random, serverHello.ServerHello.HandshakeProtocol.Random...)
@@ -493,11 +493,11 @@ func generateEncryptedHandshakeMessage(preMasterSecret []byte, clientHello *TLSC
 	finMessage = append(finMessage, uintTo3byte(uint32(len(verifyData)))...)
 	finMessage = append(finMessage, verifyData...)
 
-	encrypted := encryptClientMessage(keyblock, finMessage)
-	return encrypted
+	encrypted, clientSequenceNum := encryptClientMessage(keyblock, finMessage)
+	return finMessage, encrypted, keyblock, clientSequenceNum, master
 }
 
-func encryptClientMessage(keyblock *KeyBlock, plaintext []byte) []byte {
+func encryptClientMessage(keyblock *KeyBlock, plaintext []byte) ([]byte, int) {
 	length := &bytes.Buffer{}
 	WriteUint16(length, uint16(len(plaintext)))
 
@@ -528,7 +528,7 @@ func encryptClientMessage(keyblock *KeyBlock, plaintext []byte) []byte {
 	encryptedMessage[3] = updatelength[0]
 	encryptedMessage[4] = updatelength[1]
 
-	return encryptedMessage
+	return encryptedMessage, clientSequence
 }
 
 func getNonce(i, length int) []byte {
@@ -575,4 +575,116 @@ func phash(secret, seed []byte, prfLength int) []byte {
 		a = mac.Sum(nil)
 	}
 	return result
+}
+
+type ChangeCipherSpecAndFinished struct {
+	ChangeCipherSpecProtocol *ChangeCipherSpecProtocol
+	Finished                 *Finished
+}
+
+type Finished struct {
+	RecordLayer *TLSRecordLayer
+
+	RawEncrypted []byte
+}
+
+type ForVerifing struct {
+	Master            []byte
+	ClientHello       *TLSClientHello
+	ServerHello       *TLSServerHello
+	ClientKeyExchange *ClientKeyExchange
+	ClientFinished    []byte // 暗号化前の
+}
+
+func ParsedTLSChangeCipherSpecAndFinished(b []byte, keyblock *KeyBlock, clientSequenceNum int, verifyingData *ForVerifing) *ChangeCipherSpecAndFinished {
+	finished := &Finished{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[6]},
+			Version:     b[7:9],
+			Length:      b[9:11],
+		},
+		RawEncrypted: b[11:51], // TODO: とりあえずベタで指定
+	}
+
+	contentType := 0x16 // TODO: 定数
+	plaintext := decryptServerMessage(finished, keyblock, clientSequenceNum, contentType)
+	log.Printf("Finishe.decrypted text:\n%x\n", plaintext)
+	if verifyTLSFinished(plaintext, verifyingData) {
+		log.Println("Succeeded verify!!")
+	} else {
+		log.Println("Failed to verify...")
+	}
+
+	ret := &ChangeCipherSpecAndFinished{
+		ChangeCipherSpecProtocol: &ChangeCipherSpecProtocol{
+			RecordLayer: &TLSRecordLayer{
+				ContentType: []byte{b[0]},
+				Version:     b[1:3],
+				Length:      b[3:5],
+			},
+			ChangeCipherSpecMessage: []byte{b[5]},
+		},
+
+		Finished: finished,
+	}
+	return ret
+}
+
+// ref: https://github.com/sat0ken/go-tcpip/blob/main/tls_prf.go#L173
+func decryptServerMessage(finished *Finished, keyblock *KeyBlock, clientSequenceNum int, ctype int) []byte {
+	seq_nonce := finished.RawEncrypted[0:8]
+	ciphertext := finished.RawEncrypted[8:]
+
+	serverkey := keyblock.ServerWriteKey
+	nonce := keyblock.ServerWriteIV
+	nonce = append(nonce, seq_nonce...)
+
+	block, _ := aes.NewCipher(serverkey)
+	aesgcm, _ := cipher.NewGCM(block)
+
+	var add []byte
+	add = getNonce(clientSequenceNum, 8)
+	add = append(add, byte(ctype))
+	add = append(add, TLS_VERSION_1_2...)
+	l := len(ciphertext) - aesgcm.Overhead()
+	plainLength := &bytes.Buffer{}
+	WriteUint16(plainLength, uint16(l))
+	add = append(add, plainLength.Bytes()...)
+
+	log.Printf("nonce is : %x, ciphertext is %x, add is %x\n", nonce, ciphertext, add)
+	plaintext, err := aesgcm.Open(nil, nonce, ciphertext, add)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	return plaintext
+}
+
+// encrypt前のclientのfinishedが必要
+func verifyTLSFinished(target []byte, v *ForVerifing) bool {
+	handshakes := []byte{}
+	isFromServer := true
+
+	handshakes = append(handshakes, v.ClientHello.HandshakeProtocol.Bytes(!isFromServer)...)
+	handshakes = append(handshakes, v.ServerHello.ServerHello.HandshakeProtocol.Bytes(isFromServer)...)
+	handshakes = append(handshakes, v.ServerHello.Certificate.HandshakeProtocol.Bytes(isFromServer)...)
+	handshakes = append(handshakes, v.ServerHello.Certificate.CertificatesLength...)
+	handshakes = append(handshakes, v.ServerHello.Certificate.Certificates...)
+	handshakes = append(handshakes, v.ServerHello.ServerHelloDone.HandshakeProtocol.Bytes(isFromServer)...)
+	handshakes = append(handshakes, v.ClientKeyExchange.HandshakeProtocol.Bytes(!isFromServer)...)
+	handshakes = append(handshakes, v.ClientKeyExchange.RSAEncryptedPreMasterSecret.Bytes()...)
+	// TODO: ChangeCipherSpecは含まれない記載がrfcにある. ref: https://rfcs-web-fc2-com.translate.goog/rfc5246.html?_x_tr_sl=en&_x_tr_tl=ja&_x_tr_hl=ja#section-7.4 の「7.4.9 . 完了」
+	// handshakes = append(handshakes, changeCipherSpecProtocol.ChangeCipherSpecMessage...)
+	handshakes = append(handshakes, v.ClientFinished...)
+
+	hasher := sha256.New()
+	hasher.Write(handshakes)
+	messages := hasher.Sum(nil)
+
+	ret := prf(v.Master, []byte("server finished"), messages, 12)
+	log.Printf("target  : %x\n", target)
+	log.Printf("verifing: %x\n", ret)
+
+	return bytes.Equal(target[4:], ret)
 }

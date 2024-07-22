@@ -285,7 +285,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa054
+	var srcPort uint16 = 0xa215
 	var dstPort uint16 = 0x28cb       // 10443
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
@@ -322,6 +322,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 		return err
 	}
 
+	tlsClientHello := p.NewTLSClientHello()
 	events := make([]unix.EpollEvent, 10)
 	for {
 		log.Println("in outer loop")
@@ -374,7 +375,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 								}
 
 								// TODO: ここで、TLS Client Helloを送る
-								if err := dnw.SendTLSClientHello(srcPort, dstPort, srcIPAddr, dstIPAddr, firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
+								if err := dnw.SendTLSClientHello(tlsClientHello, srcPort, dstPort, srcIPAddr, dstIPAddr, firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
 									return err
 								}
 
@@ -390,12 +391,64 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 							}
 
 							if tcp.Flags == p.TCP_FLAGS_PSH_ACK {
-								log.Println("passive TLS ServerHello")
-								tlsServerHello := p.ParsedTLSServerHello(tcp.Data)
+								tlsHandshakeType := []byte{tcp.Data[5]}
+								tlsContentType := []byte{tcp.Data[0]}
 
-								log.Printf("\tServerHello.RecordLayer.ContentType: %x\n", tlsServerHello.ServerHello.RecordLayer.ContentType)
-								log.Printf("\tServerHello.HandshakeProtocol.Version: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.Version)
-								log.Printf("\tServerHello.HandshakeProtocol.CipherSuites: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.CipherSuites)
+								// ServerHelloを受信
+								// TODO: (10)443ポートがdstで絞った方がいいかも
+								// SeverHello(0x02) / Handshake(0x16)
+								if bytes.Equal(tlsHandshakeType, []byte{0x02}) && bytes.Equal(tlsContentType, []byte{0x16}) {
+									log.Printf("tlsHandshakeType: %x\n", tlsHandshakeType)
+
+									log.Println("passive TLS ServerHello")
+									tlsServerHello := p.ParsedTLSServerHello(tcp.Data)
+
+									log.Printf("\tServerHello.RecordLayer.ContentType: %x\n", tlsServerHello.ServerHello.RecordLayer.ContentType)
+									log.Printf("\tServerHello.HandshakeProtocol.Version: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.Version)
+									log.Printf("\tServerHello.HandshakeProtocol.CipherSuites: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.CipherSuites)
+									log.Printf("\tServerHello.HandshakeProtocol.Random:\n%x\n", tlsServerHello.ServerHello.HandshakeProtocol.Random)
+									log.Printf("\tServerHelloDone.RecordLayer.ContentType: %x\n", tlsServerHello.ServerHelloDone.RecordLayer.ContentType)
+									log.Printf("\tServerHelloDone.HandshakeProtocol.HandshakeType: %x\n", tlsServerHello.ServerHelloDone.HandshakeProtocol.HandshakeType)
+									log.Printf("\tServerHelloDone.HandshakeProtocol.Length: %x\n", tlsServerHello.ServerHelloDone.HandshakeProtocol.Length)
+
+									if err := tlsServerHello.Certificate.Validate(); err != nil {
+										return err
+									}
+
+									// ackを返し
+									tcp := p.NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+									ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+									tcp.CalculateChecksum(ipv4)
+
+									ipv4.Data = tcp.Bytes()
+									ipv4.CalculateTotalLength()
+									ipv4.CalculateChecksum()
+
+									ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+									if err := dnw.Send(ethernetFrame); err != nil {
+										return err
+									}
+
+									// TODO: さらにClientKeyExchangeなどを返す
+									tlsClientKeyExchange := p.NewTLSClientKeyExchange(
+										tlsClientHello,
+										tlsServerHello,
+									)
+									tcp = p.NewTCPWithData(srcPort, dstPort, tlsClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+									ipv4 = p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+									tcp.CalculateChecksum(ipv4)
+
+									ipv4.Data = tcp.Bytes()
+									ipv4.CalculateTotalLength()
+									ipv4.CalculateChecksum()
+
+									ethernetFrame = p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+									if err := dnw.Send(ethernetFrame); err != nil {
+										return err
+									}
+
+									continue
+								}
 
 								// lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
 								// if lineLength == -1 {
@@ -484,8 +537,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 	return nil
 }
 
-func (dnw *debugNetworkInterface) SendTLSClientHello(srcPort, dstPort uint16, srcIPAddr uint32, dstIPAddr uint32, firsthopMACAddr [6]byte, prevSequence uint32, prevAcknowledgment uint32) error {
-	clientHello := p.NewTLSClientHello()
+func (dnw *debugNetworkInterface) SendTLSClientHello(clientHello *p.TLSClientHello, srcPort, dstPort uint16, srcIPAddr uint32, dstIPAddr uint32, firsthopMACAddr [6]byte, prevSequence uint32, prevAcknowledgment uint32) error {
 	tcp := p.NewTCPWithData(srcPort, dstPort, clientHello.Bytes(), prevSequence, prevAcknowledgment)
 	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 	tcp.CalculateChecksum(ipv4)

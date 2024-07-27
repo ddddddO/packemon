@@ -14,6 +14,10 @@ import (
 	"log"
 )
 
+const TLS_CONTENT_TYPE_HANDSHAKE = 0x16
+const TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC = 0x14
+const TLS_CONTENT_TYPE_APPLICATION_DATA = 0x17
+
 // ref: https://tls12.xargs.org/#client-hello/annotated
 // 以降のstructのフィールドはWiresharkを見つつ補完
 type TLSRecordLayer struct {
@@ -93,11 +97,10 @@ var TLS_VERSION_1_2 = []byte{0x03, 0x03}
 func NewTLSClientHello() *TLSClientHello {
 	handshake := &TLSHandshakeProtocol{
 		HandshakeType: []byte{CLIENT_HELLO},
-		Length:        []byte{0x00, 0x00, 0x2b}, // 2b = 43byte
-		// Length: []byte{0x00, 0x00, 0x4a}, // 4a = 74byte
-		Version:   TLS_VERSION_1_2,
-		Random:    make([]byte, 32), // 000000....
-		SessionID: []byte{0x00},
+		Length:        []byte{0x00, 0x00, 0x00}, // 後で計算して求めるが、初期化のため
+		Version:       TLS_VERSION_1_2,
+		Random:        make([]byte, 32), // 000000....
+		SessionID:     []byte{0x00},
 		// SessionID: make([]byte, 32),
 		CipherSuites: []uint16{
 			// tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
@@ -119,21 +122,29 @@ func NewTLSClientHello() *TLSClientHello {
 			// tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
 			// tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
 		},
-		CompressionMethodsLength: []byte{0x01},
+		CompressionMethodsLength: []byte{0x00}, // 後で計算して求めるが、初期化のため
 		CompressionMethods:       []byte{COMPRESSION_METHOD_NULL},
-		ExtensionsLength:         []byte{0x00, 0x00},
+		ExtensionsLength:         []byte{0x00, 0x00}, // 後で計算して求めるが、初期化のため
 		Extentions:               []byte{},
 	}
 
-	lengthHandshake := &bytes.Buffer{}
+	handshake.CompressionMethodsLength = []byte{byte(len(handshake.CompressionMethods))}
+	tmp := &bytes.Buffer{}
+	WriteUint16(tmp, uint16(len(handshake.Extentions))) // TODO: ここ実際にExtentions指定してないで実装したから、指定したらバグってるかも
+	handshake.ExtensionsLength = tmp.Bytes()
+
+	lengthAll := &bytes.Buffer{}
 	isFromServer := false
-	WriteUint16(lengthHandshake, uint16(len(handshake.Bytes(isFromServer))))
+	WriteUint16(lengthAll, uint16(len(handshake.Bytes(isFromServer))))
+
+	// 全体の長さ - 4 でいいはず
+	handshake.Length = uintTo3byte(uint32(len(handshake.Bytes(isFromServer))) - 4)
 
 	return &TLSClientHello{
 		RecordLayer: &TLSRecordLayer{
-			ContentType: []byte{0x16},
-			Version:     []byte{0x03, 0x01},
-			Length:      lengthHandshake.Bytes(),
+			ContentType: []byte{TLS_CONTENT_TYPE_HANDSHAKE},
+			Version:     TLS_VERSION_1_2,
+			Length:      lengthAll.Bytes(),
 		},
 		HandshakeProtocol: handshake,
 	}
@@ -363,9 +374,8 @@ func (e *EncryptedHandshakeMessage) Bytes() []byte {
 
 const TLS_HANDSHAKE_TYPE_CLIENT_KEY_EXCHANGE = 0x10
 const TLS_HANDSHAKE_TYPE_FINISHED = 0x14
-const TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC = 0x14
 
-func NewTLSClientKeyExchange(clientHello *TLSClientHello, serverHello *TLSServerHello) (*TLSClientKeyExchange, *KeyBlock, int, []byte, []byte) {
+func NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(clientHello *TLSClientHello, serverHello *TLSServerHello) (*TLSClientKeyExchange, *KeyBlock, int, []byte, []byte) {
 	publicKey := serverHello.Certificate.ServerPublicKey()
 	preMastersecret, encryptedPreMastersecret := generatePreMasterSecret(publicKey)
 
@@ -382,9 +392,9 @@ func NewTLSClientKeyExchange(clientHello *TLSClientHello, serverHello *TLSServer
 
 	clientKeyExchange := &ClientKeyExchange{
 		RecordLayer: &TLSRecordLayer{
-			ContentType: []byte{0x16},
+			ContentType: []byte{TLS_CONTENT_TYPE_HANDSHAKE},
 			Version:     TLS_VERSION_1_2,
-			Length:      []byte{0x01, 0x06}, // 262
+			Length:      []byte{0x00, 0x00}, // 後で計算するが、初期化のため
 		},
 		HandshakeProtocol: &TLSHandshakeProtocol{
 			HandshakeType: []byte{TLS_HANDSHAKE_TYPE_CLIENT_KEY_EXCHANGE},
@@ -392,14 +402,21 @@ func NewTLSClientKeyExchange(clientHello *TLSClientHello, serverHello *TLSServer
 		},
 		RSAEncryptedPreMasterSecret: rsaEncryptedPreMasterSecret,
 	}
+	// -5でいいみたい
+	tmp := &bytes.Buffer{}
+	WriteUint16(tmp, uint16(len(clientKeyExchange.Bytes())-5))
+	clientKeyExchange.RecordLayer.Length = tmp.Bytes()
 
+	changeCipherSpecMessage := []byte{0x01}
+	tmp = &bytes.Buffer{}
+	WriteUint16(tmp, uint16(len(changeCipherSpecMessage)))
 	changeCipherSpecProtocol := &ChangeCipherSpecProtocol{
 		RecordLayer: &TLSRecordLayer{
 			ContentType: []byte{TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC},
 			Version:     TLS_VERSION_1_2,
-			Length:      []byte{0x00, 0x01},
+			Length:      tmp.Bytes(),
 		},
-		ChangeCipherSpecMessage: []byte{0x01},
+		ChangeCipherSpecMessage: changeCipherSpecMessage,
 	}
 
 	rawFinished, encrypted, keyblock, clientSequence, master := generateEncryptedHandshakeMessage(preMastersecret, clientHello, serverHello, clientKeyExchange)
@@ -410,12 +427,6 @@ func NewTLSClientKeyExchange(clientHello *TLSClientHello, serverHello *TLSServer
 		ChangeCipherSpecProtocol:  changeCipherSpecProtocol,
 		EncryptedHandshakeMessage: encrypted,
 	}, keyblock, clientSequence, master, rawFinished
-}
-
-func lengthEncryptedHandshakeMessage_(b []byte) []byte {
-	buf := make([]byte, 2)
-	binary.BigEndian.PutUint16(buf, uint16(len(b)))
-	return buf
 }
 
 // ref: https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.7.1
@@ -481,7 +492,7 @@ func generateEncryptedHandshakeMessage(preMasterSecret []byte, clientHello *TLSC
 	handshakes = append(handshakes, serverHello.ServerHelloDone.HandshakeProtocol.Bytes(isFromServer)...)
 	handshakes = append(handshakes, clientKeyExchange.HandshakeProtocol.Bytes(!isFromServer)...)
 	handshakes = append(handshakes, clientKeyExchange.RSAEncryptedPreMasterSecret.Bytes()...)
-	// TODO: ChangeCipherSpecは含まれない記載がrfcにある. ref: https://rfcs-web-fc2-com.translate.goog/rfc5246.html?_x_tr_sl=en&_x_tr_tl=ja&_x_tr_hl=ja#section-7.4 の「7.4.9 . 完了」
+	// ChangeCipherSpecは含まれない記載がrfcにある. ref: https://rfcs-web-fc2-com.translate.goog/rfc5246.html?_x_tr_sl=en&_x_tr_tl=ja&_x_tr_hl=ja#section-7.4 の「7.4.9 . 完了」
 	// handshakes = append(handshakes, changeCipherSpecProtocol.ChangeCipherSpecMessage...)
 
 	hasher := sha256.New()
@@ -504,7 +515,7 @@ func encryptClientMessage(keyblock *KeyBlock, plaintext []byte) ([]byte, int) {
 	log.Printf("length.Bytes(): %x\n", length.Bytes())
 
 	h := &TLSRecordLayer{
-		ContentType: []byte{0x16},
+		ContentType: []byte{TLS_CONTENT_TYPE_HANDSHAKE},
 		Version:     TLS_VERSION_1_2,
 		Length:      length.Bytes(),
 	}
@@ -606,8 +617,7 @@ func ParsedTLSChangeCipherSpecAndFinished(b []byte, keyblock *KeyBlock, clientSe
 		RawEncrypted: b[11:51], // TODO: とりあえずベタで指定
 	}
 
-	contentType := 0x16 // TODO: 定数
-	plaintext := decryptServerMessage(finished, keyblock, clientSequenceNum, contentType)
+	plaintext := decryptServerMessage(finished, keyblock, clientSequenceNum, TLS_CONTENT_TYPE_HANDSHAKE)
 	log.Printf("Finishe.decrypted text:\n%x\n", plaintext)
 	if verifyTLSFinished(plaintext, verifyingData) {
 		log.Println("Succeeded verify!!")
@@ -674,7 +684,7 @@ func verifyTLSFinished(target []byte, v *ForVerifing) bool {
 	handshakes = append(handshakes, v.ServerHello.ServerHelloDone.HandshakeProtocol.Bytes(isFromServer)...)
 	handshakes = append(handshakes, v.ClientKeyExchange.HandshakeProtocol.Bytes(!isFromServer)...)
 	handshakes = append(handshakes, v.ClientKeyExchange.RSAEncryptedPreMasterSecret.Bytes()...)
-	// TODO: ChangeCipherSpecは含まれない記載がrfcにある. ref: https://rfcs-web-fc2-com.translate.goog/rfc5246.html?_x_tr_sl=en&_x_tr_tl=ja&_x_tr_hl=ja#section-7.4 の「7.4.9 . 完了」
+	// ChangeCipherSpecは含まれない記載がrfcにある. ref: https://rfcs-web-fc2-com.translate.goog/rfc5246.html?_x_tr_sl=en&_x_tr_tl=ja&_x_tr_hl=ja#section-7.4 の「7.4.9 . 完了」
 	// handshakes = append(handshakes, changeCipherSpecProtocol.ChangeCipherSpecMessage...)
 	handshakes = append(handshakes, v.ClientFinished...)
 
@@ -699,8 +709,6 @@ func NewTLSApplicationData(data string, keyblock *KeyBlock, clientSequence int) 
 	encrypted, _ := encryptApplicationData(keyblock, []byte(data), clientSequence)
 	return encrypted
 }
-
-const TLS_CONTENT_TYPE_APPLICATION_DATA = 0x17
 
 // TODO: encryptClientMessage func と共通化を...
 func encryptApplicationData(keyblock *KeyBlock, plaintext []byte, clientSequence int) ([]byte, int) {

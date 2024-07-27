@@ -285,7 +285,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 }
 
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa265
+	var srcPort uint16 = 0xa288
 	var dstPort uint16 = 0x28cb       // 10443
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
@@ -382,14 +382,11 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 									return err
 								}
 
-								// TODO: ここで、TLS Client Helloを送る
+								// ここで TLS Client Helloを送る
 								if err := dnw.SendTLSClientHello(tlsClientHello, srcPort, dstPort, srcIPAddr, dstIPAddr, firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
 									return err
 								}
 
-								// if err := dnw.SendHTTPget(srcPort, dstPort, srcIPAddr, dstIPAddr, firsthopMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
-								// 	return err
-								// }
 								continue
 							}
 
@@ -404,21 +401,12 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 
 								// ServerHelloを受信
 								// TODO: (10)443ポートがdstで絞った方がいいかも
-								// SeverHello(0x02) / Handshake(0x16)
-								if bytes.Equal(tlsHandshakeType, []byte{0x02}) && bytes.Equal(tlsContentType, []byte{0x16}) {
+								// SeverHello(0x02)
+								if bytes.Equal(tlsHandshakeType, []byte{0x02}) && bytes.Equal(tlsContentType, []byte{p.TLS_CONTENT_TYPE_HANDSHAKE}) {
 									log.Printf("tlsHandshakeType: %x\n", tlsHandshakeType)
 
 									log.Println("passive TLS ServerHello")
 									tlsServerHello = p.ParsedTLSServerHello(tcp.Data)
-
-									// log.Printf("\tServerHello.RecordLayer.ContentType: %x\n", tlsServerHello.ServerHello.RecordLayer.ContentType)
-									// log.Printf("\tServerHello.HandshakeProtocol.Version: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.Version)
-									// log.Printf("\tServerHello.HandshakeProtocol.CipherSuites: %x\n", tlsServerHello.ServerHello.HandshakeProtocol.CipherSuites)
-									// log.Printf("\tServerHello.HandshakeProtocol.Random:\n%x\n", tlsServerHello.ServerHello.HandshakeProtocol.Random)
-									// log.Printf("\tServerHelloDone.RecordLayer.ContentType: %x\n", tlsServerHello.ServerHelloDone.RecordLayer.ContentType)
-									// log.Printf("\tServerHelloDone.HandshakeProtocol.HandshakeType: %x\n", tlsServerHello.ServerHelloDone.HandshakeProtocol.HandshakeType)
-									// log.Printf("\tServerHelloDone.HandshakeProtocol.Length: %x\n", tlsServerHello.ServerHelloDone.HandshakeProtocol.Length)
-
 									if err := tlsServerHello.Certificate.Validate(); err != nil {
 										return err
 									}
@@ -437,8 +425,8 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 										return err
 									}
 
-									// TODO: さらにClientKeyExchangeなどを返す
-									tlsClientKeyExchange, keyblock, clientSequence, master, tlsClientFinished = p.NewTLSClientKeyExchange(
+									// さらに ClientKeyExchange や Finished などを返す
+									tlsClientKeyExchange, keyblock, clientSequence, master, tlsClientFinished = p.NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(
 										tlsClientHello,
 										tlsServerHello,
 									)
@@ -460,8 +448,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 
 								// ChangeCipherSpec/Finishedを受信
 								// TODO: (10)443ポートがdstとかもっと絞った方がいいかも
-								// Handshake(0x14)
-								if bytes.Equal(tlsContentType, []byte{0x14}) {
+								if bytes.Equal(tlsContentType, []byte{p.TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC}) {
 									log.Println("recieved ChangeCipherSpec/Finished !!")
 
 									verifingData := &p.ForVerifing{

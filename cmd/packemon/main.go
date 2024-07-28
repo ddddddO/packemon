@@ -20,7 +20,7 @@ func main() {
 	var nwInterface string
 	flag.StringVar(&nwInterface, "interface", DEFAULT_TARGET_NW_INTERFACE, "Specify name of network interface to be sent/received. Default is 'eth0'.")
 	var wantSend bool
-	flag.BoolVar(&wantSend, "send", false, "Monitor mode.")
+	flag.BoolVar(&wantSend, "send", false, "Generator mode. Default is 'Monitor mode'.")
 	var debug bool
 	flag.BoolVar(&debug, "debug", false, "Debugging mode.")
 	var protocol string
@@ -29,7 +29,7 @@ func main() {
 	flag.Parse()
 
 	if wantSend {
-		// Generator で3way handshake する際に、カーネルが自動でRSTパケットを送ってたため、ドロップするため
+		// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
 		ebpfProg, qdisc, err := ec.PrepareDropingRSTPacket(nwInterface)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)

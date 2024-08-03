@@ -9,6 +9,9 @@ TUI tool and Go library for generating packets of arbitrary input and monitoring
 
 I intend to develop it patiently🌴
 
+> [!WARNING]
+> There may be many bugs. If you find a bug, I would be glad if you raise an issue or give me a pull request!
+
 ## Feature
 
 This TUI tool has two major functions: packet generation and packet monitoring.

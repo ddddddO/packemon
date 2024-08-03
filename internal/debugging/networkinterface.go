@@ -286,10 +286,15 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 
 /*
 TODO: 旧PCだとうまくいって、新PCだとうまくいかない。
-新PCでWiresharkで見ると、ServerHelloは受信してるが、このコードのServerHello受信ブロックに入ってきておらず、debug printするとtcp.Dataのパケットがずれているみたい
+新PCでWiresharkで見ると、ServerHelloは受信してるが、このコードのServerHello受信ブロックに入ってきておらず、debug printするとtcp.Dataのパケットがずれているみたい。
+新PCでのログは以下
+
+2024/08/03 17:20:25 passive TCP_FLAGS_PSH_ACK
+2024/08/03 17:20:25     tlsHandshakeType: bc
+2024/08/03 17:20:25     tlsContentType: 56
 */
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa242
+	var srcPort uint16 = 0xa246
 	var dstPort uint16 = 0x28cb // 10443
 	// var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78 / 旧PC
 	var srcIPAddr uint32 = 0xac163718 // 172.22.55.24 / 新PC

@@ -284,11 +284,15 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 	return nil
 }
 
+/*
+TODO: 旧PCだとうまくいって、新PCだとうまくいかない。
+新PCでWiresharkで見ると、ServerHelloは受信してるが、このコードのServerHello受信ブロックに入ってきておらず、debug printするとtcp.Dataのパケットがずれているみたい
+*/
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa240
+	var srcPort uint16 = 0xa242
 	var dstPort uint16 = 0x28cb // 10443
-	// var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
-	var srcIPAddr uint32 = 0xac163718 // 172.22.55.24
+	// var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78 / 旧PC
+	var srcIPAddr uint32 = 0xac163718 // 172.22.55.24 / 新PC
 	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
 	dstMACAddr := p.HardwareAddr(firsthopMACAddr)
 	srcMACAddr := p.HardwareAddr(dnw.Intf.HardwareAddr)

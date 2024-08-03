@@ -285,16 +285,14 @@ func (dnw *debugNetworkInterface) SendTCP3wayhandshake(firsthopMACAddr [6]byte) 
 }
 
 /*
-TODO: 旧PCだとうまくいって、新PCだとうまくいかない。
+TODO: 旧PCだとうまくいって、新PCだとうまくいかない、時があった。一時的なもの？ダメだった後に再起動した後は大丈夫だった。以下はダメだった時の状況
 新PCでWiresharkで見ると、ServerHelloは受信してるが、このコードのServerHello受信ブロックに入ってきておらず、debug printするとtcp.Dataのパケットがずれているみたい。
-新PCでのログは以下
-
-2024/08/03 17:20:25 passive TCP_FLAGS_PSH_ACK
-2024/08/03 17:20:25     tlsHandshakeType: bc
-2024/08/03 17:20:25     tlsContentType: 56
+この状況は、main.goのebpfの箇所を丸っとコメントアウトしてこの関数実行 -> コメントインして実行するとなるよう
+TCP 3way handshake途中にカーネルが自動でRSTパケット送るとそれ以後サーバからのパケットが異なる？
+サーバのtls-serverを再起動してこの関数を実行すると成功する。tls-server停止直後、こちらにfin/ackを送ってる（clientがそれまでこの関数を実行していた時の送信元ポート宛てに）
 */
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa246
+	var srcPort uint16 = 0xa259
 	var dstPort uint16 = 0x28cb // 10443
 	// var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78 / 旧PC
 	var srcIPAddr uint32 = 0xac163718 // 172.22.55.24 / 新PC

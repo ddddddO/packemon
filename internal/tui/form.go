@@ -239,11 +239,12 @@ func defaultPackets() (*defaults, error) {
 
 	tcp := &packemon.TCP{
 		Acknowledgment: 0x00000000,
-		HeaderLength:   0x00a0,
-		Window:         0xfaf0,
-		Checksum:       0x0000,
-		UrgentPointer:  0x0000,
-		Options:        packemon.Options(),
+		// HeaderLength:   0x00a0,
+		HeaderLength:  0x0050, // 0101
+		Window:        0xfaf0,
+		Checksum:      0x0000,
+		UrgentPointer: 0x0000,
+		// Options:        packemon.Options(),
 	}
 	tcpSrcPort, err := packemon.StrIntToUint16(DEFAULT_TCP_PORT_SOURCE)
 	if err != nil {

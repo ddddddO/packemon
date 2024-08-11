@@ -10,7 +10,7 @@ import (
 
 // SendTCP3wayAndTLShandshake とほぼ同じ。違いは client から送る Application Data が http のフォーマット
 func (dnw *debugNetworkInterface) SendHTTPSGetAfterTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa31c
+	var srcPort uint16 = 0xa31f
 	var dstPort uint16 = 0x28cb // 10443
 	// var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78 / 旧PC
 	var srcIPAddr uint32 = 0xac163718 // 172.22.55.24 / 新PC
@@ -100,6 +100,8 @@ func (dnw *debugNetworkInterface) SendHTTPSGetAfterTCP3wayAndTLShandshake(firsth
 						tlsHandshakeType := []byte{tcp.Data[5]}
 						tlsContentType := []byte{tcp.Data[0]}
 
+						log.Printf("\ttcp data: %x\n\n", tcp.Data[0:10])
+
 						log.Printf("\ttlsHandshakeType: %x\n", tlsHandshakeType)
 						log.Printf("\ttlsContentType: %x\n", tlsContentType)
 
@@ -110,6 +112,8 @@ func (dnw *debugNetworkInterface) SendHTTPSGetAfterTCP3wayAndTLShandshake(firsth
 							log.Printf("tlsHandshakeType: %x\n", tlsHandshakeType)
 
 							log.Println("passive TLS ServerHello")
+							// TODO: server から、ServerHello/Certificate/ServerHelloDone でひとまとまりで返ってくればパースできるが、ServerHello と Certificate/ServerHelloDone がわかれて返ってくることがある。それで失敗してるよう？
+							// 分かれてるとき、ServerHell はtcp.フラグが ACK だけど、分かれてないとき PSH/ACK
 							tlsServerHello = p.ParsedTLSServerHello(tcp.Data)
 							if err := tlsServerHello.Certificate.Validate(); err != nil {
 								return err

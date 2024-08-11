@@ -142,6 +142,8 @@ func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface,
 			return debugNetIf.SendTCP3wayhandshake(dstMacAddr)
 		case "tcp-tls-handshake":
 			return debugNetIf.SendTCP3wayAndTLShandshake(dstMacAddr)
+		case "https-get":
+			return debugNetIf.SendHTTPGetAfterTCP3wayAndTLShandshake(dstMacAddr)
 		case "http":
 			var srcPort uint16 = 0x9e98
 			var dstPort uint16 = 0x0050       // 80

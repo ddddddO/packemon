@@ -45,6 +45,9 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
       - TCP 3way handshake ~ TLS handshake ~ TLS Application data
   - [x] DNS (WIP)
   - [x] HTTP (WIP)
+  - [ ] HTTP**S** (WIP)
+    - [Currently there is only debug mode](./cmd/debugging/https-server/README.md)
+      - TCP 3way handshake ~ TLS handshake ~ TLS Application data (HTTP GET request / response)
   - [ ] xxxxx....
 
 ### Packet Monitor

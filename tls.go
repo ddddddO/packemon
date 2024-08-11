@@ -705,8 +705,8 @@ type TLSApplicationData struct {
 	EncryptedApplicationData []byte
 }
 
-func NewTLSApplicationData(data string, keyblock *KeyBlock, clientSequence int) []byte {
-	encrypted, _ := encryptApplicationData(keyblock, []byte(data), clientSequence)
+func NewTLSApplicationData(data []byte, keyblock *KeyBlock, clientSequence int) []byte {
+	encrypted, _ := encryptApplicationData(keyblock, data, clientSequence)
 	return encrypted
 }
 

@@ -37,6 +37,9 @@ func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 		return nil, err
 	}
 
+	// https://ja.manpages.org/af_packet/7 のリンク先に、以下コード1行分の説明あり. ためになる.
+	// https://github.com/pandax381/seccamp2024 の README にリンクされているスライドもためになる(「KLab Expert Camp 6 - Day3」のとこ).
+	// また、上記スライドに各OSで直接Ethernetフレームを送受信する手段についてもヒントあり.
 	sock, err := unix.Socket(unix.AF_PACKET, unix.SOCK_RAW, int(hton(unix.ETH_P_ALL)))
 	if err != nil {
 		return nil, err
@@ -81,6 +84,7 @@ func getInterface(nwInterface string) (*net.Interface, error) {
 	return intf, nil
 }
 
+// host to network. ホストマシンのメモリ上のバイトオーダー(CPUにより異なる. Intel系のCPUはリトルエンディアン)からネットワークへ送信するバイトオーダー(ビッグエンディアン)へ変換するための関数
 func hton(i uint16) uint16 {
 	return (i<<8)&0xff00 | i>>8
 }

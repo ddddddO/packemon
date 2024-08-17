@@ -5,6 +5,10 @@ Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'�
 <!-- ![](./assets/packemon.gif) -->
 https://github.com/user-attachments/assets/a4891ecc-0281-40c7-b04f-a7fd357d28c3
 
+---
+
+<video src="./assets/packemon_dns.mp4" controlls="true">aaaS</video>
+
 TUI tool and Go library for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows and macOS. I have confirmed that it works on Debian on WSL2.**<br>
 
 I intend to develop it patiently🌴

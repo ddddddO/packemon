@@ -34,23 +34,33 @@ type HistoryRow struct {
 	destinationIPAddr *tview.TableCell
 }
 
-func (t *tui) insertToTable(r *HistoryRow) {
+func (t *tui) insertToTable(r *HistoryRow, columns string) {
 	t.table.InsertRow(0)
 	t.table.SetCell(0, 0, r.id)
 
-	// ethernet
-	t.table.SetCell(0, 1, r.destinationMAC)
-	t.table.SetCell(0, 2, r.sourceMAC)
-	t.table.SetCell(0, 3, r.typ)
-
-	t.table.SetCell(0, 4, r.protocol)
-	t.table.SetCell(0, 5, r.destinationIPAddr)
-	t.table.SetCell(0, 6, r.sourceIPAddr)
+	x := 1
+	for i := range columns {
+		switch columns[i] {
+		case 'd':
+			t.table.SetCell(0, x, r.destinationMAC)
+		case 's':
+			t.table.SetCell(0, x, r.sourceMAC)
+		case 't':
+			t.table.SetCell(0, x, r.typ)
+		case 'p':
+			t.table.SetCell(0, x, r.protocol)
+		case 'D':
+			t.table.SetCell(0, x, r.destinationIPAddr)
+		case 'S':
+			t.table.SetCell(0, x, r.sourceIPAddr)
+		}
+		x++
+	}
 
 	t.table.ScrollToBeginning()
 }
 
-func (t *tui) updateTable(passiveCh <-chan *packemon.Passive) {
+func (t *tui) updateTable(passiveCh <-chan *packemon.Passive, columns string) {
 	var id uint64 = 0
 	for passive := range passiveCh {
 		time.Sleep(10 * time.Millisecond)
@@ -80,7 +90,7 @@ func (t *tui) updateTable(passiveCh <-chan *packemon.Passive) {
 			}
 
 			t.storedPackets.Store(id, passive)
-			t.insertToTable(r)
+			t.insertToTable(r, columns)
 			atomic.AddUint64(&id, 1)
 		})
 	}

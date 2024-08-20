@@ -16,9 +16,14 @@ import (
 
 const DEFAULT_TARGET_NW_INTERFACE = "eth0"
 
+// d: dest mac, s: src mac, t: type, p: protocol, D: dest ip, S: src ip
+const DEFAULT_MONITOR_COLUMNS = "dstpDS"
+
 func main() {
 	var nwInterface string
 	flag.StringVar(&nwInterface, "interface", DEFAULT_TARGET_NW_INTERFACE, "Specify name of network interface to be sent/received. Default is 'eth0'.")
+	var columns string
+	flag.StringVar(&columns, "columns", DEFAULT_MONITOR_COLUMNS, fmt.Sprintf("Specify columns to be displayed in monitor mode. Default is '%s' .", DEFAULT_MONITOR_COLUMNS))
 	var wantSend bool
 	flag.BoolVar(&wantSend, "send", false, "Generator mode. Default is 'Monitor mode'.")
 	var debug bool
@@ -46,13 +51,20 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if err := run(ctx, nwInterface, wantSend, debug, protocol); err != nil {
+	for i := range columns {
+		if !strings.Contains(DEFAULT_MONITOR_COLUMNS, string(columns[i])) {
+			fmt.Fprintf(os.Stderr, "Contains unsupported columns: %s\n", string(columns[i]))
+			return
+		}
+	}
+
+	if err := run(ctx, columns, nwInterface, wantSend, debug, protocol); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 }
 
-func run(ctx context.Context, nwInterface string, wantSend bool, debug bool, protocol string) error {
+func run(ctx context.Context, columns string, nwInterface string, wantSend bool, debug bool, protocol string) error {
 	netIf, err := packemon.NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
@@ -106,7 +118,7 @@ func run(ctx context.Context, nwInterface string, wantSend bool, debug bool, pro
 	} else {
 		tui := tui.NewTUI(wantSend)
 		go netIf.Recieve(ctx)
-		return tui.Monitor(netIf.PassiveCh)
+		return tui.Monitor(netIf.PassiveCh, columns)
 	}
 }
 

@@ -65,7 +65,7 @@ func (t *tui) Generator(ctx context.Context, sendFn func(*packemon.EthernetFrame
 	return t.app.SetRoot(t.grid, true).EnableMouse(true).SetFocus(t.grid).Run()
 }
 
-func (t *tui) Monitor(passiveCh <-chan *packemon.Passive) error {
+func (t *tui) Monitor(passiveCh <-chan *packemon.Passive, columns string) error {
 	t.table.Select(0, 0).SetFixed(1, 1).SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEscape {
 			t.table.SetSelectable(false, false)
@@ -81,6 +81,6 @@ func (t *tui) Monitor(passiveCh <-chan *packemon.Passive) error {
 		}
 	})
 
-	go t.updateTable(passiveCh)
+	go t.updateTable(passiveCh, columns)
 	return t.app.SetRoot(t.pages, true).Run()
 }

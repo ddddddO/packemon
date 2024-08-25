@@ -1,3 +1,4 @@
+version: 2
 project_name: packemon
 env:
   - GO111MODULE=on
@@ -59,7 +60,7 @@ release:
 #       owner: ddddddO
 #       name: homebrew-tap
 #       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-#     folder: Formula
+#     directory: Formula
 #     homepage: 'https://github.com/ddddddO/packemon'
 #     description: "Packet monster, or Packémon for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ). TUI tool for sending packets of arbitrary input and monitoring packets on any network interfaces (default: eth0)."
 #     license: "BSD-2-Clause"

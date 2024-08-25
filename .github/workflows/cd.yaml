@@ -2,10 +2,10 @@ name: cd
 on:
   push:
     tags:
-    - "v[0-9]+.[0-9]+.[0-9]+"
-    # デバッグ用
-    # branches:
-    # - drop_rst
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      # デバッグ用
+      # branches:
+      # - drop_rst
 
 
 env:
@@ -23,7 +23,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: '>=1.22'
+          go-version: ">=1.22"
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:

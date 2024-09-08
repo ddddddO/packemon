@@ -27,7 +27,7 @@
     $ sudo go run cmd/packemon/*.go --send --debug --proto tcp-tls-handshake
     ```
 
-    - [LOCAL] `func SendTCP3wayAndTLShandshake` (packemon/internal/debugging/networkinterface.go) の `srcPort` を実行毎に変更すること
+    - [LOCAL] `func SendTCP3wayAndTLShandshake` (packemon/internal/debugging/send_tcp3way_tlshandshake.go) の `srcPort` を実行毎に変更すること
 
     - [TARGET] `debugging/tls-server` 実行中に出力されるログ (`CLIENT_RANDOM 000000...`) を、ローカルの適当なファイル (`C:\packemon\key.log` とか) にコピペして、Wiresharkの「編集 > 設定 > Protocols > TLS」の「(Pre)-Master-Secret log filename」にそのファイルパスを設定後に、再度上記コマンド実行で、暗号化されているメッセージが復号されて見られる
 

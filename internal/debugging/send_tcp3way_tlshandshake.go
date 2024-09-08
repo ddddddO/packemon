@@ -16,7 +16,7 @@ TCP 3way handshake途中にカーネルが自動でRSTパケット送るとそ�
 サーバのtls-serverを再起動してこの関数を実行すると成功する。tls-server停止直後、こちらにfin/ackを送ってる（clientがそれまでこの関数を実行していた時の送信元ポート宛てに）
 */
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa31a
+	var srcPort uint16 = 0xa33b
 	var dstPort uint16 = 0x28cb // 10443
 	// var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78 / 旧PC
 	var srcIPAddr uint32 = 0xac163718 // 172.22.55.24 / 新PC
@@ -95,8 +95,68 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 						continue
 					}
 
+					// if tcp.Flags == p.TCP_FLAGS_ACK {
+					// 	log.Println("passive TCP_FLAGS_ACK")
+					// 	log.Printf("\tTCP data: %x\n", tcp.Data[:50])
+					// 	continue
+					// }
+
+					// TODO: ここでのServer Hello(ack)受信後の処理はまだうまくいってない
+					// 関連: https://github.com/ddddddO/packemon/issues/64
+					// Wireshark 見るに、このackのパケットを後続のpsh/ackのパケット2つのtcp data部分をつなげて、ServerHello/Certificate/ServerHelloDone みたい
+					// 上記リンクの、1パケットパターンのパケットと2パケットパターンのパケット見比べて確認した
 					if tcp.Flags == p.TCP_FLAGS_ACK {
 						log.Println("passive TCP_FLAGS_ACK")
+
+						tlsHandshakeType := []byte{tcp.Data[5]}
+						tlsContentType := []byte{tcp.Data[0]}
+
+						// ServerHello/Certificate/ServerHelloDone を受信?
+						// TODO: (10)443ポートがdstで絞った方がいいかも
+						if bytes.Equal(tlsHandshakeType, []byte{0x02}) && bytes.Equal(tlsContentType, []byte{p.TLS_CONTENT_TYPE_HANDSHAKE}) {
+							log.Println("passive TLS ServerHello(with Certificate/ServerHelloDone ?)")
+							log.Printf("\tTCP data: %x\n", tcp.Data)
+
+							tlsServerHello = p.ParsedTLSServerHello(tcp.Data)
+							if err := tlsServerHello.Certificate.Validate(); err != nil {
+								return err
+							}
+
+							// ackを返し
+							tcp := p.NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+							ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+							tcp.CalculateChecksum(ipv4)
+
+							ipv4.Data = tcp.Bytes()
+							ipv4.CalculateTotalLength()
+							ipv4.CalculateChecksum()
+
+							ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+							if err := dnw.Send(ethernetFrame); err != nil {
+								return err
+							}
+
+							// さらに ClientKeyExchange や Finished などを返す
+							tlsClientKeyExchange, keyblock, clientSequence, master, tlsClientFinished = p.NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(
+								tlsClientHello,
+								tlsServerHello,
+							)
+							tcp = p.NewTCPWithData(srcPort, dstPort, tlsClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+							ipv4 = p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+							tcp.CalculateChecksum(ipv4)
+
+							ipv4.Data = tcp.Bytes()
+							ipv4.CalculateTotalLength()
+							ipv4.CalculateChecksum()
+
+							ethernetFrame = p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+							if err := dnw.Send(ethernetFrame); err != nil {
+								return err
+							}
+
+							continue
+						}
+
 						continue
 					}
 
@@ -108,7 +168,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 
 						log.Printf("\ttlsHandshakeType: %x\n", tlsHandshakeType)
 						log.Printf("\ttlsContentType: %x\n", tlsContentType)
-						log.Printf("\tTCP data: %x\n", tcp.Data[:100])
+						log.Printf("\tTCP data: %x\n", tcp.Data[:50])
 
 						// ServerHello/Certificate/ServerHelloDone を受信
 						// TODO: (10)443ポートがdstで絞った方がいいかも

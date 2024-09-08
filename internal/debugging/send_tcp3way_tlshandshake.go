@@ -16,7 +16,7 @@ TCP 3way handshake途中にカーネルが自動でRSTパケット送るとそ�
 サーバのtls-serverを再起動してこの関数を実行すると成功する。tls-server停止直後、こちらにfin/ackを送ってる（clientがそれまでこの関数を実行していた時の送信元ポート宛てに）
 */
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa272
+	var srcPort uint16 = 0xa287
 	var dstPort uint16 = 0x28cb // 10443
 	// var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78 / 旧PC
 	var srcIPAddr uint32 = 0xac163718 // 172.22.55.24 / 新PC

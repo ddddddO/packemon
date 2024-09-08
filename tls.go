@@ -233,8 +233,11 @@ func (c *Certificate) Validate() error {
 		}
 
 		if _, err := c.certs[i].Verify(opts); err != nil {
-			log.Println("\tfailed to verify server certificate")
-			return err
+			log.Printf("\tfailed to verify server certificate: %s\n", err)
+			// return err
+
+			// TODO: 以下対応までエラーとしないようにする
+			// https://github.com/ddddddO/packemon/issues/63
 		}
 		if i > 0 {
 			ospool.AddCert(c.certs[1])

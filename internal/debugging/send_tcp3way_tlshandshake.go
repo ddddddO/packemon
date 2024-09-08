@@ -16,7 +16,7 @@ TCP 3way handshake途中にカーネルが自動でRSTパケット送るとそ�
 サーバのtls-serverを再起動してこの関数を実行すると成功する。tls-server停止直後、こちらにfin/ackを送ってる（clientがそれまでこの関数を実行していた時の送信元ポート宛てに）
 */
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa287
+	var srcPort uint16 = 0xa31a
 	var dstPort uint16 = 0x28cb // 10443
 	// var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78 / 旧PC
 	var srcIPAddr uint32 = 0xac163718 // 172.22.55.24 / 新PC
@@ -108,14 +108,13 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 
 						log.Printf("\ttlsHandshakeType: %x\n", tlsHandshakeType)
 						log.Printf("\ttlsContentType: %x\n", tlsContentType)
+						log.Printf("\tTCP data: %x\n", tcp.Data[:100])
 
-						// ServerHelloを受信
+						// ServerHello/Certificate/ServerHelloDone を受信
 						// TODO: (10)443ポートがdstで絞った方がいいかも
-						// SeverHello(0x02)
 						if bytes.Equal(tlsHandshakeType, []byte{0x02}) && bytes.Equal(tlsContentType, []byte{p.TLS_CONTENT_TYPE_HANDSHAKE}) {
-							log.Printf("tlsHandshakeType: %x\n", tlsHandshakeType)
+							log.Println("passive TLS ServerHello/Certificate/ServerHelloDone")
 
-							log.Println("passive TLS ServerHello")
 							tlsServerHello = p.ParsedTLSServerHello(tcp.Data)
 							if err := tlsServerHello.Certificate.Validate(); err != nil {
 								return err
@@ -194,6 +193,9 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 
 							continue
 						}
+
+						log.Println("end push/ack")
+						continue
 					}
 
 					if tcp.Flags == p.TCP_FLAGS_FIN_ACK {

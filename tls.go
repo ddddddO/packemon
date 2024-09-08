@@ -214,6 +214,33 @@ func (c *Certificate) Validate() error {
 	}
 	log.Printf("certificate num: %d\n", len(certs))
 	c.certs = certs
+
+	ospool, err := x509.SystemCertPool()
+	if err != nil {
+		return err
+	}
+
+	log.Println("start verify server certificate")
+	for i := len(c.certs) - 1; i >= 0; i-- {
+		opts := x509.VerifyOptions{}
+		if len(c.certs[i].DNSNames) == 0 {
+			opts.Roots = ospool
+		} else {
+			opts.Roots = ospool
+			opts.DNSName = c.certs[i].DNSNames[0]
+
+			log.Printf("\tDNS name in server certificate: %s\n", c.certs[i].DNSNames[0])
+		}
+
+		if _, err := c.certs[i].Verify(opts); err != nil {
+			log.Println("\tfailed to verify server certificate")
+			return err
+		}
+		if i > 0 {
+			ospool.AddCert(c.certs[1])
+		}
+	}
+	log.Println("finish verify server certificate")
 	return nil
 }
 

@@ -159,6 +159,9 @@ The following procedure is an example of how you can expose packemon-api to the 
   - The way Go handles syscalls, packet checksum logic, etc. was helpful. This is a book in Japanese.
 
 
+## Stargazers over time
+[![Stargazers over time](https://starchart.cc/ddddddO/packemon.svg?variant=adaptive)](https://starchart.cc/ddddddO/packemon)
+
 ## Log (japanese)
 
 <details><summary>xxx</summary>

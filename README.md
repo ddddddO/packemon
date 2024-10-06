@@ -5,7 +5,7 @@ Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'�
 <!-- ![](./assets/packemon.gif) -->
 https://github.com/user-attachments/assets/69b317b8-7235-40c8-8586-2aff7d34cc0d
 
-TUI tool and Go library for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows and macOS. I have confirmed that it works on Debian on WSL2.**<br>
+TUI tool for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows and macOS. I have confirmed that it works on Debian on WSL2.**<br>
 
 I intend to develop it patiently🌴
 
@@ -27,7 +27,7 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 ### Packet Generator
 
 >[!WARNING]
-> While using Generator mode, TCP RST packets automatically sent out by the kernel are dropped. When this mode is stopped, the original state is restored.
+> While using Generator mode, TCP RST packets automatically sent out by the kernel are dropped. When this mode is stopped, the original state is restored. Probably😅.
 > Incidentally, dropping RST packets is done by running [the eBPF program](./egress_control/).
 > The background note incorporating the eBPF is the POST of X around [here](https://x.com/ddddddOpppppp/status/1798715056513056881). 
 

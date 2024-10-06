@@ -29,6 +29,7 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 >[!WARNING]
 > While using Generator mode, TCP RST packets automatically sent out by the kernel are dropped. When this mode is stopped, the original state is restored.
 > Incidentally, dropping RST packets is done by running [the eBPF program](./egress_control/).
+> The background note incorporating the eBPF is the POST of X around [here](https://x.com/ddddddOpppppp/status/1798715056513056881). 
 
 - [x] Send generated packets to any network interfaces.
   - You can specify network interface with `--interface` flag. Default is `eth0`.

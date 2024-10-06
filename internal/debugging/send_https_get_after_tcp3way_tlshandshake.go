@@ -10,7 +10,7 @@ import (
 
 // SendTCP3wayAndTLShandshake とほぼ同じ。違いは client から送る Application Data が http のフォーマット
 func (dnw *debugNetworkInterface) SendHTTPSGetAfterTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa32b
+	var srcPort uint16 = 0xa32f
 
 	var dstPort uint16 = 0x28cb // 10443
 	// var dstPort uint16 = 0x01bb // 443
@@ -19,8 +19,6 @@ func (dnw *debugNetworkInterface) SendHTTPSGetAfterTCP3wayAndTLShandshake(firsth
 	var srcIPAddr uint32 = 0xac163718 // 172.22.55.24 / 新PC
 
 	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi . raspberry pi 上で https-server 起動で、うまくいった
-	// var dstIPAddr uint32 = 0x141bb171 // github.com . curl でみると、tlsv1.3だったから、だめなのかも
-	// var dstIPAddr uint32 = 0xcae2251f // tool.muzin.org . curl で見ても tlsv1.2 だけど、まだ成功してない、このコードだと
 
 	dstMACAddr := p.HardwareAddr(firsthopMACAddr)
 	srcMACAddr := p.HardwareAddr(dnw.Intf.HardwareAddr)

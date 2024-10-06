@@ -35,3 +35,7 @@
     ```console
     $ echo | openssl s_client -4 -tls1_2 -cipher AES128-GCM-SHA256 -connect 192.168.10.110:10443
     ```
+
+1. その他
+
+    - DoT: ` dig github.com @1.1.1.1 +tls`

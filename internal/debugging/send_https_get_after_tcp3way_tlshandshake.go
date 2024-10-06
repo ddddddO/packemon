@@ -10,11 +10,18 @@ import (
 
 // SendTCP3wayAndTLShandshake とほぼ同じ。違いは client から送る Application Data が http のフォーマット
 func (dnw *debugNetworkInterface) SendHTTPSGetAfterTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa31f
+	var srcPort uint16 = 0xa32b
+
 	var dstPort uint16 = 0x28cb // 10443
+	// var dstPort uint16 = 0x01bb // 443
+
 	// var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78 / 旧PC
 	var srcIPAddr uint32 = 0xac163718 // 172.22.55.24 / 新PC
-	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
+
+	var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi . raspberry pi 上で https-server 起動で、うまくいった
+	// var dstIPAddr uint32 = 0x141bb171 // github.com . curl でみると、tlsv1.3だったから、だめなのかも
+	// var dstIPAddr uint32 = 0xcae2251f // tool.muzin.org . curl で見ても tlsv1.2 だけど、まだ成功してない、このコードだと
+
 	dstMACAddr := p.HardwareAddr(firsthopMACAddr)
 	srcMACAddr := p.HardwareAddr(dnw.Intf.HardwareAddr)
 
@@ -89,8 +96,93 @@ func (dnw *debugNetworkInterface) SendHTTPSGetAfterTCP3wayAndTLShandshake(firsth
 						continue
 					}
 
+					// ここでのServer Hello(ack)受信後の処理はうまくいった
+					// 関連: https://github.com/ddddddO/packemon/issues/64
+					// Wireshark 見るに、このackのパケットを後続のpsh/ackのパケット2つのtcp data部分をつなげて、ServerHello/Certificate/ServerHelloDone みたい
+					// 上記リンクの、1パケットパターンのパケットと2パケットパターンのパケット見比べて確認した
 					if tcp.Flags == p.TCP_FLAGS_ACK {
 						log.Println("passive TCP_FLAGS_ACK")
+
+						tlsHandshakeType := []byte{tcp.Data[5]}
+						tlsContentType := []byte{tcp.Data[0]}
+
+						// ServerHello/Certificate/ServerHelloDone がセグメント分割されたパケットで届くことが多々あるため、このブロック内で連続して受信している
+						// TODO: (10)443ポートがdstで絞った方がいいかも
+						if bytes.Equal(tlsHandshakeType, []byte{0x02}) && bytes.Equal(tlsContentType, []byte{p.TLS_CONTENT_TYPE_HANDSHAKE}) {
+							log.Println("[ACK] passive TLS ServerHello(with Certificate/ServerHelloDone ?)")
+							log.Printf("\tTCP data: %x\n", tcp.Data)
+
+							for {
+								recieved := make([]byte, 1500)
+								n, _, err := unix.Recvfrom(dnw.Socket, recieved, 0)
+								if err != nil {
+									if n == -1 {
+										continue
+									}
+									return err
+								}
+								eth := p.ParsedEthernetFrame(recieved)
+								ip := p.ParsedIPv4(eth.Data)
+								t := p.ParsedTCP(ip.Data)
+
+								if t.Flags == p.TCP_FLAGS_PSH_ACK {
+									log.Println("[PSH_ACK] passive TLS ServerHello(with Certificate/ServerHelloDone !!!???)")
+
+									// tcp data の末尾の0パディングを取り除く
+									tmp1 := tcp.Data
+									for offset := len(tcp.Data) - 2; bytes.Equal(tcp.Data[offset:offset+2], []byte{00, 00}); offset -= 2 {
+										tmp1 = tmp1[:len(tmp1)-2]
+									}
+									tmp2 := t.Data
+									for offset := len(t.Data) - 4; bytes.Equal(t.Data[offset:offset+4], []byte{00, 00, 00, 00}); offset -= 4 {
+										tmp2 = tmp2[:len(tmp2)-4]
+									}
+									mergedTCPData := append(tmp1, tmp2...)
+
+									tlsServerHello = p.ParsedTLSServerHello(mergedTCPData)
+									if err := tlsServerHello.Certificate.Validate(); err != nil {
+										return err
+									}
+
+									// ackを返し
+									tcp := p.NewTCPAck(srcPort, dstPort, t.Sequence, t.Acknowledgment)
+									ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+									tcp.CalculateChecksum(ipv4)
+
+									ipv4.Data = tcp.Bytes()
+									ipv4.CalculateTotalLength()
+									ipv4.CalculateChecksum()
+
+									ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+									if err := dnw.Send(ethernetFrame); err != nil {
+										return err
+									}
+
+									// さらに ClientKeyExchange や Finished などを返す
+									tlsClientKeyExchange, keyblock, clientSequence, master, tlsClientFinished = p.NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(
+										tlsClientHello,
+										tlsServerHello,
+									)
+									tcp = p.NewTCPWithData(srcPort, dstPort, tlsClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+									ipv4 = p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+									tcp.CalculateChecksum(ipv4)
+
+									ipv4.Data = tcp.Bytes()
+									ipv4.CalculateTotalLength()
+									ipv4.CalculateChecksum()
+
+									ethernetFrame = p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+									if err := dnw.Send(ethernetFrame); err != nil {
+										return err
+									}
+
+									break
+								}
+							}
+
+							continue
+						}
+
 						continue
 					}
 

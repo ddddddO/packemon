@@ -113,7 +113,7 @@ func (dnw *debugNetworkInterface) SendHTTPSGetAfterTCP3wayAndTLShandshake(firsth
 
 							log.Println("passive TLS ServerHello")
 							// TODO: server から、ServerHello/Certificate/ServerHelloDone でひとまとまりで返ってくればパースできるが、ServerHello と Certificate/ServerHelloDone がわかれて返ってくることがある。それで失敗してるよう？
-							// 分かれてるとき、ServerHell はtcp.フラグが ACK だけど、分かれてないとき PSH/ACK
+							// 分かれてるとき、ServerHell はフラグが ACK だけど、分かれてないとき PSH/ACK
 							tlsServerHello = p.ParsedTLSServerHello(tcp.Data)
 							if err := tlsServerHello.Certificate.Validate(); err != nil {
 								return err

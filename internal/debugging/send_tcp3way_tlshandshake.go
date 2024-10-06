@@ -8,13 +8,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-/*
-TODO: 旧PCだとうまくいって、新PCだとうまくいかない、時があった。一時的なもの？ダメだった後に再起動した後は大丈夫だった。以下はダメだった時の状況
-新PCでWiresharkで見ると、ServerHelloは受信してるが、このコードのServerHello受信ブロックに入ってきておらず、debug printするとtcp.Dataのパケットがずれているみたい。
-この状況は、main.goのebpfの箇所を丸っとコメントアウトしてこの関数実行 -> コメントインして実行するとなるよう
-TCP 3way handshake途中にカーネルが自動でRSTパケット送るとそれ以後サーバからのパケットが異なる？
-サーバのtls-serverを再起動してこの関数を実行すると成功する。tls-server停止直後、こちらにfin/ackを送ってる（clientがそれまでこの関数を実行していた時の送信元ポート宛てに）
-*/
 func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
 	var srcPort uint16 = 0xa37a
 	var dstPort uint16 = 0x28cb // 10443
@@ -141,7 +134,6 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 								}
 
 								// ackを返し
-								// tcp := p.NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
 								tcp := p.NewTCPAck(srcPort, dstPort, t.Sequence, t.Acknowledgment)
 								ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 								tcp.CalculateChecksum(ipv4)

@@ -1,0 +1,4 @@
+- Issue: https://github.com/ddddddO/packemon/issues/68
+- https://milestone-of-se.nesuke.com/nw-advanced/bgp/bgp-sequence-message-format/
+    - BGP のシーケンスと BGP の pcap ファイルあり（以下、Wireshark で開いたとき）
+    - ![](./bgp.pcap.png)

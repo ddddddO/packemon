@@ -24,7 +24,7 @@ $ make conf
 $ make down
 ```
 
-`/home/ddddddO/packemon/cmd/debugging/bgp/bgp_$(date "+%Y%m%d_%H%M").pcap` のファイルを Wireshark に読み込む
+`/home/ddddddO/packemon/cmd/debugging/bgp/pcap/$(date "+%Y%m%d_%H%M").pcap` のファイルを Wireshark に読み込む
 
 ### 参考
 - https://milestone-of-se.nesuke.com/nw-advanced/bgp/bgp-sequence-message-format/

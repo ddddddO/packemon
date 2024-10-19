@@ -26,6 +26,26 @@ $ make down
 
 `/home/ddddddO/packemon/cmd/debugging/bgp/pcap/$(date "+%Y%m%d_%H%M").pcap` のファイルを Wireshark に読み込む
 
+```console
+
+# 以下の順で、packemon で BGP の実装を進める
+$ cd ~/github.com/ddddddO/packemon/cmd/debugging/bgp
+$ (go ファイル編集)
+$ go build
+$ make login
+# BGP daemon を止める
+$ /etc/init.d/frr stop
+# パケットをキャプチャ
+$ tcpdump -i net0 -s 0 -w /home/ddddddO/packemon/cmd/debugging/bgp/pcap/$(date "+%Y%m%d_%H%M").pcap port 179
+
+# 別セッションのコンテナ内で
+$ make login
+$ cd /home/ddddddO/packemon/cmd/debugging/bgp
+$ ./bgp
+# パケットキャプチャを止めて Wireshark で読み込んでデバッグを進める
+```
+
+
 ### 参考
 - https://milestone-of-se.nesuke.com/nw-advanced/bgp/bgp-sequence-message-format/
     - BGP のシーケンスと BGP の pcap ファイルあり

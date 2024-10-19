@@ -162,6 +162,8 @@ func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface,
 			var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 			var dstIPAddr uint32 = 0xc0a80a6e // raspberry pi
 			return debugNetIf.SendHTTPget(srcPort, dstPort, srcIPAddr, dstIPAddr, dstMacAddr, 0x00000000, 0x00000000)
+		// case "bgp": // github.com/ddddddO/packemon/cmd/debugging/bgp/main.go で試してる
+		// 	return debugNetIf.FlowBGP()
 		default:
 			return errors.New("not supported protocol")
 		}

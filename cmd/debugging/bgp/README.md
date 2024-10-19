@@ -45,7 +45,6 @@ $ ./bgp
 # パケットキャプチャを止めて Wireshark で読み込んでデバッグを進める
 ```
 
-
 ### 参考
 - https://milestone-of-se.nesuke.com/nw-advanced/bgp/bgp-sequence-message-format/
     - BGP のシーケンスと BGP の pcap ファイルあり

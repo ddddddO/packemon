@@ -4,6 +4,9 @@ up:
 login:
 	docker exec -it BGPRouter1 /bin/bash
 
+login2:
+	docker exec -it BGPRouter2 /bin/bash
+
 conf:
 	tinet conf -c tinet.yaml | sudo sh -x
 

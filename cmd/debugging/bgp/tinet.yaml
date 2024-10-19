@@ -16,6 +16,7 @@ nodes:
 node_configs:
   - name: BGPRouter1
     cmds:
+      - cmd: ip link set dev net0 address 86:be:25:ff:bf:ab
       - cmd: ip addr add 172.17.0.4/30 dev net0
       - cmd: sed -i.org 's/bgpd=no/bgpd=yes/' /etc/frr/daemons
       - cmd: /etc/init.d/frr start
@@ -26,6 +27,7 @@ node_configs:
 
   - name: BGPRouter2
     cmds:
+      - cmd: ip link set dev net0 address d2:d2:41:7c:25:cb
       - cmd: ip addr add 172.17.0.5/30 dev net0
       - cmd: sed -i.org 's/bgpd=no/bgpd=yes/' /etc/frr/daemons
       - cmd: /etc/init.d/frr start

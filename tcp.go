@@ -87,13 +87,13 @@ func NewTCPAck(srcPort, dstPort uint16, prevSequence uint32, prevAcknowledgment 
 }
 
 // tcpパケット連続で送るときは port 変えること
-func NewTCPWithData(srcPort, dstPort uint16, data []byte, prevSequence uint32, prevAcknowledgment uint32) *TCP {
-	return newTCP(0x018 /** push/ack **/, srcPort, dstPort, prevSequence, prevAcknowledgment, data)
+func NewTCPAckForPassiveData(srcPort, dstPort uint16, prevSequence uint32, prevAcknowledgment uint32, tcpPayloadLength int) *TCP {
+	return newTCP(0x010 /** ack **/, srcPort, dstPort, prevAcknowledgment, prevSequence+uint32(tcpPayloadLength), nil)
 }
 
 // tcpパケット連続で送るときは port 変えること
-func NewTCPAckForPassiveData(srcPort, dstPort uint16, prevSequence uint32, prevAcknowledgment uint32, tcpPayloadLength int) *TCP {
-	return newTCP(0x010 /** ack **/, srcPort, dstPort, prevAcknowledgment, prevSequence+uint32(tcpPayloadLength), nil)
+func NewTCPWithData(srcPort, dstPort uint16, data []byte, prevSequence uint32, prevAcknowledgment uint32) *TCP {
+	return newTCP(0x018 /** push/ack **/, srcPort, dstPort, prevSequence, prevAcknowledgment, data)
 }
 
 // tcpパケット連続で送るときは port 変えること

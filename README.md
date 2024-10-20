@@ -58,6 +58,7 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
     - EGP (Exterior Gateway Protocol)
       - [ ] BGP (Border Gateway Protocol)
         - [Currently there is only debug mode](./cmd/debugging/bgp/README.md)
+          - TCP 3way handshake ~ Open ~ Keepalive ~ Update
 
 ### Packet Monitor
 

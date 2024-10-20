@@ -90,6 +90,7 @@ func hton(i uint16) uint16 {
 }
 
 func (nw *NetworkInterface) Send(ethernetFrame *EthernetFrame) error {
+	// return unix.Sendto(nw.Socket, ethernetFrame.Bytes(), 0, &nw.SocketAddr)
 	return unix.Sendto(nw.Socket, ethernetFrame.Bytes(), 0, &nw.SocketAddr)
 }
 

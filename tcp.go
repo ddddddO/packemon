@@ -78,7 +78,7 @@ func newTCP(flags uint16, srcPort, dstPort uint16, sequence, acknowledgment uint
 
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPSyn(srcPort, dstPort uint16) *TCP {
-	return newTCP(0x002 /** syn **/, srcPort, dstPort, 0x091f58f8, 0x00000000, nil)
+	return newTCP(0x002 /** syn **/, srcPort, dstPort, 0x091f58f9, 0x00000000, nil)
 }
 
 // tcpパケット連続で送るときは port 変えること

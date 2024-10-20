@@ -15,8 +15,7 @@ import (
 const BGP_PORT = 0x00b3 // 179
 
 func (dnw *debugNetworkInterface) FlowBGP() error {
-	// var srcPort uint16 = 0xa357 // TODO: 毎回変えること
-	var srcPort uint16 = 0x2710
+	var srcPort uint16 = 0x275d // TODO: 毎回変えること
 	var dstPort uint16 = BGP_PORT
 	var srcIPAddr uint32 = 0xac110004                                         // 172.17.0.4
 	var dstIPAddr uint32 = 0xac110005                                         // 172.17.0.5
@@ -133,6 +132,7 @@ func (dnw *debugNetworkInterface) FlowBGP() error {
 									return err
 								}
 								prevSentBGPOpen = false
+								fmt.Println("Sent BGP Keepalive")
 								continue
 							}
 							continue
@@ -142,7 +142,7 @@ func (dnw *debugNetworkInterface) FlowBGP() error {
 							fmt.Println("Update")
 
 							// Ack
-							tcp := p.NewTCPAckForPassiveData(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment, 23 /* TODO: ほんとは、bgpopen.Length を int にしたものを */)
+							tcp := p.NewTCPAckForPassiveData(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment, 23 /* TODO: ほんとは、.Length を int にしたものを */)
 							ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 							tcp.CalculateChecksum(ipv4)
 							ipv4.Data = tcp.Bytes()
@@ -154,7 +154,7 @@ func (dnw *debugNetworkInterface) FlowBGP() error {
 							}
 
 							// BGP Update を送る
-							// TODO: ここで、TCP のセグメント分割が起きてるようで、対向で ack 返してくれない
+							// TODO: ここで、TCP のセグメント分割が起きてるよう
 							//       mss が小さい？frr で vtysh でコンソールに入ったりして確認できるかも？
 							sync.OnceFunc(func() {
 								time.Sleep(50 * time.Millisecond)
@@ -166,7 +166,29 @@ func (dnw *debugNetworkInterface) FlowBGP() error {
 							continue
 						}
 
+						if IsBGPNotification(tcp.Data) {
+							fmt.Println("Notification")
+							continue
+						}
+
 						continue
+					}
+
+					if tcp.Flags == p.TCP_FLAGS_FIN_ACK {
+						log.Println("passive TCP_FLAGS_FIN_ACK")
+
+						// Ack
+						tcp := p.NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+						ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+						tcp.CalculateChecksum(ipv4)
+						ipv4.Data = tcp.Bytes()
+						ipv4.CalculateTotalLength()
+						ipv4.CalculateChecksum()
+						ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+						if err := dnw.Send(ethernetFrame); err != nil {
+							return err
+						}
+						return nil
 					}
 				}
 			}
@@ -284,6 +306,15 @@ func IsBGPKeepalive(payload []byte) bool {
 
 	typ := payload[18]
 	return bytes.Equal([]byte{typ}, []byte{BGP_TYPE_KEEPALIVE})
+}
+
+func IsBGPNotification(payload []byte) bool {
+	if !IsBGP(payload) {
+		return false
+	}
+
+	typ := payload[18]
+	return bytes.Equal([]byte{typ}, []byte{BGP_TYPE_NOTIFICATION})
 }
 
 func IsBGP(payload []byte) bool {

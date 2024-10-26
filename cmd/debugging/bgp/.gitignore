@@ -1,2 +1,5 @@
-pcap
+pcap/*
 bgp
+
+!pcap/env_tinet.*
+!pcap/succeeded_bgp.*

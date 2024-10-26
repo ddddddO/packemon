@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"sync"
 	"time"
 
 	p "github.com/ddddddO/packemon"
@@ -15,7 +14,7 @@ import (
 const BGP_PORT = 0x00b3 // 179
 
 func (dnw *debugNetworkInterface) FlowBGP() error {
-	var srcPort uint16 = 0x275d // TODO: 毎回変えること
+	var srcPort uint16 = 0x2797 // TODO: 毎回変えること
 	var dstPort uint16 = BGP_PORT
 	var srcIPAddr uint32 = 0xac110004                                         // 172.17.0.4
 	var dstIPAddr uint32 = 0xac110005                                         // 172.17.0.5
@@ -35,6 +34,12 @@ func (dnw *debugNetworkInterface) FlowBGP() error {
 	}
 
 	prevSentBGPOpen := false
+	prevPassiveKeepalive := false
+
+	var tmpSeqForKeepalive uint32
+	var tmpAckForKeepalive uint32
+
+	triggerBGPNotification := 3 // 一旦 keepalive を3回受信後にこちらから Notification 投げる
 	for {
 		recieved := make([]byte, 1500)
 		n, _, err := unix.Recvfrom(dnw.Socket, recieved, 0)
@@ -88,8 +93,7 @@ func (dnw *debugNetworkInterface) FlowBGP() error {
 					if tcp.Flags == p.TCP_FLAGS_PSH_ACK {
 						log.Println("passive TCP_FLAGS_PSH_ACK")
 
-						// ここで対向から BGP の OPEN / KEEPALIVE / UPDATE が取れるはず
-						// Notification も？
+						// ここで対向から BGP の OPEN / KEEPALIVE / UPDATE / NOTIFICATION が取れる
 						if IsBGPOpen(tcp.Data) {
 							fmt.Println("Open")
 							bgpopen := ParsedBGPOpen(tcp.Data)
@@ -107,11 +111,17 @@ func (dnw *debugNetworkInterface) FlowBGP() error {
 								return err
 							}
 
+							tmpSeqForKeepalive = tcp.Sequence
+							tmpAckForKeepalive = tcp.Acknowledgment
+
 							continue
 						}
 
 						if IsBGPKeepalive(tcp.Data) {
 							fmt.Println("Keepalive")
+
+							triggerBGPNotification--
+							prevPassiveKeepalive = true
 
 							// Ack
 							tcp := p.NewTCPAckForPassiveData(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment, 19 /* TODO: ほんとは、.Length を int にしたものを */)
@@ -125,17 +135,70 @@ func (dnw *debugNetworkInterface) FlowBGP() error {
 								return err
 							}
 
+							if triggerBGPNotification == 0 {
+								fmt.Println("Sent BGP Notification")
+								if err := dnw.BGPNotification(srcPort, dstPort, srcIPAddr, dstIPAddr, dstMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
+									return err
+								}
+								continue
+							}
+
 							if prevSentBGPOpen {
 								// ここで、Keepalive 送るみたい。キャプチャ見ると
-								// TODO: ここで送った後は、ticker か何か使って一定周期で keepalive 送るようにする
-								if err := dnw.BGPKeepalive(srcPort, dstPort, srcIPAddr, dstIPAddr, dstMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
+								// TODO: ここで送った後は、ticker か何か使って一定周期で keepalive 送るようにする?現状、対向の keepalive 受信後にこちらも送信としてる
+								if err := dnw.BGPKeepalive(srcPort, dstPort, srcIPAddr, dstIPAddr, dstMACAddr, tmpSeqForKeepalive, tmpAckForKeepalive); err != nil {
 									return err
 								}
 								prevSentBGPOpen = false
 								fmt.Println("Sent BGP Keepalive")
-								continue
+
+								if prevPassiveKeepalive {
+								BREAK:
+									// 送った keepalive の ack を受信する
+									for {
+										fmt.Println("Waiting passive Ack of keepalive...")
+
+										recieved := make([]byte, 1500)
+										n, _, err := unix.Recvfrom(dnw.Socket, recieved, 0)
+										if err != nil {
+											if n == -1 {
+												continue
+											}
+											return err
+										}
+
+										ethernetFrame := p.ParsedEthernetFrame(recieved)
+										switch ethernetFrame.Header.Typ {
+										case p.ETHER_TYPE_IPv4:
+											ipv4 := p.ParsedIPv4(ethernetFrame.Data)
+
+											switch ipv4.Protocol {
+											case p.IPv4_PROTO_TCP:
+												tcp := p.ParsedTCP(ipv4.Data)
+
+												switch tcp.DstPort {
+												case srcPort: // synパケットの送信元ポート
+													if tcp.Flags == p.TCP_FLAGS_ACK {
+														time.Sleep(1000 * time.Millisecond)
+														if err := dnw.BGPUpdate(srcPort, dstPort, srcIPAddr, dstIPAddr, dstMACAddr, tcp.Acknowledgment, tcp.Sequence); err != nil {
+															fmt.Fprintln(os.Stderr, err)
+														}
+														fmt.Println("Sent BGP Update")
+														prevPassiveKeepalive = false
+
+														break BREAK
+													}
+												}
+											}
+										}
+									}
+								}
+							} else {
+								if err := dnw.BGPKeepalive(srcPort, dstPort, srcIPAddr, dstIPAddr, dstMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
+									return err
+								}
+								fmt.Println("Sent BGP Keepalive")
 							}
-							continue
 						}
 
 						if IsBGPUpdate(tcp.Data) {
@@ -152,17 +215,6 @@ func (dnw *debugNetworkInterface) FlowBGP() error {
 							if err := dnw.Send(ethernetFrame); err != nil {
 								return err
 							}
-
-							// BGP Update を送る
-							// TODO: ここで、TCP のセグメント分割が起きてるよう
-							//       mss が小さい？frr で vtysh でコンソールに入ったりして確認できるかも？
-							sync.OnceFunc(func() {
-								time.Sleep(50 * time.Millisecond)
-								if err := dnw.BGPUpdate(srcPort, dstPort, srcIPAddr, dstIPAddr, dstMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
-									fmt.Fprintln(os.Stderr, err)
-								}
-								fmt.Println("Sent BGP Update")
-							})()
 							continue
 						}
 
@@ -246,6 +298,22 @@ func (dnw *debugNetworkInterface) BGPUpdate(srcPort, dstPort uint16, srcIPAddr u
 	return dnw.Send(ethernetFrame)
 }
 
+func (dnw *debugNetworkInterface) BGPNotification(srcPort, dstPort uint16, srcIPAddr uint32, dstIPAddr uint32, firsthopMACAddr [6]byte, prevSequence uint32, prevAcknowledgment uint32) error {
+	bgpnotification := NewBGPNotification()
+	tcp := p.NewTCPWithData(srcPort, dstPort, bgpnotification.Bytes(), prevSequence, prevAcknowledgment)
+	ipv4 := p.NewIPv4(p.IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+	tcp.CalculateChecksum(ipv4)
+
+	ipv4.Data = tcp.Bytes()
+	ipv4.CalculateTotalLength()
+	ipv4.CalculateChecksum()
+
+	dstMACAddr := p.HardwareAddr(firsthopMACAddr)
+	srcMACAddr := p.HardwareAddr(dnw.Intf.HardwareAddr)
+	ethernetFrame := p.NewEthernetFrame(dstMACAddr, srcMACAddr, p.ETHER_TYPE_IPv4, ipv4.Bytes())
+	return dnw.Send(ethernetFrame)
+}
+
 const (
 	BGP_TYPE_OPEN          = 0x01
 	BGP_TYPE_UPDATE        = 0x02
@@ -279,6 +347,15 @@ type BGPUpdateStruct struct {
 	Typ                      byte   // 1byte
 	WithdrawnRoutesLength    []byte // 2byte
 	TotalPathAttributeLength []byte // 2byte
+}
+
+// 上の BGP strucct とフィールドが微妙に異なる
+type BGPNotificationStruct struct {
+	Marker         []byte // 16byte
+	Length         []byte // 2byte
+	Typ            byte   // 1byte
+	MajorErrorCode byte   // 1byte
+	MinorErrorCode byte   // 1byte
 }
 
 func IsBGPOpen(payload []byte) bool {
@@ -412,11 +489,31 @@ func NewBGPUpdate() *BGPUpdateStruct {
 	return bu
 }
 
+// https://www.iana.org/assignments/bgp-parameters/bgp-parameters.xhtml#bgp-parameters-3
+const BGP_MAJOR_ERROR_MESSAGE_HEADER_ERROR = 0x01
+
+const BGP_MINOR_ERROR_CONNECTION_NOT_SYNCHRONIZED = 0x01
+
+func NewBGPNotification() *BGPNotificationStruct {
+	bn := &BGPNotificationStruct{
+		Marker:         BGP_MARKER,
+		Length:         []byte{0x00, 0x15}, // 21
+		Typ:            BGP_TYPE_NOTIFICATION,
+		MajorErrorCode: BGP_MAJOR_ERROR_MESSAGE_HEADER_ERROR,
+		MinorErrorCode: BGP_MINOR_ERROR_CONNECTION_NOT_SYNCHRONIZED,
+	}
+	return bn
+}
+
 func (b *BGP) Bytes() []byte {
 	buf := &bytes.Buffer{}
 	buf.Write(b.Marker)
 	buf.Write(b.Length)
 	buf.WriteByte(b.Typ)
+	if b.Typ == BGP_TYPE_KEEPALIVE {
+		return buf.Bytes()
+	}
+
 	buf.WriteByte(b.Version)
 	buf.Write(b.MyAS)
 	buf.Write(b.HoldTime)
@@ -433,5 +530,15 @@ func (bu *BGPUpdateStruct) Bytes() []byte {
 	buf.WriteByte(bu.Typ)
 	buf.Write(bu.WithdrawnRoutesLength)
 	buf.Write(bu.TotalPathAttributeLength)
+	return buf.Bytes()
+}
+
+func (bn *BGPNotificationStruct) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	buf.Write(bn.Marker)
+	buf.Write(bn.Length)
+	buf.WriteByte(bn.Typ)
+	buf.WriteByte(bn.MajorErrorCode)
+	buf.WriteByte(bn.MinorErrorCode)
 	return buf.Bytes()
 }

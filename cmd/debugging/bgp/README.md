@@ -1,8 +1,3 @@
-### [この手順](https://github.com/ddddddO/packemon/issues/68#issuecomment-2408943662)で、ピア同士で BGP の通信ができた様子
-
-![](./succeeded_peering_bgp.png)
-![](./bgp.pcap.png)
-
 ### BGP の環境を tinet で構築(tmux実行しておく)
 以下でインストールした tinet コマンドを利用
 ```console
@@ -44,6 +39,21 @@ $ cd /home/ddddddO/packemon/cmd/debugging/bgp
 $ ./bgp
 # パケットキャプチャを止めて Wireshark で読み込んでデバッグを進める
 ```
+
+- tinet で構築した BGP Router 同士のパケットの様子
+  - [env_tinet.pcap](./pcap/env_tinet.pcap)
+  - ![](./pcap/env_tinet.png)
+- tinet で構築後、上の手順で片方は packemon の bgp 用プログラムで実行(`172.17.0.4`)した様子
+  - [succeeded_bgp.pcap](./pcap/succeeded_bgp.pcap)
+  - ![](./pcap/succeeded_bgp.png)
+  - 現状、Open ~ Keepalive ~ Update ~ Notification が送信できるようになった
+
+### 作業ログ
+#### [この手順](https://github.com/ddddddO/packemon/issues/68#issuecomment-2408943662)で、ピア同士で BGP の通信ができた様子
+
+![](./succeeded_peering_bgp.png)
+![](./bgp.pcap.png)
+
 
 ### 参考
 - https://milestone-of-se.nesuke.com/nw-advanced/bgp/bgp-sequence-message-format/

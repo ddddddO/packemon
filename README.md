@@ -50,7 +50,7 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
     - [Currently there is only debug mode](./cmd/debugging/https-server/README.md)
       - TCP 3way handshake ~ TLS handshake ~ TLS Application data (HTTP GET request / response)
   - [ ] xxxxx....
-  - Routing Protocols
+  - [ ] Routing Protocols
     - IGP (Interior Gateway Protocol)
       - [ ] OSPF (Open Shortest Path First)
       - [ ] EIGRP (Enhanced Interior Gateway Routing Protocol)
@@ -58,7 +58,7 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
     - EGP (Exterior Gateway Protocol)
       - [ ] BGP (Border Gateway Protocol)
         - [Currently there is only debug mode](./cmd/debugging/bgp/README.md)
-          - TCP 3way handshake ~ Open ~ Keepalive ~ Update
+          - TCP 3way handshake ~ Open ~ Keepalive ~ Update ~ Notification
 
 ### Packet Monitor
 
@@ -81,13 +81,14 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
     - [x] HTTP GET response
     - [ ] xxxxx....
   - [ ] xxxxx....
-  - Routing Protocols
+  - [ ] Routing Protocols
     - IGP (Interior Gateway Protocol)
       - [ ] OSPF (Open Shortest Path First)
       - [ ] EIGRP (Enhanced Interior Gateway Routing Protocol)
       - [ ] RIP (Routing Information Protocol)
     - EGP (Exterior Gateway Protocol)
       - [ ] BGP (Border Gateway Protocol)
+
 ## Installation
 
 <pre>

@@ -175,6 +175,8 @@ The following procedure is an example of how you can expose packemon-api to the 
 - [Golangで作るソフトウェアルータ](https://booth.pm/ja/items/5290391)
   - The way Go handles syscalls, packet checksum logic, etc. was helpful. This is a book in Japanese.
 
+## Document
+- [ネットワークを知りたくて](https://zenn.dev/openlogi/articles/195d07bd9bc5b4)
 
 ## Stargazers over time
 [![Stargazers over time](https://starchart.cc/ddddddO/packemon.svg?variant=adaptive)](https://starchart.cc/ddddddO/packemon)

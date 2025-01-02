@@ -47,36 +47,49 @@ func (t *tui) updateView(passive *packemon.Passive) {
 
 func passiveToViewers(passive *packemon.Passive) []Viewer {
 	viewers := []Viewer{}
+	hexdump := &HexadecimalDump{}
 	if passive.EthernetFrame != nil {
 		viewers = append(viewers, &EthernetFrame{passive.EthernetFrame})
+		hexdump.EthernetFrame = passive.EthernetFrame
 	}
 	if passive.ARP != nil {
 		viewers = append(viewers, &ARP{passive.ARP})
+		hexdump.ARP = passive.ARP
 	}
 	if passive.IPv4 != nil {
 		viewers = append(viewers, &IPv4{passive.IPv4})
+		hexdump.IPv4 = passive.IPv4
 	}
 	if passive.IPv6 != nil {
 		viewers = append(viewers, &IPv6{passive.IPv6})
+		hexdump.IPv6 = passive.IPv6
 	}
 	if passive.ICMP != nil {
 		viewers = append(viewers, &ICMP{passive.ICMP})
+		hexdump.ICMP = passive.ICMP
 	}
 	if passive.TCP != nil {
 		viewers = append(viewers, &TCP{passive.TCP})
+		hexdump.TCP = passive.TCP
 	}
 	if passive.UDP != nil {
 		viewers = append(viewers, &UDP{passive.UDP})
+		hexdump.UDP = passive.UDP
 	}
 	if passive.DNS != nil {
 		viewers = append(viewers, &DNS{passive.DNS})
+		hexdump.DNS = passive.DNS
 	}
 	if passive.HTTP != nil {
 		viewers = append(viewers, &HTTP{passive.HTTP})
+		hexdump.HTTP = passive.HTTP
 	}
 	if passive.HTTPRes != nil {
 		viewers = append(viewers, &HTTPResponse{passive.HTTPRes})
+		hexdump.HTTPResponse = passive.HTTPRes
 	}
+
+	viewers = append(viewers, hexdump)
 
 	return viewers
 }
@@ -84,4 +97,17 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 func padding(s string) string {
 	spaces := strings.Repeat(" ", 3)
 	return fmt.Sprintf("%s%s%s", spaces, s, spaces)
+}
+
+func spacer(bb []byte) string {
+	ret := ""
+	for i, b := range bb {
+		ret += fmt.Sprintf("%02x ", b)
+
+		// 8byte毎に、大きくスペースとる
+		if (i+1)%8 == 0 {
+			ret += "  "
+		}
+	}
+	return ret
 }

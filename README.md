@@ -10,6 +10,7 @@ TUI tool for generating packets of arbitrary input and monitoring packets on any
 I intend to develop it patiently🌴
 
 > [!WARNING]
+> The tool is implemented with protocol stacks from scratch and utilizes raw socket.
 > There may be many bugs. If you find a bug, I would be glad if you raise an issue or give me a pull request!
 
 ## Feature

@@ -78,9 +78,17 @@ func (h *HTTP) Bytes() []byte {
 type HTTPResponse struct {
 	StatusLine string
 	Header     *HTTPResponseHeader
-	Body       string
+	Body       []byte
 
 	len int
+}
+
+func (hr *HTTPResponse) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	buf.WriteString(hr.StatusLine)
+	buf.Write(hr.Header.Bytes())
+	buf.Write(hr.Body)
+	return buf.Bytes()
 }
 
 type HTTPResponseHeader struct {
@@ -89,6 +97,15 @@ type HTTPResponseHeader struct {
 	ContentType   string
 }
 
+func (hrh *HTTPResponseHeader) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	buf.WriteString(hrh.Date)
+	buf.WriteRune(rune(hrh.ContentLength))
+	buf.WriteString(hrh.ContentType)
+	return buf.Bytes()
+}
+
+// TODO: 多分このあたりバグってる。Monitor の http response の hexadecimal dump と Wireshark で異なる
 func ParsedHTTPResponse(payload []byte) *HTTPResponse {
 	sep := []byte{0x0d, 0x0a} // "\r\n"
 
@@ -129,7 +146,7 @@ func ParsedHTTPResponse(payload []byte) *HTTPResponse {
 		// log.Printf("not suported header: %s, len: %d\n", string(s), len(bytes.TrimSpace(s)))
 	}
 	b := bytes.SplitAfter(payload, append(sep, sep...))
-	body := string(b[len(b)-1][0:header.ContentLength])
+	body := b[len(b)-1][0:header.ContentLength]
 	length += header.ContentLength
 
 	return &HTTPResponse{

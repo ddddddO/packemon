@@ -69,7 +69,12 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 	switch {
 	case h.DNS != nil:
 		if h.UDP != nil {
-			viewHexadecimalDumpByProtocol(table, loopForL7View, "DNS", h.DNS.Bytes()[0:h.UDP.Length-udpHeaderLength])
+			// まだ DNS レスポンスのパースが完璧でないので、以下のように今ある分だけ max length とするようにしてる
+			dnsLength := int(h.UDP.Length - udpHeaderLength)
+			if len(h.DNS.Bytes()) < int(dnsLength) {
+				dnsLength = len(h.DNS.Bytes())
+			}
+			viewHexadecimalDumpByProtocol(table, loopForL7View, "DNS", h.DNS.Bytes()[0:dnsLength])
 		}
 		if h.TCP != nil {
 			table.SetCell(loopForL7View, 0, tview.NewTableCell(padding("DNS")))
@@ -78,9 +83,7 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 	case h.HTTP != nil:
 		viewHexadecimalDumpByProtocol(table, loopForL7View, "HTTP", h.HTTP.Bytes())
 	case h.HTTPResponse != nil:
-		table.SetCell(loopForL7View, 0, tview.NewTableCell(padding("HTTP")))
-		// TODO: HTTPResponse.Bytes()
-		// table.SetCell(loopForL7View, 1, tview.NewTableCell(padding(spacer(h.HTTPResponse)))
+		viewHexadecimalDumpByProtocol(table, loopForL7View, "HTTP", h.HTTPResponse.Bytes())
 	}
 
 	return table

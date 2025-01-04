@@ -8,33 +8,14 @@ import (
 	"github.com/rivo/tview"
 )
 
-// var threeWayHandshakeDescription = "When 3-way handshake for TCP is enabled, only \n\n  - HTTP section\n  - TCP Destination Port\n  - IPv4 Destination IP Addr\n\nare reflected as input."
-
-var threeWayHandshakeDescription = "" +
-	"When 3-way handshake for TCP is enabled, only" + "\n\n" +
-	"  HTTP" + "\n" +
-	"    - All" + "\n" +
-	"  TCP" + "\n" +
-	"    - Source Port" + "\n" +
-	"    - Destination Port" + "\n" +
-	"  IPv4" + "\n" +
-	"    - Source IP Addr" + "\n" +
-	"    - Destination IP Addr" + "\n" +
-	"  Ethernet" + "\n" +
-	"    - Destination MAC Addr" + "\n" +
-	"    - Source MAC Addr" + "\n" +
-	"\n" +
-	"are reflected as input."
-
 func (t *tui) httpForm(ctx context.Context, sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, tcp *packemon.TCP, http *packemon.HTTP) *tview.Form {
 	do3wayHandshake := false
 
 	httpForm := tview.NewForm().
 		AddTextView("HTTP", "This section generates the HTTP.\nIt is still under development.", 60, 4, true, false).
-		AddCheckbox("Do 3way handshake ?", do3wayHandshake, func(checked bool) {
+		AddCheckbox("Do TCP 3way handshake ?", do3wayHandshake, func(checked bool) {
 			do3wayHandshake = checked
 		}).
-		AddTextView("", threeWayHandshakeDescription, 60, 15, true, true).
 		AddInputField("Method", DEFAULT_HTTP_METHOD, 10, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) <= 10 {
 				http.Method = textToCheck

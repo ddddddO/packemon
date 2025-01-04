@@ -5,7 +5,7 @@ Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'�
 <!-- ![](./assets/packemon.gif) -->
 https://github.com/user-attachments/assets/69b317b8-7235-40c8-8586-2aff7d34cc0d
 
-TUI tool for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows and macOS. I have confirmed that it works on Debian on WSL2.**<br>
+TUI tool for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows and macOS. I have confirmed that it works on Linux (Debian and Ubuntu on WSL2) .**<br>
 
 I intend to develop it patiently🌴
 

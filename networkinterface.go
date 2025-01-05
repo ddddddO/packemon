@@ -192,13 +192,13 @@ func ParsedPacket(recieved []byte) *Passive {
 			// TODO: nslookup github.com でipv6用のDNSクエリ・レスポンスも返ってきてるのでそれも対応
 			//       query.type == AAAA で判別可能
 			flags := binary.BigEndian.Uint16(udp.Data[2:4])
-			if udp.DstPort == PORT_DNS && flags == DNS_REQUEST {
+			if udp.DstPort == PORT_DNS && IsDNSRequest(flags) {
 				dns := ParsedDNSRequest(udp.Data)
 				passive.DNS = dns
 				return passive
 			}
 
-			if udp.SrcPort == PORT_DNS && flags == DNS_RESPONSE {
+			if udp.SrcPort == PORT_DNS && IsDNSResponse(flags) {
 				dns := ParsedDNSResponse(udp.Data)
 				passive.DNS = dns
 				return passive

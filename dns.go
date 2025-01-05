@@ -11,8 +11,8 @@ const PORT_DNS = 0x0035 // 53
 // https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1 の「QR」
 // 関連: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-5 の「Opcode」の逆引きは廃止（IQuery (Inverse Query, OBSOLETE)）
 const (
-	DNS_QR_REQUEST  = 0x0000
-	DNS_QR_RESPONSE = 0x8000
+	DNS_QR_REQUEST  = 0 << 15 // 0
+	DNS_QR_RESPONSE = 1 << 15 // 1000 0000 0000 0000
 )
 
 func IsDNSRequest(flags uint16) bool {

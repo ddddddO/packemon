@@ -8,11 +8,20 @@ import (
 
 const PORT_DNS = 0x0035 // 53
 
-// TODO: 雑にFlagsを定義しちゃってる。ほんとはビット単位
+// https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.1 の「QR」
+// 関連: https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-5 の「Opcode」の逆引きは廃止（IQuery (Inverse Query, OBSOLETE)）
 const (
-	DNS_REQUEST  = 0x0100
-	DNS_RESPONSE = 0x8180
+	DNS_QR_REQUEST  = 0x0000
+	DNS_QR_RESPONSE = 0x8000
 )
+
+func IsDNSRequest(flags uint16) bool {
+	return !IsDNSResponse(flags)
+}
+
+func IsDNSResponse(flags uint16) bool {
+	return flags&DNS_QR_RESPONSE == DNS_QR_RESPONSE
+}
 
 const (
 	DNS_QUERY_TYPE_A    = 0x0001

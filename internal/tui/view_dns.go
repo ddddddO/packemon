@@ -87,10 +87,10 @@ func (d *DNS) viewTable() *tview.Table {
 //
 //	大本の DNS struct の Flags フィールドを struct に変更するかも
 func (d *DNS) bytesToFlags() string {
-	switch d.Flags {
-	case packemon.DNS_REQUEST:
+	switch {
+	case packemon.IsDNSRequest(d.Flags):
 		return "Standard query"
-	case packemon.DNS_RESPONSE:
+	case packemon.IsDNSResponse(d.Flags):
 		return "Standard query response"
 	default:
 		return "-"

@@ -66,6 +66,7 @@ func (t *tui) tcpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			t.app.SetFocus(t.list)
 		}).
 		AddButton("Send!", func() {
+			tcp.Data = []byte{} // 前回分の TCP より上のデータをクリア
 			tcp.CalculateChecksum(ipv4)
 			ipv4.Data = tcp.Bytes()
 			ipv4.CalculateTotalLength()

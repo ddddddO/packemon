@@ -7,6 +7,8 @@ import (
 	"github.com/rivo/tview"
 )
 
+var checkedCalcUDPLength = false
+
 func (t *tui) udpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, udp *packemon.UDP) *tview.Form {
 	udpForm := tview.NewForm().
 		AddTextView("UDP", "This section generates the UDP.\nIt is still under development.", 60, 4, true, false).
@@ -32,7 +34,14 @@ func (t *tui) udpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			}
 			return false
 		}, nil).
+		AddCheckbox("Automatically calculate length ?", checkedCalcUDPLength, func(checked bool) {
+			checkedCalcUDPLength = checked
+		}).
 		AddInputField("Length", DEFAULT_UDP_LENGTH, 6, func(textToCheck string, lastChar rune) bool {
+			if checkedCalcUDPLength {
+				return false
+			}
+
 			if len(textToCheck) < 6 {
 				return true
 			} else if len(textToCheck) > 6 {
@@ -51,7 +60,10 @@ func (t *tui) udpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			t.app.SetFocus(t.list)
 		}).
 		AddButton("Send!", func() {
-			udp.Len()
+			udp.Data = []byte{} // 前回分の UDP より上のデータをクリア
+			if checkedCalcUDPLength {
+				udp.Len()
+			}
 			ipv4.Data = udp.Bytes()
 			ipv4.CalculateTotalLength()
 			// 前回Send分が残ってると計算誤るため

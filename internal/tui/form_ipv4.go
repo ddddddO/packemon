@@ -70,6 +70,7 @@ func (t *tui) ipv4Form(sendFn func(*packemon.EthernetFrame) error, ethernetHeade
 			t.app.SetFocus(t.list)
 		}).
 		AddButton("Send!", func() {
+			ipv4.Data = []byte{} // 前回分の IPv4 より上のデータをクリア
 			ethernetFrame := &packemon.EthernetFrame{
 				Header: ethernetHeader,
 				Data:   ipv4.Bytes(),

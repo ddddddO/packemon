@@ -235,7 +235,6 @@ func defaultPackets() (*defaults, error) {
 		DstPort: udpDstPort,
 		Length:  binary.BigEndian.Uint16(udpLength),
 	}
-	udp.Len()
 
 	tcp := &packemon.TCP{
 		Acknowledgment: 0x00000000,

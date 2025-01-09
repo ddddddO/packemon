@@ -126,8 +126,11 @@ func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			t.app.SetFocus(t.list)
 		}).
 		AddButton("Send!", func() {
-			udp.Len()
 			udp.Data = dns.Bytes()
+			if checkedCalcUDPLength {
+				udp.Len()
+			}
+
 			ipv4.Data = udp.Bytes()
 			ipv4.CalculateTotalLength()
 			// 前回Send分が残ってると計算誤るため

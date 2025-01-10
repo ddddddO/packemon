@@ -11,7 +11,7 @@ require (
 	github.com/rivo/tview v0.0.0-20240426173458-c766eefb3803
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.33.0
-	golang.org/x/sys v0.28.0
+	golang.org/x/sys v0.29.0
 )
 
 require (

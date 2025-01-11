@@ -104,15 +104,19 @@ func ParsedDNSResponse(payload []byte) *DNS {
 		Typ:    binary.BigEndian.Uint16(payload[offset : offset+2]),
 		Class:  binary.BigEndian.Uint16(payload[offset+2 : offset+4]),
 	}
-	// 一旦Answersは1固定として進める
-	offsetOfAns := offset + 4
-	a := &Answer{
-		Name:       binary.BigEndian.Uint16(payload[offsetOfAns : offsetOfAns+2]),
-		Typ:        binary.BigEndian.Uint16(payload[offsetOfAns+2 : offsetOfAns+4]),
-		Class:      binary.BigEndian.Uint16(payload[offsetOfAns+4 : offsetOfAns+6]),
-		Ttl:        binary.BigEndian.Uint32(payload[offsetOfAns+6 : offsetOfAns+10]),
-		DataLength: binary.BigEndian.Uint16(payload[offsetOfAns+10 : offsetOfAns+12]),
-		Address:    binary.BigEndian.Uint32(payload[offsetOfAns+12 : offsetOfAns+16]),
+
+	answers := []*Answer{}
+	for i := 0; i < int(anCnt); i++ {
+		offsetOfAns := offset + 4 + (16 * i)
+		a := &Answer{
+			Name:       binary.BigEndian.Uint16(payload[offsetOfAns : offsetOfAns+2]),
+			Typ:        binary.BigEndian.Uint16(payload[offsetOfAns+2 : offsetOfAns+4]),
+			Class:      binary.BigEndian.Uint16(payload[offsetOfAns+4 : offsetOfAns+6]),
+			Ttl:        binary.BigEndian.Uint32(payload[offsetOfAns+6 : offsetOfAns+10]),
+			DataLength: binary.BigEndian.Uint16(payload[offsetOfAns+10 : offsetOfAns+12]),
+			Address:    binary.BigEndian.Uint32(payload[offsetOfAns+12 : offsetOfAns+16]),
+		}
+		answers = append(answers, a)
 	}
 
 	return &DNS{
@@ -122,8 +126,8 @@ func ParsedDNSResponse(payload []byte) *DNS {
 		AnswerRRs:     anCnt,
 		AuthorityRRs:  auCnt,
 		AdditionalRRs: adCnt,
-		Queries:       q,
-		Answers:       []*Answer{a},
+		Queries:       q, // TODO: スライスで持つ
+		Answers:       answers,
 	}
 }
 
@@ -156,5 +160,13 @@ func (d *DNS) Bytes() []byte {
 	buf.Write(d.Queries.Domain)
 	WriteUint16(buf, d.Queries.Typ)
 	WriteUint16(buf, d.Queries.Class)
+	for i := range d.Answers {
+		WriteUint16(buf, d.Answers[i].Name)
+		WriteUint16(buf, d.Answers[i].Typ)
+		WriteUint16(buf, d.Answers[i].Class)
+		WriteUint32(buf, d.Answers[i].Ttl)
+		WriteUint16(buf, d.Answers[i].DataLength)
+		WriteUint32(buf, d.Answers[i].Address)
+	}
 	return buf.Bytes()
 }

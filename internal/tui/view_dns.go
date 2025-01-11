@@ -13,8 +13,8 @@ type DNS struct {
 	*packemon.DNS
 }
 
-func (*DNS) rows() int {
-	return 19
+func (d *DNS) rows() int {
+	return 19 + (len(d.Answers) * 7)
 }
 
 func (*DNS) columns() int {
@@ -52,29 +52,32 @@ func (d *DNS) viewTable() *tview.Table {
 	table.SetCell(8, 0, tview.NewTableCell(padding("Queries: Class")))
 	table.SetCell(8, 1, tview.NewTableCell(padding(fmt.Sprintf("%x (%s)", d.Queries.Class, d.bytesToQueryClass()))))
 
-	if len(d.Answers) > 0 {
-		table.SetCell(9, 0, tview.NewTableCell(padding("Answers: Name")))
+	for i, answer := range d.Answers {
+		position := (i + 1) * 9
+		table.SetCell(position, 0, tview.NewTableCell(padding("Answer")))
+
+		table.SetCell(position+1, 0, tview.NewTableCell(padding("   Name")))
 		// Wireshark上ではクエリドメイン名が補完で表示されてるよう。多分、Answer.Name はQuery.Domainのエイリアスなのかな
-		table.SetCell(9, 1, tview.NewTableCell(padding(fmt.Sprintf("%x (%s)", d.Answers[0].Name, d.bytesToDomain()))))
+		table.SetCell(position+1, 1, tview.NewTableCell(padding(fmt.Sprintf("%x (%s)", answer.Name, d.bytesToDomain()))))
 
-		table.SetCell(10, 0, tview.NewTableCell(padding("Answers: Type")))
-		table.SetCell(10, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", d.Answers[0].Typ))))
+		table.SetCell(position+2, 0, tview.NewTableCell(padding("   Type")))
+		table.SetCell(position+2, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", answer.Typ))))
 
-		table.SetCell(11, 0, tview.NewTableCell(padding("Answers: Class")))
-		table.SetCell(11, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", d.Answers[0].Class))))
+		table.SetCell(position+3, 0, tview.NewTableCell(padding("   Class")))
+		table.SetCell(position+3, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", answer.Class))))
 
-		table.SetCell(12, 0, tview.NewTableCell(padding("Answers: TTL")))
-		table.SetCell(12, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", d.Answers[0].Ttl))))
+		table.SetCell(position+4, 0, tview.NewTableCell(padding("   TTL")))
+		table.SetCell(position+4, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", answer.Ttl))))
 
-		table.SetCell(13, 0, tview.NewTableCell(padding("Answers: Data length")))
-		table.SetCell(13, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", d.Answers[0].DataLength))))
+		table.SetCell(position+5, 0, tview.NewTableCell(padding("   Data length")))
+		table.SetCell(position+5, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", answer.DataLength))))
 
-		table.SetCell(14, 0, tview.NewTableCell(padding("Answers: Address")))
-		switch d.Answers[0].Typ {
+		table.SetCell(position+6, 0, tview.NewTableCell(padding("   Address")))
+		switch answer.Typ {
 		case packemon.DNS_QUERY_TYPE_A:
 			b := make([]byte, 4)
-			binary.BigEndian.PutUint32(b, d.Answers[0].Address)
-			table.SetCell(14, 1, tview.NewTableCell(padding(fmt.Sprintf("%x (%s)", d.Answers[0].Address, net.IPv4(b[0], b[1], b[2], b[3]).String()))))
+			binary.BigEndian.PutUint32(b, answer.Address)
+			table.SetCell(position+6, 1, tview.NewTableCell(padding(fmt.Sprintf("%x (%s)", answer.Address, net.IPv4(b[0], b[1], b[2], b[3]).String()))))
 		case packemon.DNS_QUERY_TYPE_AAAA:
 			// TODO: ipv6用のDNSクエリのレスポンスちょっとv4と違ってる、あとで
 		}

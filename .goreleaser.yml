@@ -6,18 +6,6 @@ before:
   hooks:
     - go mod tidy
 builds:
-  # - id: packemon
-  #   main: ./cmd/packemon
-  #   binary: packemon
-  #   ldflags:
-  #     - -s -w
-  #     - -X main.Version={{.Version}}
-  #     - -X main.Revision={{.ShortCommit}}
-  #   goos:
-  #     - darwin
-  #     - windows
-  #   env:
-  #     - CGO_ENABLED=0
   - id: packemon-linux
     main: ./cmd/packemon
     binary: packemon
@@ -27,6 +15,9 @@ builds:
       - -X main.Revision={{.ShortCommit}}
     goos:
       - linux
+    goarch:
+      - amd64
+      - arm64
     env:
       - CGO_ENABLED=0
   - id: packemon-api-linux
@@ -38,6 +29,9 @@ builds:
       - -X main.Revision={{.ShortCommit}}
     goos:
       - linux
+    goarch:
+      - amd64
+      - arm64
     env:
       - CGO_ENABLED=0
 archives:
@@ -47,9 +41,6 @@ archives:
       {{- if eq .Arch "amd64" }}x86_64
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
-    # format_overrides:
-    #   - goos: windows
-    #     format: zip
     files:
       - LICENSE
       - CREDITS

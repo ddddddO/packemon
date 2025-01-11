@@ -159,16 +159,16 @@ $ apk add --allow-untrusted packemon.apk
 
 3. Monitor
 
-  - Find records where `Proto`: **DNS** and `DstIP` or `SrcIP` is **1.1.1.1**. Select each record to see the packet structure of the DNS query and the packet structure of the DNS response.
+    - Find records where `Proto`: **DNS** and `DstIP` or `SrcIP` is **1.1.1.1**. Select each record to see the packet structure of the DNS query and the packet structure of the DNS response.
 
-    - List
-      ![](./assets/sending_dns_query_and_monitoring_dns_response/3.png)
+      - List
+        ![](./assets/sending_dns_query_and_monitoring_dns_response/3.png)
 
-    - DNS query
-      ![](./assets/sending_dns_query_and_monitoring_dns_response/4.png)
+      - DNS query (`DstIP: 1.1.1.1`)
+        ![](./assets/sending_dns_query_and_monitoring_dns_response/4.png)
 
-    - DNS response
-      ![](./assets/sending_dns_query_and_monitoring_dns_response/5.png)
+      - DNS response (`SrcIP: 1.1.1.1`)
+        ![](./assets/sending_dns_query_and_monitoring_dns_response/5.png)
 
 ## Another feature
 

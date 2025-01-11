@@ -124,6 +124,52 @@ $ apk add --allow-untrusted packemon.apk
   sudo packemon
   ```
 
+## Usecase
+### Sending DNS query and Monitoring DNS response
+
+1. setup
+    ```sh
+    # Generator
+    $ sudo packemon --send
+    ```
+
+    ```sh
+    # Monitor
+    $ sudo packemon
+    ```
+
+    ← Generator | Monitor →
+
+    ![](./assets/sending_dns_query_and_monitoring_dns_response/1.png)
+
+2. Generator
+    - `Protocols` > `Ethernet` > `Ether Type` > **IPv4**
+    - `Protocols` > `IPv4` > `Protocol` > **UDP**
+    - `Protocols` > `IPv4` > `Destination IP Addr` > **1.1.1.1**
+      - Enter the address of DNS resolver here. Above is the address of Cloudflare resolver.
+    - `Protocols` > `UDP` > `Destination Port` > **53**
+    - `Protocols` > `UDP` > `Automatically calculate length ?` > **(Check!)**
+    - `Protocols` > `DNS` > `Queries Domain` > **go.dev**
+      - Enter here the domain for which you want to name resolution.
+
+    - `Protocols` > `DNS` > Click on **Send!**
+      - At this time, DNS query is sent with the contents set so far.
+
+    ![](./assets/sending_dns_query_and_monitoring_dns_response/2.png)
+
+3. Monitor
+
+  - Find records where `Proto`: **DNS** and `DstIP` or `SrcIP` is **1.1.1.1**. Select each record to see the packet structure of the DNS query and the packet structure of the DNS response.
+
+    - List
+      ![](./assets/sending_dns_query_and_monitoring_dns_response/3.png)
+
+    - DNS query
+      ![](./assets/sending_dns_query_and_monitoring_dns_response/4.png)
+
+    - DNS response
+      ![](./assets/sending_dns_query_and_monitoring_dns_response/5.png)
+
 ## Another feature
 
 The local node's browser can monitor packets from remote nodes or send arbitrary packets from remote nodes.

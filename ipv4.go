@@ -39,9 +39,8 @@ func NewIPv4(protocol uint8, srcAddr uint32, dstAddr uint32) *IPv4 {
 		Ttl:            0x40,
 		Protocol:       protocol,
 		HeaderChecksum: 0,
-		// SrcAddr:        0xac184fcf, // 172.23.242.78
-		SrcAddr: srcAddr,
-		DstAddr: dstAddr,
+		SrcAddr:        srcAddr,
+		DstAddr:        dstAddr,
 	}
 }
 
@@ -60,12 +59,12 @@ var IPv4Protocols = map[uint8]string{
 func ParsedIPv4(payload []byte) *IPv4 {
 	return &IPv4{
 		Version:        payload[0] >> 4,
-		Ihl:            payload[0] << 4 >> 4,
+		Ihl:            payload[0],
 		Tos:            payload[1],
 		TotalLength:    binary.BigEndian.Uint16(payload[2:4]),
 		Identification: binary.BigEndian.Uint16(payload[4:6]),
-		Flags:          payload[6],
-		FragmentOffset: binary.BigEndian.Uint16(payload[6:8]),
+		Flags:          payload[6] & 0b11100000,
+		FragmentOffset: 0b0001111111111111 & binary.BigEndian.Uint16(payload[6:8]),
 		Ttl:            payload[8],
 		Protocol:       payload[9],
 		HeaderChecksum: binary.BigEndian.Uint16(payload[10:12]),
@@ -95,6 +94,7 @@ func (i *IPv4) CalculateChecksum() {
 	header = append(header, i.Flags)
 
 	b = make([]byte, 2)
+	// TODO: FragmentOffset/Ttl のフィールド追加するときこのあたり要確認
 	binary.BigEndian.PutUint16(b, i.FragmentOffset|uint16(i.Ttl))
 	header = append(header, b...)
 
@@ -113,19 +113,13 @@ func (i *IPv4) CalculateChecksum() {
 }
 
 func (i *IPv4) Bytes() []byte {
-	// Wireshark で他の正常なパケット見ると、versionとヘッダー長(ihl)が「45」
-	// 以下コメントアウト部だと、「40 50」となりダメ
-	// buf.WriteByte(i.version<<4)
-	// buf.WriteByte(i.ihl<<4)
-	// buf.WriteByte(i.Version<<4 | i.Ihl)
-
 	buf := &bytes.Buffer{}
 	buf.WriteByte(i.Version<<4 | i.Ihl)
 	buf.WriteByte(i.Tos)
 	WriteUint16(buf, i.TotalLength)
 	WriteUint16(buf, i.Identification)
-	buf.WriteByte(i.Flags)
-	WriteUint16(buf, i.FragmentOffset|uint16(i.Ttl))
+	WriteUint16(buf, hton(uint16(i.Flags)|i.FragmentOffset))
+	buf.WriteByte(i.Ttl)
 	buf.WriteByte(i.Protocol)
 	WriteUint16(buf, i.HeaderChecksum)
 	WriteUint32(buf, i.SrcAddr)

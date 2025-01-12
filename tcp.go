@@ -9,13 +9,12 @@ import (
 )
 
 const (
-	// 最後0付けてるけど、Wireshark上だと不要。受信時、TCP.Flags を4bit左シフトしてるからここでも付けてる
-	TCP_FLAGS_SYN         = 0x0020
-	TCP_FLAGS_SYN_ACK     = 0x0120
-	TCP_FLAGS_ACK         = 0x0100
-	TCP_FLAGS_FIN_ACK     = 0x0110
-	TCP_FLAGS_PSH_ACK     = 0x0180 // データを上位層へ渡してという信号
-	TCP_FLAGS_FIN_PSH_ACK = 0x0190
+	TCP_FLAGS_SYN         = 0x002
+	TCP_FLAGS_SYN_ACK     = 0x012
+	TCP_FLAGS_ACK         = 0x010
+	TCP_FLAGS_FIN_ACK     = 0x011
+	TCP_FLAGS_PSH_ACK     = 0x018 // データを上位層へ渡してという信号
+	TCP_FLAGS_FIN_PSH_ACK = 0x019
 )
 
 type TCP struct {
@@ -23,9 +22,10 @@ type TCP struct {
 	DstPort        uint16
 	Sequence       uint32
 	Acknowledgment uint32
-	// HeaderLength uint8
-	HeaderLength  uint16
-	Flags         uint16 // flagsをセットする用の関数あったほうがいいかも？
+	// データオフセット(4bit. TCPヘッダ長)と予約(3bit. すべて0)
+	HeaderLength uint8
+	// コントロールフラグ(9bit)
+	Flags         uint16
 	Window        uint16
 	Checksum      uint16
 	UrgentPointer uint16
@@ -40,8 +40,8 @@ func ParsedTCP(payload []byte) *TCP {
 		DstPort:        binary.BigEndian.Uint16(payload[2:4]),
 		Sequence:       binary.BigEndian.Uint32(payload[4:8]),
 		Acknowledgment: binary.BigEndian.Uint32(payload[8:12]),
-		HeaderLength:   binary.BigEndian.Uint16(payload[12:14]) >> 8,
-		Flags:          binary.BigEndian.Uint16(payload[12:14]) << 4,
+		HeaderLength:   payload[12] & 0b11111110,
+		Flags:          uint16(payload[12]&0b00000001)<<7 | uint16(payload[13]),
 		Window:         binary.BigEndian.Uint16(payload[14:16]),
 		Checksum:       binary.BigEndian.Uint16(payload[16:18]),
 		UrgentPointer:  binary.BigEndian.Uint16(payload[18:20]),
@@ -144,10 +144,8 @@ func (t *TCP) headerToBytes() []byte {
 	WriteUint16(buf, t.DstPort)
 	WriteUint32(buf, t.Sequence)
 	WriteUint32(buf, t.Acknowledgment)
-
-	// t.headerLengthは、フォーマットでは「データオフセット」で4bit
-	// t.flagsは、フォーマット的には、「予約」+「コントロールフラグ」
-	WriteUint16(buf, t.HeaderLength<<8|t.Flags)
+	WriteUint16(buf, uint16(t.HeaderLength)<<8|t.Flags)
+	// WriteUint16(buf, t.HeaderLength<<8|t.Flags)
 	WriteUint16(buf, t.Window)
 	WriteUint16(buf, t.Checksum)
 	WriteUint16(buf, t.UrgentPointer)

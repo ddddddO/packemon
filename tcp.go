@@ -145,7 +145,6 @@ func (t *TCP) headerToBytes() []byte {
 	WriteUint32(buf, t.Sequence)
 	WriteUint32(buf, t.Acknowledgment)
 	WriteUint16(buf, uint16(t.HeaderLength)<<8|t.Flags)
-	// WriteUint16(buf, t.HeaderLength<<8|t.Flags)
 	WriteUint16(buf, t.Window)
 	WriteUint16(buf, t.Checksum)
 	WriteUint16(buf, t.UrgentPointer)

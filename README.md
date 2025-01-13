@@ -100,7 +100,7 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 $ cd egress_control/ && go generate && cd -
 $ go build -o packemon cmd/packemon/*.go
 $ ls | grep packemon
-$ mv packeomn /usr/local/bin/
+$ mv packemon /usr/local/bin/
 
 <b>Go</b>
 # Deprecated (In some environments, RST packets may be sent during TCP 3-way handshake)

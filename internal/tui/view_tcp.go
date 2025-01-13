@@ -36,7 +36,7 @@ func (t *TCP) viewTable() *tview.Table {
 	table.SetCell(3, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", t.Acknowledgment))))
 
 	table.SetCell(4, 0, tview.NewTableCell(padding("HeaderLength")))
-	table.SetCell(4, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", t.HeaderLength))))
+	table.SetCell(4, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", t.HeaderLength>>4))))
 
 	table.SetCell(5, 0, tview.NewTableCell(padding("Flags")))
 	table.SetCell(5, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", t.Flags))))

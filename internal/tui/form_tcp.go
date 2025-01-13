@@ -47,18 +47,18 @@ func (t *tui) tcpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 
 			return true
 		}, nil).
-		AddInputField("Flags", DEFAULT_TCP_FLAGS, 5, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 5 {
+		AddInputField("Flags", DEFAULT_TCP_FLAGS, 4, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 4 {
 				return true
-			} else if len(textToCheck) > 5 {
+			} else if len(textToCheck) > 4 {
 				return false
 			}
 
-			b, err := packemon.StrHexToBytes2(textToCheck)
+			b, err := packemon.StrHexToBytes3(textToCheck)
 			if err != nil {
 				return false
 			}
-			tcp.Flags = binary.BigEndian.Uint16(b)
+			tcp.Flags = b
 
 			return true
 		}, nil).

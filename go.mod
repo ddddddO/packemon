@@ -4,7 +4,7 @@ go 1.22.0
 
 require (
 	github.com/cilium/ebpf v0.17.1
-	github.com/gdamore/tcell/v2 v2.8.0
+	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/labstack/gommon v0.4.2

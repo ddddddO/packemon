@@ -103,7 +103,7 @@ $ ls | grep packemon
 $ mv packeomn /usr/local/bin/
 
 <b>Go</b>
-# Deprecated
+# Deprecated (In some environments, RST packets may be sent during TCP 3-way handshake)
 $ go install github.com/ddddddO/packemon/cmd/packemon@latest
 
 <b>deb</b>

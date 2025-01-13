@@ -94,7 +94,16 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 ## Installation
 
 <pre>
+
+<b>git clone & Go</b>
+# Recomended (Clone this repository and require 'Dependencies' section of https://ebpf-go.dev/guides/getting-started/#ebpf-c-program)
+$ cd egress_control/ && go generate && cd -
+$ go build -o packemon cmd/packemon/*.go
+$ ls | grep packemon
+$ mv packeomn /usr/local/bin/
+
 <b>Go</b>
+# Deprecated
 $ go install github.com/ddddddO/packemon/cmd/packemon@latest
 
 <b>deb</b>

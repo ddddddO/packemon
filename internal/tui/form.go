@@ -56,7 +56,7 @@ var (
 	DEFAULT_TCP_PORT_SOURCE      = "12345"
 	DEFAULT_TCP_PORT_DESTINATION = "80"
 	DEFAULT_TCP_SEQUENCE         = "0x1f6e9499"
-	DEFAULT_TCP_FLAGS            = "0x002"
+	DEFAULT_TCP_FLAGS            = "0x02"
 
 	DEFAULT_HTTP_METHOD     = "GET"
 	DEFAULT_HTTP_URI        = "/"
@@ -260,11 +260,11 @@ func defaultPackets() (*defaults, error) {
 		return nil, err
 	}
 	tcp.Sequence = binary.BigEndian.Uint32(tcpSequence)
-	tcpFlags, err := packemon.StrHexToBytes2(DEFAULT_TCP_FLAGS)
+	tcpFlags, err := packemon.StrHexToBytes3(DEFAULT_TCP_FLAGS)
 	if err != nil {
 		return nil, err
 	}
-	tcp.Flags = binary.BigEndian.Uint16(tcpFlags)
+	tcp.Flags = tcpFlags
 
 	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
 	if err != nil {

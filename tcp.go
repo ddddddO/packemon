@@ -9,12 +9,12 @@ import (
 )
 
 const (
-	TCP_FLAGS_SYN         = 0x002
-	TCP_FLAGS_SYN_ACK     = 0x012
-	TCP_FLAGS_ACK         = 0x010
-	TCP_FLAGS_FIN_ACK     = 0x011
-	TCP_FLAGS_PSH_ACK     = 0x018 // データを上位層へ渡してという信号
-	TCP_FLAGS_FIN_PSH_ACK = 0x019
+	TCP_FLAGS_SYN         = 0x02
+	TCP_FLAGS_SYN_ACK     = 0x12
+	TCP_FLAGS_ACK         = 0x10
+	TCP_FLAGS_FIN_ACK     = 0x11
+	TCP_FLAGS_PSH_ACK     = 0x18 // データを上位層へ渡してという信号
+	TCP_FLAGS_FIN_PSH_ACK = 0x19
 )
 
 type TCP struct {
@@ -22,10 +22,15 @@ type TCP struct {
 	DstPort        uint16
 	Sequence       uint32
 	Acknowledgment uint32
-	// データオフセット(4bit. TCPヘッダ長)と予約(3bit. すべて0)
+
+	// Data Offset (DOffset)(4bit. TCPヘッダ長. 32bit整数倍) と Reserved (Rsrvd)(4bit. すべて0)
+	// ref: https://www.rfc-editor.org/rfc/rfc9293.html#section-3.1
 	HeaderLength uint8
-	// コントロールフラグ(9bit)
-	Flags         uint16
+
+	// Control bits(8bit)
+	// ref: https://www.rfc-editor.org/rfc/rfc9293.html#section-3.1-6.14.1
+	Flags uint8
+
 	Window        uint16
 	Checksum      uint16
 	UrgentPointer uint16
@@ -40,8 +45,8 @@ func ParsedTCP(payload []byte) *TCP {
 		DstPort:        binary.BigEndian.Uint16(payload[2:4]),
 		Sequence:       binary.BigEndian.Uint32(payload[4:8]),
 		Acknowledgment: binary.BigEndian.Uint32(payload[8:12]),
-		HeaderLength:   payload[12] & 0b11111110,
-		Flags:          uint16(payload[12]&0b00000001)<<7 | uint16(payload[13]),
+		HeaderLength:   payload[12] & 0b11110000,
+		Flags:          payload[13],
 		Window:         binary.BigEndian.Uint16(payload[14:16]),
 		Checksum:       binary.BigEndian.Uint16(payload[16:18]),
 		UrgentPointer:  binary.BigEndian.Uint16(payload[18:20]),
@@ -59,7 +64,7 @@ func ParsedTCP(payload []byte) *TCP {
 	return tcp
 }
 
-func newTCP(flags uint16, srcPort, dstPort uint16, sequence, acknowledgment uint32, data []byte) *TCP {
+func newTCP(flags uint8, srcPort, dstPort uint16, sequence, acknowledgment uint32, data []byte) *TCP {
 	return &TCP{
 		SrcPort:        srcPort,
 		DstPort:        dstPort,
@@ -78,27 +83,27 @@ func newTCP(flags uint16, srcPort, dstPort uint16, sequence, acknowledgment uint
 
 // tcpパケット単発で連続で送るときは port/sequence 変えること
 func NewTCPSyn(srcPort, dstPort uint16) *TCP {
-	return newTCP(0x002 /** syn **/, srcPort, dstPort, 0x091f58f9, 0x00000000, nil)
+	return newTCP(0x02 /** syn **/, srcPort, dstPort, 0x091f58f9, 0x00000000, nil)
 }
 
 // tcpパケット連続で送るときは port 変えること
 func NewTCPAck(srcPort, dstPort uint16, prevSequence uint32, prevAcknowledgment uint32) *TCP {
-	return newTCP(0x010 /** ack **/, srcPort, dstPort, prevAcknowledgment, prevSequence+0x00000001, nil)
+	return newTCP(0x10 /** ack **/, srcPort, dstPort, prevAcknowledgment, prevSequence+0x00000001, nil)
 }
 
 // tcpパケット連続で送るときは port 変えること
 func NewTCPAckForPassiveData(srcPort, dstPort uint16, prevSequence uint32, prevAcknowledgment uint32, tcpPayloadLength int) *TCP {
-	return newTCP(0x010 /** ack **/, srcPort, dstPort, prevAcknowledgment, prevSequence+uint32(tcpPayloadLength), nil)
+	return newTCP(0x10 /** ack **/, srcPort, dstPort, prevAcknowledgment, prevSequence+uint32(tcpPayloadLength), nil)
 }
 
 // tcpパケット連続で送るときは port 変えること
 func NewTCPWithData(srcPort, dstPort uint16, data []byte, prevSequence uint32, prevAcknowledgment uint32) *TCP {
-	return newTCP(0x018 /** push/ack **/, srcPort, dstPort, prevSequence, prevAcknowledgment, data)
+	return newTCP(0x18 /** push/ack **/, srcPort, dstPort, prevSequence, prevAcknowledgment, data)
 }
 
 // tcpパケット連続で送るときは port 変えること
 func NewTCPFinAck(srcPort, dstPort uint16, prevSequence uint32, prevAcknowledgment uint32) *TCP {
-	return newTCP(0x011 /** fin/ack **/, srcPort, dstPort, prevSequence, prevAcknowledgment, nil)
+	return newTCP(0x11 /** fin/ack **/, srcPort, dstPort, prevSequence, prevAcknowledgment, nil)
 }
 
 // https://atmarkit.itmedia.co.jp/ait/articles/0401/29/news080_2.html
@@ -144,7 +149,8 @@ func (t *TCP) headerToBytes() []byte {
 	WriteUint16(buf, t.DstPort)
 	WriteUint32(buf, t.Sequence)
 	WriteUint32(buf, t.Acknowledgment)
-	WriteUint16(buf, uint16(t.HeaderLength)<<8|t.Flags)
+	buf.WriteByte(t.HeaderLength)
+	buf.WriteByte(t.Flags)
 	WriteUint16(buf, t.Window)
 	WriteUint16(buf, t.Checksum)
 	WriteUint16(buf, t.UrgentPointer)

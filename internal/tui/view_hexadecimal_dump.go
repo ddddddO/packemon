@@ -91,6 +91,7 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 
 const maxLengthBytesOfRow = 16
 
+// TODO: 命名変更
 func viewHexadecimalDumpByProtocol(table *tview.Table, viewPosition int, protocolName string, protocolBytes []byte) (nextViewPosition int) {
 	table.SetCell(viewPosition, 0, tview.NewTableCell(padding(protocolName)))
 

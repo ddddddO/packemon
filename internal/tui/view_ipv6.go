@@ -1,8 +1,6 @@
 package tui
 
 import (
-	"fmt"
-
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
 )
@@ -23,29 +21,29 @@ func (i *IPv6) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" IPv6 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
-	table.SetCell(0, 0, tview.NewTableCell(padding("Version")))
-	table.SetCell(0, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", i.Version))))
+	table.SetCell(0, 0, tableCellTitle("Version"))
+	table.SetCell(0, 1, tableCellContent("%x", i.Version))
 
-	table.SetCell(1, 0, tview.NewTableCell(padding("Traffic Class")))
-	table.SetCell(1, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", i.TrafficClass))))
+	table.SetCell(1, 0, tableCellTitle("Traffic Class"))
+	table.SetCell(1, 1, tableCellContent("%x", i.TrafficClass))
 
-	table.SetCell(2, 0, tview.NewTableCell(padding("Flow Label")))
-	table.SetCell(2, 1, tview.NewTableCell(padding("<under development!>")))
+	table.SetCell(2, 0, tableCellTitle("Flow Label"))
+	table.SetCell(2, 1, tableCellContent("<under development!>"))
 
-	table.SetCell(3, 0, tview.NewTableCell(padding("Payload Length")))
-	table.SetCell(3, 1, tview.NewTableCell(padding("<under development!>")))
+	table.SetCell(3, 0, tableCellTitle("Payload Length"))
+	table.SetCell(3, 1, tableCellContent("<under development!>"))
 
-	table.SetCell(4, 0, tview.NewTableCell(padding("Next Header")))
-	table.SetCell(4, 1, tview.NewTableCell(padding(fmt.Sprintf("%x", i.NextHeader))))
+	table.SetCell(4, 0, tableCellTitle("Next Header"))
+	table.SetCell(4, 1, tableCellContent("%x", i.NextHeader))
 
-	table.SetCell(5, 0, tview.NewTableCell(padding("Hop Limit")))
-	table.SetCell(5, 1, tview.NewTableCell(padding(fmt.Sprintf("%d", i.HopLimit))))
+	table.SetCell(5, 0, tableCellTitle("Hop Limit"))
+	table.SetCell(5, 1, tableCellContent("%d", i.HopLimit))
 
-	table.SetCell(6, 0, tview.NewTableCell(padding("Source Address")))
-	table.SetCell(6, 1, tview.NewTableCell(padding(i.StrSrcIPAddr())))
+	table.SetCell(6, 0, tableCellTitle("Source Address"))
+	table.SetCell(6, 1, tableCellContent("%s", i.StrSrcIPAddr()))
 
-	table.SetCell(7, 0, tview.NewTableCell(padding("Destination Address")))
-	table.SetCell(7, 1, tview.NewTableCell(padding(i.StrDstIPAddr())))
+	table.SetCell(7, 0, tableCellTitle("Destination Address"))
+	table.SetCell(7, 1, tableCellContent("%s", i.StrDstIPAddr()))
 
 	return table
 }

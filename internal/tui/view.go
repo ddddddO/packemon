@@ -94,6 +94,14 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 	return viewers
 }
 
+func tableCellTitle(title string) *tview.TableCell {
+	return tview.NewTableCell(padding(title))
+}
+
+func tableCellContent(format string, a ...any) *tview.TableCell {
+	return tview.NewTableCell(padding(fmt.Sprintf(format, a...)))
+}
+
 func padding(s string) string {
 	spaces := strings.Repeat(" ", 3)
 	return fmt.Sprintf("%s%s%s", spaces, s, spaces)

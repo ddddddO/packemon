@@ -36,7 +36,7 @@ func (i *ICMP) viewTable() *tview.Table {
 	table.SetCell(4, 0, tableCellTitle("Sequence"))
 	table.SetCell(4, 1, tableCellContent("%x", i.Sequence))
 
-	viewHexadecimalDumpByProtocol(table, 5, "Data", i.Data)
+	viewHexadecimalDump(table, 5, "Data", i.Data)
 
 	return table
 }

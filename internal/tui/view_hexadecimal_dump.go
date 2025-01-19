@@ -36,18 +36,18 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 	switch {
 	case h.EthernetFrame != nil:
 		const ethernetHeaderLength = 14
-		viewHexadecimalDumpByProtocol(table, 0, "Ethernet", h.EthernetFrame.Bytes()[0:ethernetHeaderLength])
+		viewHexadecimalDump(table, 0, "Ethernet", h.EthernetFrame.Bytes()[0:ethernetHeaderLength])
 	}
 
 	// L3
 	loopForL3View := 1
 	switch {
 	case h.ARP != nil:
-		loopForL3View = viewHexadecimalDumpByProtocol(table, loopForL3View, "ARP", h.ARP.Bytes())
+		loopForL3View = viewHexadecimalDump(table, loopForL3View, "ARP", h.ARP.Bytes())
 	case h.IPv4 != nil:
-		loopForL3View = viewHexadecimalDumpByProtocol(table, loopForL3View, "IPv4", h.IPv4.Bytes()[0:h.IPv4.Ihl*4])
+		loopForL3View = viewHexadecimalDump(table, loopForL3View, "IPv4", h.IPv4.Bytes()[0:h.IPv4.Ihl*4])
 	case h.IPv6 != nil:
-		loopForL3View = viewHexadecimalDumpByProtocol(table, loopForL3View, "IPv6", h.IPv6.Bytes()[:40]) // TODO: ヘッダ長は、IPv6 のフィールドからとれるかも
+		loopForL3View = viewHexadecimalDump(table, loopForL3View, "IPv6", h.IPv6.Bytes()[:40]) // TODO: ヘッダ長は、IPv6 のフィールドからとれるかも
 	}
 
 	// L4
@@ -55,11 +55,11 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 	loopForL4View := 1 + loopForL3View
 	switch {
 	case h.ICMP != nil:
-		loopForL4View = viewHexadecimalDumpByProtocol(table, loopForL4View, "ICMP", h.ICMP.Bytes())
+		loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMP", h.ICMP.Bytes())
 	case h.TCP != nil:
-		loopForL4View = viewHexadecimalDumpByProtocol(table, loopForL4View, "TCP", h.TCP.Bytes()[0:h.TCP.HeaderLength/4])
+		loopForL4View = viewHexadecimalDump(table, loopForL4View, "TCP", h.TCP.Bytes()[0:h.TCP.HeaderLength/4])
 	case h.UDP != nil:
-		loopForL4View = viewHexadecimalDumpByProtocol(table, loopForL4View, "UDP", h.UDP.Bytes()[0:udpHeaderLength])
+		loopForL4View = viewHexadecimalDump(table, loopForL4View, "UDP", h.UDP.Bytes()[0:udpHeaderLength])
 	}
 
 	// L7
@@ -72,16 +72,16 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 			if len(h.DNS.Bytes()) < int(dnsLength) {
 				dnsLength = len(h.DNS.Bytes())
 			}
-			viewHexadecimalDumpByProtocol(table, loopForL7View, "DNS", h.DNS.Bytes()[0:dnsLength])
+			viewHexadecimalDump(table, loopForL7View, "DNS", h.DNS.Bytes()[0:dnsLength])
 		}
 		if h.TCP != nil {
 			table.SetCell(loopForL7View, 0, tview.NewTableCell(padding("DNS")))
 			// TODO:
 		}
 	case h.HTTP != nil:
-		viewHexadecimalDumpByProtocol(table, loopForL7View, "HTTP", h.HTTP.Bytes())
+		viewHexadecimalDump(table, loopForL7View, "HTTP", h.HTTP.Bytes())
 	case h.HTTPResponse != nil:
-		viewHexadecimalDumpByProtocol(table, loopForL7View, "HTTP", h.HTTPResponse.Bytes())
+		viewHexadecimalDump(table, loopForL7View, "HTTP", h.HTTPResponse.Bytes())
 	}
 
 	return table
@@ -89,16 +89,15 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 
 const maxLengthBytesOfRow = 16
 
-// TODO: 命名変更
-func viewHexadecimalDumpByProtocol(table *tview.Table, viewPosition int, protocolName string, protocolBytes []byte) (nextViewPosition int) {
-	table.SetCell(viewPosition, 0, tview.NewTableCell(padding(protocolName)))
+func viewHexadecimalDump(table *tview.Table, viewPosition int, title string, data []byte) (nextViewPosition int) {
+	table.SetCell(viewPosition, 0, tview.NewTableCell(padding(title)))
 
 	for i := 0; ; i += maxLengthBytesOfRow {
-		if len(protocolBytes) < i+maxLengthBytesOfRow {
-			table.SetCell(viewPosition, 1, tview.NewTableCell(padding(spacer(protocolBytes[i:]))))
+		if len(data) < i+maxLengthBytesOfRow {
+			table.SetCell(viewPosition, 1, tview.NewTableCell(padding(spacer(data[i:]))))
 			break
 		}
-		table.SetCell(viewPosition, 1, tview.NewTableCell(padding(spacer(protocolBytes[i:i+maxLengthBytesOfRow]))))
+		table.SetCell(viewPosition, 1, tview.NewTableCell(padding(spacer(data[i:i+maxLengthBytesOfRow]))))
 
 		viewPosition++
 	}

@@ -30,7 +30,7 @@ func ParsedIPv6(payload []byte) *IPv6 {
 	return &IPv6{
 		Version:      payload[0] >> 4,
 		TrafficClass: payload[0]<<4 | payload[1]>>4,
-		FlowLabel:    uint32(payload[1] << 4),
+		FlowLabel:    uint32(payload[1]<<4>>4)<<16 | uint32(payload[2])<<8 | uint32(payload[3]),
 		// FlowLabel:    binary.BigEndian.Uint32(payload[1] << 4 | payload[2:4]),
 		PayloadLength: binary.BigEndian.Uint16(payload[4:6]),
 		NextHeader:    payload[6],
@@ -66,11 +66,9 @@ func uintsToStrIPv6Addr(byteAddr []uint8) string {
 func (i *IPv6) Bytes() []byte {
 	buf := &bytes.Buffer{}
 
-	// TODO: このあたりバグってるので直して
 	buf.WriteByte(i.Version<<4 | i.TrafficClass>>4)
-	buf.WriteByte(i.TrafficClass << 4)
-
-	WriteUint32(buf, i.FlowLabel)
+	buf.WriteByte(i.TrafficClass<<4 | uint8(i.FlowLabel>>16))                // FlowLabel の20bitから4bit取得
+	WriteUint16(buf, uint16(i.FlowLabel&0b00000000000000001111111111111111)) // FlowLabel の20bitから4bitあたまはいらない
 	WriteUint16(buf, i.PayloadLength)
 	buf.WriteByte(i.NextHeader)
 	buf.WriteByte(i.HopLimit)

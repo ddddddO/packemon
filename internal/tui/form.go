@@ -102,51 +102,64 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddPage("ARP", arpForm, true, true).
 		AddPage("Ethernet", ethernetForm, true, true)
 
-	t.list.
-		AddItem("Ethernet", "", '1', func() {
-			t.pages.SwitchToPage("Ethernet")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("ARP", "", '2', func() {
-			t.pages.SwitchToPage("ARP")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("IPv4", "", '3', func() {
-			t.pages.SwitchToPage("IPv4")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("ICMP", "", '4', func() {
-			t.pages.SwitchToPage("ICMP")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("TCP", "", '5', func() {
-			t.pages.SwitchToPage("TCP")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("UDP", "", '6', func() {
-			t.pages.SwitchToPage("UDP")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("DNS", "", '7', func() {
-			t.pages.SwitchToPage("DNS")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("HTTP", "", '8', func() {
-			t.pages.SwitchToPage("HTTP")
-			t.app.SetFocus(t.pages)
-		})
+	l2Protocols := tview.NewList()
+	l2Protocols.SetTitle("L2").SetBorder(true)
+	l2Protocols.AddItem("Ethernet", "", '1', func() {
+		t.pages.SwitchToPage("Ethernet")
+		t.app.SetFocus(t.pages)
+	})
+
+	l3Protocols := tview.NewList()
+	l3Protocols.SetTitle("L3").SetBorder(true)
+	l3Protocols.AddItem("ARP", "", '2', func() {
+		t.pages.SwitchToPage("ARP")
+		t.app.SetFocus(t.pages)
+	}).AddItem("IPv4", "", '3', func() {
+		t.pages.SwitchToPage("IPv4")
+		t.app.SetFocus(t.pages)
+	})
+
+	l4Protocols := tview.NewList()
+	l4Protocols.SetTitle("L4").SetBorder(true)
+	l4Protocols.AddItem("ICMP", "", '4', func() {
+		t.pages.SwitchToPage("ICMP")
+		t.app.SetFocus(t.pages)
+	}).AddItem("TCP", "", '5', func() {
+		t.pages.SwitchToPage("TCP")
+		t.app.SetFocus(t.pages)
+	}).AddItem("UDP", "", '6', func() {
+		t.pages.SwitchToPage("UDP")
+		t.app.SetFocus(t.pages)
+	})
+
+	l7Protocols := tview.NewList()
+	l7Protocols.SetTitle("L7").SetBorder(true)
+	l7Protocols.AddItem("DNS", "", '7', func() {
+		t.pages.SwitchToPage("DNS")
+		t.app.SetFocus(t.pages)
+	}).AddItem("HTTP", "", '8', func() {
+		t.pages.SwitchToPage("HTTP")
+		t.app.SetFocus(t.pages)
+	})
 
 	t.grid.
 		SetRows(1, 0).
 		SetColumns(15, 0)
-	// TODO: 見切れちゃう
-	// Layout for screens narrower than 100 cells (menu and side bar are hidden).
-	t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 0, true).
-		AddItem(t.pages, 1, 1, 1, 1, 0, 0, false)
+
+	t.grid.
+		AddItem(l2Protocols, 1, 0, 1, 1, 0, 0, true).
+		AddItem(l3Protocols, 2, 0, 1, 1, 0, 0, false).
+		AddItem(l4Protocols, 3, 0, 1, 1, 0, 0, false).
+		AddItem(l7Protocols, 4, 0, 1, 1, 0, 0, false).
+		AddItem(t.pages, 1, 1, 3, 1, 0, 0, false)
 
 	// Layout for screens wider than 100 cells.
-	t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 100, true).
-		AddItem(t.pages, 1, 1, 1, 1, 0, 100, false)
+	// t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 100, true).
+	// 	AddItem(t.pages, 1, 1, 1, 1, 0, 100, false)
+	// t.grid.AddItem(l2Protocols, 1, 0, 1, 1, 0, 100, true).
+	// 	AddItem(l3Protocols, 2, 0, 1, 1, 0, 100, false).
+	// 	AddItem(l4Protocols, 3, 0, 1, 1, 0, 100, false).
+	// 	AddItem(t.pages, 1, 1, 1, 1, 0, 100, false)
 
 	return nil
 }

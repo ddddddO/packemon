@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"encoding/binary"
+	"net"
 	"strconv"
 
 	"github.com/ddddddO/packemon"
@@ -161,6 +162,29 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		t.app.SetFocus(t.pages)
 	})
 
+	// Interface の情報を出力するための
+	interfaceTable := tview.NewTable().SetBorders(true)
+	{
+		intf, err := net.InterfaceByName(t.networkInterface.Intf.Name)
+		if err != nil {
+			return err
+		}
+		addrs, err := intf.Addrs()
+		if err != nil {
+			return err
+		}
+
+		interfaceTable.Box = tview.NewBox().SetBorder(true).SetTitle(" Interface ")
+		interfaceTable.SetCell(0, 0, tableCellTitle("name"))
+		interfaceTable.SetCell(0, 1, tableCellContent("%s", t.networkInterface.Intf.Name))
+		interfaceTable.SetCell(1, 0, tableCellTitle("mac address"))
+		interfaceTable.SetCell(1, 1, tableCellContent("%s", t.networkInterface.Intf.HardwareAddr.String()))
+		interfaceTable.SetCell(2, 0, tableCellTitle("ip address"))
+		for i, addr := range addrs {
+			interfaceTable.SetCell(2+i, 1, tableCellContent("%s", addr))
+		}
+	}
+
 	t.grid.
 		SetRows(1, 0).
 		SetColumns(15, 0)
@@ -172,7 +196,8 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddItem(l4Protocols, 3, 0, 1, 1, 0, 0, false).
 		AddItem(l5_6Protocols, 4, 0, 1, 1, 0, 0, false).
 		AddItem(l7Protocols, 5, 0, 1, 1, 0, 0, false).
-		AddItem(t.pages, 1, 1, 4, 1, 0, 0, false)
+		AddItem(t.pages, 1, 1, 4, 1, 0, 0, false).
+		AddItem(interfaceTable, 5, 1, 1, 1, 0, 0, false)
 
 	// Layout for screens wider than 100 cells.
 	// t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 100, true).

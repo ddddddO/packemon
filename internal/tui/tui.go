@@ -10,6 +10,8 @@ import (
 )
 
 type tui struct {
+	networkInterface *packemon.NetworkInterface
+
 	app *tview.Application
 
 	table         *tview.Table
@@ -20,14 +22,14 @@ type tui struct {
 	list  *tview.List
 }
 
-func NewTUI(wantSend bool) *tui {
+func NewTUI(networkInterface *packemon.NetworkInterface, wantSend bool) *tui {
 	if wantSend {
-		return newGenerator()
+		return newGenerator(networkInterface)
 	}
-	return newMonitor()
+	return newMonitor(networkInterface)
 }
 
-func newGenerator() *tui {
+func newGenerator(networkInterface *packemon.NetworkInterface) *tui {
 	pages := tview.NewPages()
 	grid := tview.NewGrid()
 	grid.Box = tview.NewBox().SetTitle(" Packemon <Generator> ").SetBorder(true)
@@ -35,6 +37,8 @@ func newGenerator() *tui {
 	list.SetTitle("Protocols").SetBorder(true)
 
 	return &tui{
+		networkInterface: networkInterface,
+
 		app:   tview.NewApplication(),
 		grid:  grid,
 		pages: pages,
@@ -42,7 +46,7 @@ func newGenerator() *tui {
 	}
 }
 
-func newMonitor() *tui {
+func newMonitor(networkInterface *packemon.NetworkInterface) *tui {
 	pages := tview.NewPages()
 	table := NewPacketsHistoryTable()
 	pages.AddPage("history", table, true, true)
@@ -50,6 +54,8 @@ func newMonitor() *tui {
 	grid.Box = tview.NewBox().SetTitle(" Packemon <Monitor> ").SetBorder(true)
 
 	return &tui{
+		networkInterface: networkInterface,
+
 		app:           tview.NewApplication(),
 		table:         table,
 		storedPackets: sync.Map{},

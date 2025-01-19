@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"encoding/binary"
+	"net"
 	"strconv"
 
 	"github.com/ddddddO/packemon"
@@ -75,26 +76,38 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 	}
 	ethernetHeader, arp, ipv4, icmp, udp, tcp, dns, http := d.e, d.a, d.ip, d.ic, d.u, d.t, d.d, d.h
 
+	// L7
 	httpForm := t.httpForm(ctx, sendFn, ethernetHeader, ipv4, tcp, http)
 	httpForm.SetBorder(true).SetTitle(" HTTP ").SetTitleAlign(tview.AlignLeft)
 	dnsForm := t.dnsForm(sendFn, ethernetHeader, ipv4, udp, dns)
 	dnsForm.SetBorder(true).SetTitle(" DNS ").SetTitleAlign(tview.AlignLeft)
+
+	// L5~L6
+	tlsv1_2Form := t.tlsv1_2Form(sendFn, ethernetHeader)
+	tlsv1_2Form.SetBorder(true).SetTitle(" TLSv1.2 ").SetTitleAlign(tview.AlignLeft)
+
+	// L4
 	tcpForm := t.tcpForm(sendFn, ethernetHeader, ipv4, tcp)
 	tcpForm.SetBorder(true).SetTitle(" TCP ").SetTitleAlign(tview.AlignLeft)
 	udpForm := t.udpForm(sendFn, ethernetHeader, ipv4, udp)
 	udpForm.SetBorder(true).SetTitle(" UDP ").SetTitleAlign(tview.AlignLeft)
 	icmpForm := t.icmpForm(sendFn, ethernetHeader, ipv4, icmp)
 	icmpForm.SetBorder(true).SetTitle(" ICMP ").SetTitleAlign(tview.AlignLeft)
+
+	// L3
 	ipv4Form := t.ipv4Form(sendFn, ethernetHeader, ipv4)
 	ipv4Form.SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
 	arpForm := t.arpForm(sendFn, ethernetHeader, arp)
 	arpForm.SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft)
+
+	// L2
 	ethernetForm := t.ethernetForm(sendFn, ethernetHeader)
 	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 
 	t.pages.
 		AddPage("HTTP", httpForm, true, true).
 		AddPage("DNS", dnsForm, true, true).
+		AddPage("TLSv1.2", tlsv1_2Form, true, true).
 		AddPage("UDP", udpForm, true, true).
 		AddPage("TCP", tcpForm, true, true).
 		AddPage("ICMP", icmpForm, true, true).
@@ -102,51 +115,97 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddPage("ARP", arpForm, true, true).
 		AddPage("Ethernet", ethernetForm, true, true)
 
-	t.list.
-		AddItem("Ethernet", "", '1', func() {
-			t.pages.SwitchToPage("Ethernet")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("ARP", "", '2', func() {
-			t.pages.SwitchToPage("ARP")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("IPv4", "", '3', func() {
-			t.pages.SwitchToPage("IPv4")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("ICMP", "", '4', func() {
-			t.pages.SwitchToPage("ICMP")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("TCP", "", '5', func() {
-			t.pages.SwitchToPage("TCP")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("UDP", "", '6', func() {
-			t.pages.SwitchToPage("UDP")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("DNS", "", '7', func() {
-			t.pages.SwitchToPage("DNS")
-			t.app.SetFocus(t.pages)
-		}).
-		AddItem("HTTP", "", '8', func() {
-			t.pages.SwitchToPage("HTTP")
-			t.app.SetFocus(t.pages)
-		})
+	l2Protocols := tview.NewList()
+	l2Protocols.SetTitle("L2").SetBorder(true)
+	l2Protocols.AddItem("Ethernet", "", '1', func() {
+		t.pages.SwitchToPage("Ethernet")
+		t.app.SetFocus(t.pages)
+	})
+
+	l3Protocols := tview.NewList()
+	l3Protocols.SetTitle("L3").SetBorder(true)
+	l3Protocols.AddItem("ARP", "", '1', func() {
+		t.pages.SwitchToPage("ARP")
+		t.app.SetFocus(t.pages)
+	}).AddItem("IPv4", "", '2', func() {
+		t.pages.SwitchToPage("IPv4")
+		t.app.SetFocus(t.pages)
+	})
+
+	l4Protocols := tview.NewList()
+	l4Protocols.SetTitle("L4").SetBorder(true)
+	l4Protocols.AddItem("ICMP", "", '1', func() {
+		t.pages.SwitchToPage("ICMP")
+		t.app.SetFocus(t.pages)
+	}).AddItem("TCP", "", '2', func() {
+		t.pages.SwitchToPage("TCP")
+		t.app.SetFocus(t.pages)
+	}).AddItem("UDP", "", '3', func() {
+		t.pages.SwitchToPage("UDP")
+		t.app.SetFocus(t.pages)
+	})
+
+	l5_6Protocols := tview.NewList()
+	l5_6Protocols.SetTitle("L5/6").SetBorder(true)
+	l5_6Protocols.AddItem("TLSv1.2", "", '1', func() {
+		t.pages.SwitchToPage("TLSv1.2")
+		t.app.SetFocus(t.pages)
+	})
+
+	l7Protocols := tview.NewList()
+	l7Protocols.SetTitle("L7").SetBorder(true)
+	l7Protocols.AddItem("DNS", "", '1', func() {
+		t.pages.SwitchToPage("DNS")
+		t.app.SetFocus(t.pages)
+	}).AddItem("HTTP", "", '2', func() {
+		t.pages.SwitchToPage("HTTP")
+		t.app.SetFocus(t.pages)
+	})
+
+	// Interface の情報を出力するための
+	interfaceTable := tview.NewTable().SetBorders(true)
+	{
+		intf, err := net.InterfaceByName(t.networkInterface.Intf.Name)
+		if err != nil {
+			return err
+		}
+		addrs, err := intf.Addrs()
+		if err != nil {
+			return err
+		}
+
+		interfaceTable.Box = tview.NewBox().SetBorder(true).SetTitle(" Interface ")
+		interfaceTable.SetCell(0, 0, tableCellTitle("name"))
+		interfaceTable.SetCell(0, 1, tableCellContent("%s", t.networkInterface.Intf.Name))
+		interfaceTable.SetCell(1, 0, tableCellTitle("mac address"))
+		interfaceTable.SetCell(1, 1, tableCellContent("%s", t.networkInterface.Intf.HardwareAddr.String()))
+		interfaceTable.SetCell(2, 0, tableCellTitle("ip address"))
+		for i, addr := range addrs {
+			interfaceTable.SetCell(2+i, 1, tableCellContent("%s", addr))
+		}
+	}
 
 	t.grid.
 		SetRows(1, 0).
 		SetColumns(15, 0)
-	// TODO: 見切れちゃう
-	// Layout for screens narrower than 100 cells (menu and side bar are hidden).
-	t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 0, true).
-		AddItem(t.pages, 1, 1, 1, 1, 0, 0, false)
+
+	// プロトコル増えて縦に収まりきらなくなったら、このあたりいじって隣の列とかに移す or Table にしてスクロールできるようにできないか
+	t.grid.
+		AddItem(l2Protocols, 1, 0, 1, 1, 0, 0, true).
+		AddItem(l3Protocols, 2, 0, 1, 1, 0, 0, false).
+		AddItem(l4Protocols, 3, 0, 1, 1, 0, 0, false).
+		AddItem(l5_6Protocols, 4, 0, 1, 1, 0, 0, false).
+		AddItem(l7Protocols, 5, 0, 1, 1, 0, 0, false).
+		AddItem(t.pages, 1, 1, 4, 1, 0, 0, false).
+		AddItem(interfaceTable, 5, 1, 1, 1, 0, 0, false)
 
 	// Layout for screens wider than 100 cells.
-	t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 100, true).
-		AddItem(t.pages, 1, 1, 1, 1, 0, 100, false)
+	// t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 100, true).
+	// 	AddItem(t.pages, 1, 1, 1, 1, 0, 100, false)
+	// t.grid.AddItem(l2Protocols, 1, 0, 1, 1, 0, 100, true).
+	// 	AddItem(l3Protocols, 2, 0, 1, 1, 0, 100, false).
+	// 	AddItem(l4Protocols, 3, 0, 1, 1, 0, 100, false).
+	// 	AddItem(t.pages, 1, 1, 1, 1, 0, 100, false)
 
 	return nil
 }

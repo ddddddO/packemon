@@ -113,10 +113,10 @@ func run(ctx context.Context, columns string, nwInterface string, wantSend bool,
 
 	if wantSend {
 		tui.DEFAULT_NW_INTERFACE = nwInterface
-		tui := tui.NewTUI(wantSend)
+		tui := tui.NewTUI(netIf, wantSend)
 		return tui.Generator(ctx, netIf.Send)
 	} else {
-		tui := tui.NewTUI(wantSend)
+		tui := tui.NewTUI(netIf, wantSend)
 		go netIf.Recieve(ctx)
 		return tui.Monitor(netIf.PassiveCh, columns)
 	}

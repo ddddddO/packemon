@@ -1,8 +1,16 @@
 package packemon
 
-import "net"
+import (
+	"bytes"
+	"encoding/binary"
+	"net"
+)
 
+// rfc: https://datatracker.ietf.org/doc/html/rfc8200#page-6
 // https://atmarkit.itmedia.co.jp/ait/articles/1201/05/news113.html
+// ↑ によると、「TrafficClass」の前半4bitに拡張ヘッダ（Option）までの長さ入ってるっぽいけど
+// https://datatracker.ietf.org/doc/html/rfc8200#section-4 によると、「NextHeader」の種類ごとに、拡張ヘッダー（Option）があるかどうかみたいなのがわかるっぽい？
+// ちなみに、NextHeader は、IPv4 の Protocol と同じ値みたい
 type IPv6 struct {
 	Version       uint8 // 4bit
 	TrafficClass  uint8
@@ -22,17 +30,23 @@ func ParsedIPv6(payload []byte) *IPv6 {
 	return &IPv6{
 		Version:      payload[0] >> 4,
 		TrafficClass: payload[0]<<4 | payload[1]>>4,
-		// FlowLabel: ,
-		// PayloadLength: ,
-		NextHeader: payload[6],
-		HopLimit:   payload[7],
-		SrcAddr:    payload[8:24],
-		DstAddr:    payload[24:40],
+		FlowLabel:    uint32(payload[1] << 4),
+		// FlowLabel:    binary.BigEndian.Uint32(payload[1] << 4 | payload[2:4]),
+		PayloadLength: binary.BigEndian.Uint16(payload[4:6]),
+		NextHeader:    payload[6],
+		HopLimit:      payload[7],
+		SrcAddr:       payload[8:24],
+		DstAddr:       payload[24:40],
+
+		// TODO: 拡張ヘッダ付く場合あるため、それを除かないとダメ
+		Data: payload[40:],
 	}
 }
 
+// TODO: IPv4 と同じものは、IPv4_PROTO_HOGE 使っていいかも
 const (
-	IPv6_NEXT_HEADER_UDP    = 0x11
+	IPv6_NEXT_HEADER_TCP    = IPv4_PROTO_TCP
+	IPv6_NEXT_HEADER_UDP    = IPv4_PROTO_UDP
 	IPv6_NEXT_HEADER_ICMPv6 = 0x3a
 )
 
@@ -47,4 +61,23 @@ func (i *IPv6) StrDstIPAddr() string {
 func uintsToStrIPv6Addr(byteAddr []uint8) string {
 	ipv6Addr := net.IP(byteAddr)
 	return ipv6Addr.To16().String()
+}
+
+func (i *IPv6) Bytes() []byte {
+	buf := &bytes.Buffer{}
+
+	// TODO: このあたりバグってるので直して
+	buf.WriteByte(i.Version<<4 | i.TrafficClass>>4)
+	buf.WriteByte(i.TrafficClass << 4)
+
+	WriteUint32(buf, i.FlowLabel)
+	WriteUint16(buf, i.PayloadLength)
+	buf.WriteByte(i.NextHeader)
+	buf.WriteByte(i.HopLimit)
+	buf.Write(i.SrcAddr)
+	buf.Write(i.DstAddr)
+	buf.Write(i.Option)
+	buf.Write(i.Data)
+
+	return buf.Bytes()
 }

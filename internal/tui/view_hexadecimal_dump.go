@@ -47,9 +47,7 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 	case h.IPv4 != nil:
 		loopForL3View = viewHexadecimalDumpByProtocol(table, loopForL3View, "IPv4", h.IPv4.Bytes()[0:h.IPv4.Ihl*4])
 	case h.IPv6 != nil:
-		table.SetCell(loopForL3View, 0, tview.NewTableCell(padding("IPv6")))
-		// TODO: IPv6.Bytes()
-		// table.SetCell(loopForL3View, 1, tview.NewTableCell(padding(spacer("%x", h.IPv6)))
+		loopForL3View = viewHexadecimalDumpByProtocol(table, loopForL3View, "IPv6", h.IPv6.Bytes()[:40]) // TODO: ヘッダ長は、IPv6 のフィールドからとれるかも
 	}
 
 	// L4

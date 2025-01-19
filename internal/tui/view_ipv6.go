@@ -28,10 +28,10 @@ func (i *IPv6) viewTable() *tview.Table {
 	table.SetCell(1, 1, tableCellContent("%x", i.TrafficClass))
 
 	table.SetCell(2, 0, tableCellTitle("Flow Label"))
-	table.SetCell(2, 1, tableCellContent("<under development!>"))
+	table.SetCell(2, 1, tableCellContent("%x", i.FlowLabel))
 
 	table.SetCell(3, 0, tableCellTitle("Payload Length"))
-	table.SetCell(3, 1, tableCellContent("<under development!>"))
+	table.SetCell(3, 1, tableCellContent("%x", i.PayloadLength))
 
 	table.SetCell(4, 0, tableCellTitle("Next Header"))
 	table.SetCell(4, 1, tableCellContent("%x", i.NextHeader))
@@ -44,6 +44,8 @@ func (i *IPv6) viewTable() *tview.Table {
 
 	table.SetCell(7, 0, tableCellTitle("Destination Address"))
 	table.SetCell(7, 1, tableCellContent("%s", i.StrDstIPAddr()))
+
+	// TODO: Option. 拡張ヘッダ
 
 	return table
 }

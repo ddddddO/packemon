@@ -47,9 +47,10 @@ func loadEgress_packetObjects(obj interface{}, opts *ebpf.CollectionOptions) err
 type egress_packetSpecs struct {
 	egress_packetProgramSpecs
 	egress_packetMapSpecs
+	egress_packetVariableSpecs
 }
 
-// egress_packetSpecs contains programs before they are loaded into the kernel.
+// egress_packetProgramSpecs contains programs before they are loaded into the kernel.
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type egress_packetProgramSpecs struct {
@@ -64,12 +65,19 @@ type egress_packetMapSpecs struct {
 	PktCount    *ebpf.MapSpec `ebpf:"pkt_count"`
 }
 
+// egress_packetVariableSpecs contains global variables before they are loaded into the kernel.
+//
+// It can be passed ebpf.CollectionSpec.Assign.
+type egress_packetVariableSpecs struct {
+}
+
 // egress_packetObjects contains all objects after they have been loaded into the kernel.
 //
 // It can be passed to loadEgress_packetObjects or ebpf.CollectionSpec.LoadAndAssign.
 type egress_packetObjects struct {
 	egress_packetPrograms
 	egress_packetMaps
+	egress_packetVariables
 }
 
 func (o *egress_packetObjects) Close() error {
@@ -92,6 +100,12 @@ func (m *egress_packetMaps) Close() error {
 		m.ArpPktCount,
 		m.PktCount,
 	)
+}
+
+// egress_packetVariables contains all global variables after they have been loaded into the kernel.
+//
+// It can be passed to loadEgress_packetObjects or ebpf.CollectionSpec.LoadAndAssign.
+type egress_packetVariables struct {
 }
 
 // egress_packetPrograms contains all programs after they have been loaded into the kernel.

@@ -26,6 +26,19 @@ type IPv6 struct {
 	Data []byte
 }
 
+func NewIPv6(protocol uint8, srcAddr []uint8, dstAddr []uint8) *IPv6 {
+	return &IPv6{
+		Version:       0x06,
+		TrafficClass:  0x00,
+		FlowLabel:     0x00000,
+		PayloadLength: 0x0000,
+		NextHeader:    protocol,
+		HopLimit:      0x40,
+		SrcAddr:       srcAddr,
+		DstAddr:       dstAddr,
+	}
+}
+
 func ParsedIPv6(payload []byte) *IPv6 {
 	return &IPv6{
 		Version:      payload[0] >> 4,
@@ -77,5 +90,16 @@ func (i *IPv6) Bytes() []byte {
 	buf.Write(i.Option)
 	buf.Write(i.Data)
 
+	return buf.Bytes()
+}
+
+// 上位レイヤのチェックサムを求めるための
+// ref: https://datatracker.ietf.org/doc/html/rfc8200#section-8.1
+func (i *IPv6) PseudoHeader(upperLayerLength uint32) []byte {
+	buf := &bytes.Buffer{}
+	binary.Write(buf, binary.BigEndian, i.SrcAddr)
+	binary.Write(buf, binary.BigEndian, i.DstAddr)
+	WriteUint32(buf, upperLayerLength)
+	WriteUint32(buf, uint32(i.NextHeader))
 	return buf.Bytes()
 }

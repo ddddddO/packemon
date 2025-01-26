@@ -106,6 +106,7 @@ func (hrh *HTTPResponseHeader) Bytes() []byte {
 }
 
 // TODO: 多分このあたりバグってる。Monitor の http response の hexadecimal dump と Wireshark で異なる
+// TODO: panic になることある
 func ParsedHTTPResponse(payload []byte) *HTTPResponse {
 	sep := []byte{0x0d, 0x0a} // "\r\n"
 

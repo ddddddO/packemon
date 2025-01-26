@@ -7,7 +7,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, udp *packemon.UDP, dns *packemon.DNS) *tview.Form {
+func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, ipv6 *packemon.IPv6, udp *packemon.UDP, dns *packemon.DNS) *tview.Form {
 	dnsForm := tview.NewForm().
 		AddTextView("DNS", "This section generates the DNS.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Transaction ID", DEFAULT_DNS_TRANSACTION, 6, func(textToCheck string, lastChar rune) bool {
@@ -126,20 +126,29 @@ func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			t.app.SetFocus(t.list)
 		}).
 		AddButton("Send!", func() {
+			udp.Checksum = 0x0000
 			udp.Data = dns.Bytes()
 			if checkedCalcUDPLength {
 				udp.Len()
 			}
-
-			ipv4.Data = udp.Bytes()
-			ipv4.CalculateTotalLength()
-			// 前回Send分が残ってると計算誤るため
-			ipv4.HeaderChecksum = 0x0
-			ipv4.CalculateChecksum()
 			ethernetFrame := &packemon.EthernetFrame{
 				Header: ethernetHeader,
-				Data:   ipv4.Bytes(),
 			}
+
+			if underIPv6 {
+				udp.CalculateChecksumForIPv6(ipv6)
+				ipv6.Data = udp.Bytes()
+				ipv6.PayloadLength = uint16(len(ipv6.Data))
+				ethernetFrame.Data = ipv6.Bytes()
+			} else {
+				ipv4.Data = udp.Bytes()
+				ipv4.CalculateTotalLength()
+				// 前回Send分が残ってると計算誤るため
+				ipv4.HeaderChecksum = 0x0
+				ipv4.CalculateChecksum()
+				ethernetFrame.Data = ipv4.Bytes()
+			}
+
 			if err := sendFn(ethernetFrame); err != nil {
 				t.addErrPage(err)
 			}

@@ -5,6 +5,8 @@ import (
 	"github.com/rivo/tview"
 )
 
+var underIPv6 = false
+
 func (t *tui) ethernetForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader) *tview.Form {
 	ethernetForm := tview.NewForm().
 		AddTextView("Ethernet Header", "This section generates the Ethernet header.\nIt is still under development.", 60, 4, true, false).
@@ -39,12 +41,17 @@ func (t *tui) ethernetForm(sendFn func(*packemon.EthernetFrame) error, ethernetH
 			return true
 		}, nil).
 		// TODO: 自由にフレーム作れるとするなら、ここもhexで受け付けるようにして、IP or ARPヘッダフォームへの切り替えも自由にできた方がいいかも
-		AddDropDown("Ether Type", []string{"IPv4", "ARP"}, 0, func(selected string, _ int) {
+		AddDropDown("Ether Type", []string{"IPv4", "IPv6", "ARP"}, 0, func(selected string, _ int) {
 			switch selected {
 			case "IPv4":
 				ethernetHeader.Typ = packemon.ETHER_TYPE_IPv4
+				underIPv6 = false
+			case "IPv6":
+				ethernetHeader.Typ = packemon.ETHER_TYPE_IPv6
+				underIPv6 = true
 			case "ARP":
 				ethernetHeader.Typ = packemon.ETHER_TYPE_ARP
+				underIPv6 = false
 			}
 		}).
 		AddButton("List", func() {
@@ -63,6 +70,8 @@ func (t *tui) ethernetForm(sendFn func(*packemon.EthernetFrame) error, ethernetH
 			switch ethernetHeader.Typ {
 			case packemon.ETHER_TYPE_IPv4:
 				t.pages.SwitchToPage("IPv4")
+			case packemon.ETHER_TYPE_IPv6:
+				t.pages.SwitchToPage("IPv6")
 			case packemon.ETHER_TYPE_ARP:
 				t.pages.SwitchToPage("ARP")
 			}

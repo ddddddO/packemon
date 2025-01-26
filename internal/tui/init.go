@@ -20,5 +20,6 @@ func init() {
 		DEFAULT_ARP_TARGET_IP = defaultRouteIP
 	}
 
-	DEFAULT_IP_DESTINATION = "192.168.10.110" // raspbbery pi
+	DEFAULT_IP_DESTINATION = "192.168.10.110"                            // raspbbery pi
+	DEFAULT_IPv6_DESTINATION = "2400:4051:1920:f800:5870:ef57:3977:7dfa" // raspbbery pi
 }

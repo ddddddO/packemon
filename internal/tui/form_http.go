@@ -8,7 +8,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func (t *tui) httpForm(ctx context.Context, sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, tcp *packemon.TCP, http *packemon.HTTP) *tview.Form {
+func (t *tui) httpForm(ctx context.Context, sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, ipv6 *packemon.IPv6, tcp *packemon.TCP, http *packemon.HTTP) *tview.Form {
 	do3wayHandshake := false
 
 	httpForm := tview.NewForm().
@@ -77,33 +77,56 @@ func (t *tui) httpForm(ctx context.Context, sendFn func(*packemon.EthernetFrame)
 				// }
 
 				go func() {
-					if err := packemon.EstablishConnectionAndSendPayloadXxx(
-						ctx,
-						DEFAULT_NW_INTERFACE,
-						ethernetHeader,
-						ipv4,
-						tcp,
-						http,
-					); err != nil {
-						t.addErrPage(err)
+					if underIPv6 {
+						if err := packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
+							ctx,
+							DEFAULT_NW_INTERFACE,
+							ethernetHeader,
+							ipv6,
+							tcp,
+							http,
+						); err != nil {
+							t.addErrPage(err)
+						}
+					} else {
+						if err := packemon.EstablishConnectionAndSendPayloadXxx(
+							ctx,
+							DEFAULT_NW_INTERFACE,
+							ethernetHeader,
+							ipv4,
+							tcp,
+							http,
+						); err != nil {
+							t.addErrPage(err)
+						}
 					}
+
 				}()
 
 				return
 			}
 
+			tcp.Checksum = 0x0000
 			tcp.Data = http.Bytes()
-			tcp.CalculateChecksum(ipv4)
-
-			ipv4.Data = tcp.Bytes()
-			ipv4.CalculateTotalLength()
-			// 前回Send分が残ってると計算誤るため
-			ipv4.HeaderChecksum = 0x0
-			ipv4.CalculateChecksum()
 			ethernetFrame := &packemon.EthernetFrame{
 				Header: ethernetHeader,
-				Data:   ipv4.Bytes(),
 			}
+
+			if underIPv6 {
+				tcp.CalculateChecksumForIPv6(ipv6)
+				ipv6.Data = tcp.Bytes()
+				ipv6.PayloadLength = uint16(len(ipv6.Data))
+				ethernetFrame.Data = ipv6.Bytes()
+			} else {
+				tcp.CalculateChecksum(ipv4)
+				ipv4.Data = tcp.Bytes()
+				ipv4.CalculateTotalLength()
+				// 前回Send分が残ってると計算誤るため
+				ipv4.HeaderChecksum = 0x0
+				ipv4.CalculateChecksum()
+				ethernetFrame.Data = ipv4.Bytes()
+			}
+
 			if err := sendFn(ethernetFrame); err != nil {
 				t.addErrPage(err)
 			}

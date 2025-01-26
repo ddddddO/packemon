@@ -78,8 +78,13 @@ func run(ctx context.Context, columns string, nwInterface string, wantSend bool,
 	if err != nil {
 		return err
 	}
-	tui.DEFAULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
-	tui.DEFAULT_ARP_SENDER_IP = tui.DEFAULT_IP_SOURCE
+	if len(ipAddr) > 0 {
+		tui.DEFAULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
+		tui.DEFAULT_ARP_SENDER_IP = tui.DEFAULT_IP_SOURCE
+	}
+	if len(ipAddr) > 1 {
+		tui.DEFAULT_IPv6_SOURCE = strings.Split(ipAddr[1].String(), "/")[0]
+	}
 
 	if debug {
 		if wantSend {

@@ -131,6 +131,19 @@ func (t *TCP) CalculateChecksum(ipv4 *IPv4) {
 	}()
 }
 
+func (t *TCP) CalculateChecksumForIPv6(ipv6 *IPv6) {
+	pseudoHeader := ipv6.PseudoHeader(uint32(len(t.Bytes())))
+	forTCPChecksum := &bytes.Buffer{}
+	forTCPChecksum.Write(pseudoHeader)
+	forTCPChecksum.Write(t.Bytes())
+	if len(t.Data)%2 != 0 {
+		forTCPChecksum.WriteByte(0x00)
+	}
+
+	data := forTCPChecksum.Bytes()
+	t.Checksum = binary.BigEndian.Uint16(calculateChecksum(data))
+}
+
 func (*TCP) checksum(packet []byte) []byte {
 	return calculateChecksum(packet)
 }
@@ -331,6 +344,166 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 							ipv4.CalculateChecksum()
 
 							ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+							if err := nw.Send(ethernetFrame); err != nil {
+								return err
+							}
+							return nil
+						}
+
+						continue
+					default:
+						// noop
+					}
+				}
+			}
+		}
+	}
+}
+
+func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv6 *IPv6, fTcp *TCP, fHttp *HTTP) error {
+	nw, err := NewNetworkInterface(nwInterface)
+	if err != nil {
+		return err
+	}
+
+	var srcPort uint16 = fTcp.SrcPort
+	var dstPort uint16 = fTcp.DstPort
+	var srcIPAddr []uint8 = fIpv6.SrcAddr
+	var dstIPAddr []uint8 = fIpv6.DstAddr
+	dstMACAddr := fEthrh.Dst
+	srcMACAddr := fEthrh.Src
+
+	tcp := NewTCPSyn(srcPort, dstPort)
+	ipv6 := NewIPv6(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+	tcp.CalculateChecksumForIPv6(ipv6)
+
+	ipv6.Data = tcp.Bytes()
+	ipv6.PayloadLength = uint16(len(ipv6.Data))
+
+	ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv6, ipv6.Bytes())
+	if err := nw.Send(ethernetFrame); err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+
+		default:
+			recieved := make([]byte, 1500)
+			n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
+			if err != nil {
+				if n == -1 {
+					continue
+				}
+				return err
+			}
+
+			ethernetFrame := ParsedEthernetFrame(recieved)
+
+			switch ethernetFrame.Header.Typ {
+			case ETHER_TYPE_IPv6:
+				ipv6 := ParsedIPv6(ethernetFrame.Data)
+
+				switch ipv6.NextHeader {
+				case IPv4_PROTO_TCP:
+					tcp := ParsedTCP(ipv6.Data)
+
+					switch tcp.DstPort {
+					case srcPort: // synパケットの送信元ポート
+						if tcp.Flags == TCP_FLAGS_SYN_ACK {
+							// log.Println("passive TCP_FLAGS_SYN_ACK")
+
+							// syn/ackを受け取ったのでack送信
+							tcp := NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+							ipv6 := NewIPv6(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+							tcp.CalculateChecksumForIPv6(ipv6)
+
+							ipv6.Data = tcp.Bytes()
+							ipv6.PayloadLength = uint16(len(ipv6.Data))
+
+							ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv6, ipv6.Bytes())
+							if err := nw.Send(ethernetFrame); err != nil {
+								return err
+							}
+
+							tcp = NewTCPWithData(srcPort, dstPort, fHttp.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+							ipv6 = NewIPv6(IPv6_NEXT_HEADER_TCP, srcIPAddr, dstIPAddr)
+							tcp.CalculateChecksumForIPv6(ipv6)
+
+							ipv6.Data = tcp.Bytes()
+							ipv6.PayloadLength = uint16(len(ipv6.Data))
+
+							ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv6, ipv6.Bytes())
+							if err := nw.Send(ethernetFrame); err != nil {
+								return err
+							}
+
+							continue
+						}
+
+						if tcp.Flags == TCP_FLAGS_ACK {
+							// log.Println("passive TCP_FLAGS_ACK")
+							continue
+						}
+
+						if tcp.Flags == TCP_FLAGS_PSH_ACK {
+							lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
+							if lineLength == -1 {
+								// log.Println("-1")
+								continue
+							}
+							// log.Println("passive TCP_FLAGS_PSH_ACK")
+
+							// HTTPレスポンス受信
+							if tcp.SrcPort == PORT_HTTP {
+								resp := ParsedHTTPResponse(tcp.Data)
+								// log.Printf("%+v\n", resp)
+
+								// そのackを返す
+								// log.Printf("Length of http resp: %d\n", resp.Len())
+
+								tcp := NewTCPAckForPassiveData(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
+								ipv6 := NewIPv6(IPv6_NEXT_HEADER_TCP, srcIPAddr, dstIPAddr)
+								tcp.CalculateChecksumForIPv6(ipv6)
+
+								ipv6.Data = tcp.Bytes()
+								ipv6.PayloadLength = uint16(len(ipv6.Data))
+
+								ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv6, ipv6.Bytes())
+								if err := nw.Send(ethernetFrame); err != nil {
+									return err
+								}
+
+								// 続けてFinAck
+								tcp = NewTCPFinAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+								ipv6 = NewIPv6(IPv6_NEXT_HEADER_TCP, srcIPAddr, dstIPAddr)
+								tcp.CalculateChecksumForIPv6(ipv6)
+
+								ipv6.Data = tcp.Bytes()
+								ipv6.PayloadLength = uint16(len(ipv6.Data))
+
+								ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv6, ipv6.Bytes())
+								if err := nw.Send(ethernetFrame); err != nil {
+									return err
+								}
+							}
+							continue
+						}
+
+						if tcp.Flags == TCP_FLAGS_FIN_ACK {
+							// log.Println("passive TCP_FLAGS_FIN_ACK")
+
+							// それにack
+							tcp := NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+							ipv6 := NewIPv6(IPv6_NEXT_HEADER_TCP, srcIPAddr, dstIPAddr)
+							tcp.CalculateChecksumForIPv6(ipv6)
+
+							ipv6.Data = tcp.Bytes()
+							ipv6.PayloadLength = uint16(len(ipv6.Data))
+
+							ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv6, ipv6.Bytes())
 							if err := nw.Send(ethernetFrame); err != nil {
 								return err
 							}

@@ -35,16 +35,20 @@ var (
 	DEFAULT_IP_SOURCE      = ""
 	DEFAULT_IP_DESTINATION = ""
 
+	DEFAULT_IPv6_PROTOCOL    = "ICMPv6"
+	DEFAULT_IPv6_SOURCE      = ""
+	DEFAULT_IPv6_DESTINATION = ""
+
 	DEFAULT_ICMP_TYPE       = "0x08"
 	DEFAULT_ICMP_CODE       = "0x00"
 	DEFAULT_ICMP_IDENTIFIER = "0x34a1"
 	DEFAULT_ICMP_SEQUENCE   = "0x0001"
 
-	DEFAULT_UDP_PORT_SOURCE      = "12345"
+	DEFAULT_UDP_PORT_SOURCE      = "47000"
 	DEFAULT_UDP_PORT_DESTINATION = "53"
 	DEFAULT_UDP_LENGTH           = "0x0030"
 
-	DEFAULT_DNS_TRANSACTION    = "0x1234"
+	DEFAULT_DNS_TRANSACTION    = "0xaa78"
 	DEFAULT_DNS_FLAGS          = "0x0100"
 	DEFAULT_DNS_QUESTIONS      = "0x0001"
 	DEFAULT_DNS_ANSWERS_RRs    = "0x0000"
@@ -54,7 +58,7 @@ var (
 	DEFAULT_DNS_QUERIES_TYPE   = "0x0001"
 	DEFAULT_DNS_QUERIES_CLASS  = "0x0001"
 
-	DEFAULT_TCP_PORT_SOURCE      = "12345"
+	DEFAULT_TCP_PORT_SOURCE      = "47000"
 	DEFAULT_TCP_PORT_DESTINATION = "80"
 	DEFAULT_TCP_SEQUENCE         = "0x1f6e9499"
 	DEFAULT_TCP_FLAGS            = "0x02"
@@ -74,12 +78,12 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 	if err != nil {
 		return err
 	}
-	ethernetHeader, arp, ipv4, icmp, udp, tcp, dns, http := d.e, d.a, d.ip, d.ic, d.u, d.t, d.d, d.h
+	ethernetHeader, arp, ipv4, ipv6, icmp, udp, tcp, dns, http := d.e, d.a, d.ip, d.ipv6, d.ic, d.u, d.t, d.d, d.h
 
 	// L7
-	httpForm := t.httpForm(ctx, sendFn, ethernetHeader, ipv4, tcp, http)
+	httpForm := t.httpForm(ctx, sendFn, ethernetHeader, ipv4, ipv6, tcp, http)
 	httpForm.SetBorder(true).SetTitle(" HTTP ").SetTitleAlign(tview.AlignLeft)
-	dnsForm := t.dnsForm(sendFn, ethernetHeader, ipv4, udp, dns)
+	dnsForm := t.dnsForm(sendFn, ethernetHeader, ipv4, ipv6, udp, dns)
 	dnsForm.SetBorder(true).SetTitle(" DNS ").SetTitleAlign(tview.AlignLeft)
 
 	// L5~L6
@@ -87,14 +91,16 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 	tlsv1_2Form.SetBorder(true).SetTitle(" TLSv1.2 ").SetTitleAlign(tview.AlignLeft)
 
 	// L4
-	tcpForm := t.tcpForm(sendFn, ethernetHeader, ipv4, tcp)
+	tcpForm := t.tcpForm(sendFn, ethernetHeader, ipv4, ipv6, tcp)
 	tcpForm.SetBorder(true).SetTitle(" TCP ").SetTitleAlign(tview.AlignLeft)
-	udpForm := t.udpForm(sendFn, ethernetHeader, ipv4, udp)
+	udpForm := t.udpForm(sendFn, ethernetHeader, ipv4, ipv6, udp)
 	udpForm.SetBorder(true).SetTitle(" UDP ").SetTitleAlign(tview.AlignLeft)
 	icmpForm := t.icmpForm(sendFn, ethernetHeader, ipv4, icmp)
 	icmpForm.SetBorder(true).SetTitle(" ICMP ").SetTitleAlign(tview.AlignLeft)
 
 	// L3
+	ipv6Form := t.ipv6Form(sendFn, ethernetHeader, ipv6)
+	ipv6Form.SetBorder(true).SetTitle(" IPv6 Header ").SetTitleAlign(tview.AlignLeft)
 	ipv4Form := t.ipv4Form(sendFn, ethernetHeader, ipv4)
 	ipv4Form.SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
 	arpForm := t.arpForm(sendFn, ethernetHeader, arp)
@@ -111,6 +117,7 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddPage("UDP", udpForm, true, true).
 		AddPage("TCP", tcpForm, true, true).
 		AddPage("ICMP", icmpForm, true, true).
+		AddPage("IPv6", ipv6Form, true, true).
 		AddPage("IPv4", ipv4Form, true, true).
 		AddPage("ARP", arpForm, true, true).
 		AddPage("Ethernet", ethernetForm, true, true)
@@ -129,6 +136,9 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		t.app.SetFocus(t.pages)
 	}).AddItem("IPv4", "", '2', func() {
 		t.pages.SwitchToPage("IPv4")
+		t.app.SetFocus(t.pages)
+	}).AddItem("IPv6", "", '3', func() {
+		t.pages.SwitchToPage("IPv6")
 		t.app.SetFocus(t.pages)
 	})
 
@@ -211,14 +221,15 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 }
 
 type defaults struct {
-	e  *packemon.EthernetHeader
-	a  *packemon.ARP
-	ip *packemon.IPv4
-	ic *packemon.ICMP
-	t  *packemon.TCP
-	u  *packemon.UDP
-	d  *packemon.DNS
-	h  *packemon.HTTP
+	e    *packemon.EthernetHeader
+	a    *packemon.ARP
+	ip   *packemon.IPv4
+	ipv6 *packemon.IPv6
+	ic   *packemon.ICMP
+	t    *packemon.TCP
+	u    *packemon.UDP
+	d    *packemon.DNS
+	h    *packemon.HTTP
 }
 
 func defaultPackets() (*defaults, error) {
@@ -290,9 +301,10 @@ func defaultPackets() (*defaults, error) {
 		return nil, err
 	}
 	udp := &packemon.UDP{
-		SrcPort: udpSrcPort,
-		DstPort: udpDstPort,
-		Length:  binary.BigEndian.Uint16(udpLength),
+		SrcPort:  udpSrcPort,
+		DstPort:  udpDstPort,
+		Checksum: 0x0000,
+		Length:   binary.BigEndian.Uint16(udpLength),
 	}
 
 	tcp := &packemon.TCP{
@@ -372,6 +384,27 @@ func defaultPackets() (*defaults, error) {
 		DstAddr:        binary.BigEndian.Uint32(dstIP),
 	}
 
+	srcIPv6 := net.ParseIP(DEFAULT_IPv6_SOURCE)
+	if srcIPv6 == nil {
+		return nil, err
+	}
+	dstIPv6 := net.ParseIP(DEFAULT_IPv6_DESTINATION)
+	if dstIPv6 == nil {
+		return nil, err
+	}
+
+	ipv6 := &packemon.IPv6{
+		Version:      0x06,
+		TrafficClass: 0x00,
+		// FlowLabel:     0x7d77b,
+		FlowLabel:     0x00000,
+		PayloadLength: 0x0000,
+		NextHeader:    packemon.IPv6_NEXT_HEADER_ICMPv6,
+		HopLimit:      0x40,
+		SrcAddr:       srcIPv6.To16(),
+		DstAddr:       dstIPv6.To16(),
+	}
+
 	hardwareType, err := packemon.StrHexToBytes2(DEFAULT_ARP_HARDWARE_TYPE)
 	if err != nil {
 		return nil, err
@@ -438,14 +471,15 @@ func defaultPackets() (*defaults, error) {
 	}
 
 	return &defaults{
-		e:  ethernetHeader,
-		a:  arp,
-		ip: ipv4,
-		ic: icmp,
-		u:  udp,
-		t:  tcp,
-		d:  dns,
-		h:  http,
+		e:    ethernetHeader,
+		a:    arp,
+		ip:   ipv4,
+		ipv6: ipv6,
+		ic:   icmp,
+		u:    udp,
+		t:    tcp,
+		d:    dns,
+		h:    http,
 	}, nil
 }
 

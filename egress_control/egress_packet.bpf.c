@@ -9,6 +9,7 @@
 // #include <vmlinux.h>
 // #include "common.h"
 #include <linux/bpf.h>
+#include <linux/ipv6.h> // ipv6hdr ヘッダの定義あり
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_tracing.h>
@@ -17,6 +18,7 @@
 #define TC_ACT_SHOT 2
 
 #define ETH_P_IPv4 0x0800
+#define ETH_P_IPv6 0x86dd
 #define ETH_P_ARP 0x0806
 
 #define IP_P_ICMP 0x01
@@ -91,6 +93,7 @@ int control_egress(struct __sk_buff *skb)
     void *data = (void *)(__u64)skb->data;
     struct ethhdr *eth;
     struct iphdr *iph;
+    struct ipv6hdr *ip6h;
     struct tcphdr *tcph;
 
     __u32 key    = 0; 
@@ -148,6 +151,40 @@ int control_egress(struct __sk_buff *skb)
             tcph = (struct tcphdr *)(iph + 1);
             if ((void *)(tcph + 1) > data_end) {
                 bpf_printk("c");
+                return TC_ACT_OK;
+            }
+
+            bpf_printk("    sport     : %x", bpf_ntohs(tcph->sport));
+            bpf_printk("    dport     : %x", bpf_ntohs(tcph->dport));
+            bpf_printk("    controlflg: %x", bpf_ntohs(tcph->controlflg));
+            bpf_printk("    controlflg: %x", tcph->controlflg);
+
+            if (tcph->controlflg == TCP_FLG_RST_ACK) {
+                bpf_printk("TCP RST-ACK");
+                return TC_ACT_SHOT;
+                // return TC_ACT_OK;
+            }
+            if (tcph->controlflg == TCP_FLG_RST) {
+                bpf_printk("TCP RST");
+                return TC_ACT_SHOT;
+                // return TC_ACT_OK;
+            }
+
+            return TC_ACT_OK;
+        }
+
+        return TC_ACT_OK;
+    }
+
+    if (bpf_ntohs(eth->h_proto) == ETH_P_IPv6) {
+        ip6h = (struct ip6hdr *)(eth + 1);
+
+        if (ip6h->nexthdr == IP_P_TCP) {
+            bpf_printk("TCP");
+
+            tcph = (struct tcphdr *)(ip6h + 1);
+            if ((void *)(tcph + 1) > data_end) {
+                bpf_printk("d");
                 return TC_ACT_OK;
             }
 

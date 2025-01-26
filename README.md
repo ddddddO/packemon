@@ -40,7 +40,9 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
   - [x] Ethernet
   - [x] ARP (WIP)
   - [x] IPv4 (WIP)
-  - [x] ICMP (WIP)
+  - [x] IPv6 (WIP)
+  - [x] ICMPv4 (WIP)
+  - [ ] ICMPv6
   - [x] TCP (WIP)
   - [x] UDP (WIP)
   - [ ] TLSv1.2 (WIP)
@@ -71,7 +73,9 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
   - [x] Ethernet
   - [x] ARP
   - [x] IPv4 (WIP)
-  - [x] ICMP (WIP)
+  - [x] IPv6 (WIP)
+  - [x] ICMPv4 (WIP)
+  - [ ] ICMPv6
   - [x] TCP (WIP)
   - [x] UDP
   - [ ] DNS (WIP)

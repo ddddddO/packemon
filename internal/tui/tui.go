@@ -77,10 +77,12 @@ func (t *tui) Monitor(passiveCh <-chan *packemon.Passive, columns string) error 
 			t.table.SetSelectable(false, false)
 		}
 		if key == tcell.KeyEnter {
-			t.table.SetSelectable(true, true)
+			t.table.SetSelectable(true, false)
 		}
-	}).SetSelectedFunc(func(row int, column int) {
-		t.table.GetCell(row, column).SetTextColor(tcell.ColorRed)
+	}).SetSelectedStyle(tcell.Style{}.Background(tcell.ColorRed)).SetSelectedFunc(func(row int, column int) {
+		for i := 0; i < len(columns)+1; i++ {
+			t.table.GetCell(row, i).SetBackgroundColor(tcell.ColorGray)
+		}
 
 		if p, ok := t.storedPackets.Load(uint64(t.table.GetRowCount() - row - 1)); ok {
 			t.updateView(p.(*packemon.Passive))

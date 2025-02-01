@@ -80,7 +80,7 @@ func (t *tui) Monitor(passiveCh <-chan *packemon.Passive, columns string) error 
 			t.table.SetSelectable(true, false)
 		}
 	}).SetSelectedStyle(tcell.Style{}.Background(tcell.ColorRed)).SetSelectedFunc(func(row int, column int) {
-		for i := 0; i < len(columns)+1; i++ {
+		for i := 0; i < t.table.GetColumnCount(); i++ {
 			t.table.GetCell(row, i).SetBackgroundColor(tcell.ColorGray)
 		}
 

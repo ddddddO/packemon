@@ -3,6 +3,7 @@ package tui
 import (
 	"context"
 	"encoding/binary"
+	"fmt"
 	"net"
 	"strconv"
 
@@ -122,55 +123,89 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddPage("ARP", arpForm, true, true).
 		AddPage("Ethernet", ethernetForm, true, true)
 
-	l2Protocols := tview.NewList()
-	l2Protocols.SetTitle("L2").SetBorder(true)
-	l2Protocols.AddItem("Ethernet", "", '1', func() {
-		t.pages.SwitchToPage("Ethernet")
-		t.app.SetFocus(t.pages)
-	})
+	selectedLayerMap := map[string]string{}
+	selectedLayerMap["L7"] = "DNS"
+	selectedLayerMap["L5/6"] = ""
+	selectedLayerMap["L4"] = "UDP"
+	selectedLayerMap["L3"] = "IPv4"
+	selectedLayerMap["L2"] = "Ethernet"
 
-	l3Protocols := tview.NewList()
-	l3Protocols.SetTitle("L3").SetBorder(true)
-	l3Protocols.AddItem("ARP", "", '1', func() {
-		t.pages.SwitchToPage("ARP")
-		t.app.SetFocus(t.pages)
-	}).AddItem("IPv4", "", '2', func() {
-		t.pages.SwitchToPage("IPv4")
-		t.app.SetFocus(t.pages)
-	}).AddItem("IPv6", "", '3', func() {
-		t.pages.SwitchToPage("IPv6")
-		t.app.SetFocus(t.pages)
-	})
+	selectedLayers := tview.NewTextView()
+	selectedLayers.Box.SetTitle("Selected Layers").SetBorder(true)
+	selectedLayers.SetLabel("!!test!!")
+	selectedLayers.SetText(fmt.Sprintf(
+		"[%s]/[%s]/[%s]/[%s]/[%s]",
+		selectedLayerMap["L2"],
+		selectedLayerMap["L3"],
+		selectedLayerMap["L4"],
+		selectedLayerMap["L5/6"],
+		selectedLayerMap["L7"],
+	))
 
-	l4Protocols := tview.NewList()
-	l4Protocols.SetTitle("L4").SetBorder(true)
-	l4Protocols.AddItem("ICMP", "", '1', func() {
-		t.pages.SwitchToPage("ICMP")
-		t.app.SetFocus(t.pages)
-	}).AddItem("TCP", "", '2', func() {
-		t.pages.SwitchToPage("TCP")
-		t.app.SetFocus(t.pages)
-	}).AddItem("UDP", "", '3', func() {
-		t.pages.SwitchToPage("UDP")
-		t.app.SetFocus(t.pages)
-	})
+	// TODO: 画面左の各層で選択されたプロトコルでパケット組み立てるようにすると楽かも？
+	//       これまで、例えば EtherType で指定した上位層で作ってたけど、それはなくなる
+	//       あと、各フォームの Over Layer / Under Layer のところもこれを仕様にするなら変更必要
+	//       結構大きく変わりそう
+	switchProtocol := func(targetLayer string) func(targetProtocol string, switchableProtocols []string) {
+		return func(targetProtocol string, switchableProtocols []string) {
+			for _, protocol := range switchableProtocols {
+				if targetProtocol == protocol {
+					selectedLayerMap[targetLayer] = targetProtocol
+					selectedLayers.SetText(fmt.Sprintf(
+						"[%s]/[%s]/[%s]/[%s]/[%s]",
+						selectedLayerMap["L2"],
+						selectedLayerMap["L3"],
+						selectedLayerMap["L4"],
+						selectedLayerMap["L5/6"],
+						selectedLayerMap["L7"],
+					))
 
-	l5_6Protocols := tview.NewList()
-	l5_6Protocols.SetTitle("L5/6").SetBorder(true)
-	l5_6Protocols.AddItem("TLSv1.2", "", '1', func() {
-		t.pages.SwitchToPage("TLSv1.2")
-		t.app.SetFocus(t.pages)
-	})
+					t.pages.SwitchToPage(targetProtocol)
+					t.app.SetFocus(t.pages)
+				}
+			}
+		}
+	}
 
-	l7Protocols := tview.NewList()
+	l7s := []string{"", "DNS", "HTTP"}
+	l7Protocols := tview.NewDropDown()
 	l7Protocols.SetTitle("L7").SetBorder(true)
-	l7Protocols.AddItem("DNS", "", '1', func() {
-		t.pages.SwitchToPage("DNS")
-		t.app.SetFocus(t.pages)
-	}).AddItem("HTTP", "", '2', func() {
-		t.pages.SwitchToPage("HTTP")
-		t.app.SetFocus(t.pages)
+	l7Protocols.SetOptions(l7s, func(text string, index int) {
+		switchProtocol("L7")(text, l7s)
 	})
+	l7Protocols.SetCurrentOption(1)
+
+	l5_6s := []string{"", "TLSv1.2"}
+	l5_6Protocols := tview.NewDropDown()
+	l5_6Protocols.SetTitle("L5/6").SetBorder(true)
+	l5_6Protocols.SetOptions(l5_6s, func(text string, index int) {
+		switchProtocol("L5/6")(text, l5_6s)
+	})
+	l5_6Protocols.SetCurrentOption(0)
+
+	l4s := []string{"", "ICMP", "TCP", "UDP"}
+	l4Protocols := tview.NewDropDown()
+	l4Protocols.SetTitle("L4").SetBorder(true)
+	l4Protocols.SetOptions(l4s, func(text string, index int) {
+		switchProtocol("L4")(text, l4s)
+	})
+	l4Protocols.SetCurrentOption(1)
+
+	l3s := []string{"", "ARP", "IPv4", "IPv6"}
+	l3Protocols := tview.NewDropDown()
+	l3Protocols.SetTitle("L3").SetBorder(true)
+	l3Protocols.SetOptions(l3s, func(text string, index int) {
+		switchProtocol("L3")(text, l3s)
+	})
+	l3Protocols.SetCurrentOption(2)
+
+	l2s := []string{"Ethernet"}
+	l2Protocols := tview.NewDropDown()
+	l2Protocols.SetTitle("L2").SetBorder(true)
+	l2Protocols.SetOptions(l2s, func(text string, index int) {
+		switchProtocol("L2")(text, l2s)
+	})
+	l2Protocols.SetCurrentOption(0)
 
 	// Interface の情報を出力するための
 	interfaceTable := tview.NewTable().SetBorders(true)
@@ -195,27 +230,23 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		}
 	}
 
+	layerRowNum := 3
 	t.grid.
-		SetRows(1, 0).
-		SetColumns(15, 0)
+		SetRows(layerRowNum, layerRowNum, layerRowNum, layerRowNum, layerRowNum, -2, -2).
+		SetColumns(-1, -5)
 
-	// プロトコル増えて縦に収まりきらなくなったら、このあたりいじって隣の列とかに移す or Table にしてスクロールできるようにできないか
 	t.grid.
-		AddItem(l2Protocols, 1, 0, 1, 1, 0, 0, true).
-		AddItem(l3Protocols, 2, 0, 1, 1, 0, 0, false).
-		AddItem(l4Protocols, 3, 0, 1, 1, 0, 0, false).
-		AddItem(l5_6Protocols, 4, 0, 1, 1, 0, 0, false).
-		AddItem(l7Protocols, 5, 0, 1, 1, 0, 0, false).
-		AddItem(t.pages, 1, 1, 4, 1, 0, 0, false).
-		AddItem(interfaceTable, 5, 1, 1, 1, 0, 0, false)
+		// 左側
+		AddItem(l2Protocols, 0, 0, 1, 1, layerRowNum, 0, true).
+		AddItem(l3Protocols, 1, 0, 1, 1, layerRowNum, 0, false).
+		AddItem(l4Protocols, 2, 0, 1, 1, layerRowNum, 0, false).
+		AddItem(l5_6Protocols, 3, 0, 1, 1, layerRowNum, 0, false).
+		AddItem(l7Protocols, 4, 0, 1, 1, layerRowNum, 0, false).
 
-	// Layout for screens wider than 100 cells.
-	// t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 100, true).
-	// 	AddItem(t.pages, 1, 1, 1, 1, 0, 100, false)
-	// t.grid.AddItem(l2Protocols, 1, 0, 1, 1, 0, 100, true).
-	// 	AddItem(l3Protocols, 2, 0, 1, 1, 0, 100, false).
-	// 	AddItem(l4Protocols, 3, 0, 1, 1, 0, 100, false).
-	// 	AddItem(t.pages, 1, 1, 1, 1, 0, 100, false)
+		// 右側
+		AddItem(t.pages, 0, 1, 7, 1, 0, 0, false).
+		AddItem(selectedLayers, 7, 1, 1, 1, 0, 0, false).
+		AddItem(interfaceTable, 8, 1, 2, 1, 0, 0, false)
 
 	return nil
 }

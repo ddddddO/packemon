@@ -9,6 +9,8 @@ TUI tool for generating packets of arbitrary input and monitoring packets on any
 
 I intend to develop it patiently🌴
 
+The images of Packemon on REDME should be used as reference only, as they may look different from the actual Packemon.
+
 > [!WARNING]
 > This tool is implemented with protocol stacks from scratch and utilizes raw socket.</br>
 > There may be many bugs. If you find a bug, I would be glad if you raise an issue or give me a pull request!

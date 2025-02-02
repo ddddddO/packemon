@@ -134,9 +134,14 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		}
 	}
 
+	// TODO: というよりはメモ
+	//       QUIC が UDP より上位でアプリケーションレイヤより下位でしかも、TLS を内部で使って暗号化するみたいで、そうするとL5/6の内に入りそうだけど、TLS と同居はできない（今の Generator 実装上）
+	//       L5 と L6 でそれぞれ分けていいかもだけど、OSI参照モデルのセッション層・プレゼンテーション層と合わないだろうし、
+	//       L + ギリシャ文字 でレイヤを表すようにする。ref: ギリシャ文字: https://opencourse.doshisha.ac.jp/opc/bj01/math-intro/PC/greece.html
+
 	l7s := []string{"", "DNS", "HTTP"}
 	l7Protocols := tview.NewDropDown()
-	l7Protocols.SetTitle("L7").SetBorder(true)
+	l7Protocols.SetTitle("Lε").SetBorder(true)
 	l7Protocols.SetOptions(l7s, func(text string, index int) {
 		switchProtocol("L7")(text, l7s)
 	})
@@ -144,7 +149,7 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 
 	l5_6s := []string{"", "TLSv1.2"}
 	l5_6Protocols := tview.NewDropDown()
-	l5_6Protocols.SetTitle("L5/6").SetBorder(true)
+	l5_6Protocols.SetTitle("Lδ").SetBorder(true)
 	l5_6Protocols.SetOptions(l5_6s, func(text string, index int) {
 		switchProtocol("L5/6")(text, l5_6s)
 	})
@@ -152,7 +157,7 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 
 	l4s := []string{"", "ICMP", "TCP", "UDP"}
 	l4Protocols := tview.NewDropDown()
-	l4Protocols.SetTitle("L4").SetBorder(true)
+	l4Protocols.SetTitle("Lγ").SetBorder(true)
 	l4Protocols.SetOptions(l4s, func(text string, index int) {
 		switchProtocol("L4")(text, l4s)
 	})
@@ -160,7 +165,7 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 
 	l3s := []string{"", "ARP", "IPv4", "IPv6"}
 	l3Protocols := tview.NewDropDown()
-	l3Protocols.SetTitle("L3").SetBorder(true)
+	l3Protocols.SetTitle("Lβ").SetBorder(true)
 	l3Protocols.SetOptions(l3s, func(text string, index int) {
 		switchProtocol("L3")(text, l3s)
 	})
@@ -168,7 +173,7 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 
 	l2s := []string{"Ethernet"}
 	l2Protocols := tview.NewDropDown()
-	l2Protocols.SetTitle("L2").SetBorder(true)
+	l2Protocols.SetTitle("Lα").SetBorder(true)
 	l2Protocols.SetOptions(l2s, func(text string, index int) {
 		switchProtocol("L2")(text, l2s)
 	})

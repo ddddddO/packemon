@@ -1,13 +1,14 @@
 package tui
 
 import (
+	"context"
 	"encoding/binary"
 
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
 )
 
-func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, ipv6 *packemon.IPv6, udp *packemon.UDP, dns *packemon.DNS) *tview.Form {
+func (t *tui) dnsForm() *tview.Form {
 	dnsForm := tview.NewForm().
 		AddTextView("DNS", "This section generates the DNS.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Transaction ID", DEFAULT_DNS_TRANSACTION, 6, func(textToCheck string, lastChar rune) bool {
@@ -21,7 +22,7 @@ func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			dns.TransactionID = binary.BigEndian.Uint16(b)
+			t.sender.packets.dns.TransactionID = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -36,7 +37,7 @@ func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			dns.Flags = binary.BigEndian.Uint16(b)
+			t.sender.packets.dns.Flags = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -51,7 +52,7 @@ func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			dns.Questions = binary.BigEndian.Uint16(b)
+			t.sender.packets.dns.Questions = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -66,7 +67,7 @@ func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			dns.AnswerRRs = binary.BigEndian.Uint16(b)
+			t.sender.packets.dns.AnswerRRs = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -81,13 +82,13 @@ func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			dns.AdditionalRRs = binary.BigEndian.Uint16(b)
+			t.sender.packets.dns.AdditionalRRs = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
 		AddInputField("Queries Domain", DEFAULT_DNS_QUERIES_DOMAIN, 64, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) <= 64 {
-				dns.Domain(textToCheck)
+				t.sender.packets.dns.Domain(textToCheck)
 				return true
 			}
 			return false
@@ -103,7 +104,7 @@ func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			dns.Queries.Typ = binary.BigEndian.Uint16(b)
+			t.sender.packets.dns.Queries.Typ = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -118,43 +119,14 @@ func (t *tui) dnsForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			dns.Queries.Class = binary.BigEndian.Uint16(b)
+			t.sender.packets.dns.Queries.Class = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
-		AddButton("List", func() {
-			t.app.SetFocus(t.list)
-		}).
 		AddButton("Send!", func() {
-			udp.Checksum = 0x0000
-			udp.Data = dns.Bytes()
-			if checkedCalcUDPLength {
-				udp.Len()
-			}
-			ethernetFrame := &packemon.EthernetFrame{
-				Header: ethernetHeader,
-			}
-
-			if underIPv6 {
-				udp.CalculateChecksumForIPv6(ipv6)
-				ipv6.Data = udp.Bytes()
-				ipv6.PayloadLength = uint16(len(ipv6.Data))
-				ethernetFrame.Data = ipv6.Bytes()
-			} else {
-				ipv4.Data = udp.Bytes()
-				ipv4.CalculateTotalLength()
-				// 前回Send分が残ってると計算誤るため
-				ipv4.HeaderChecksum = 0x0
-				ipv4.CalculateChecksum()
-				ethernetFrame.Data = ipv4.Bytes()
-			}
-
-			if err := sendFn(ethernetFrame); err != nil {
+			if err := t.sender.send(context.TODO(), "L7"); err != nil {
 				t.addErrPage(err)
 			}
-		}).
-		AddButton("Under layer", func() {
-			t.pages.SwitchToPage("IPv4")
 		}).
 		AddButton("Quit", func() {
 			t.app.Stop()

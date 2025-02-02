@@ -3,7 +3,6 @@ package tui
 import (
 	"context"
 	"encoding/binary"
-	"fmt"
 	"net"
 	"strconv"
 
@@ -75,40 +74,40 @@ var (
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
 // とすると、高レイヤーの入力から埋めて進めていくようにしないといけなさそう. ユーザーが選べるようにするのがいいかも
 func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) error) error {
-	d, err := defaultPackets()
+	packets, err := defaultPackets()
 	if err != nil {
 		return err
 	}
-	ethernetHeader, arp, ipv4, ipv6, icmp, udp, tcp, dns, http := d.e, d.a, d.ip, d.ipv6, d.ic, d.u, d.t, d.d, d.h
+	t.sender = newSender(packets, sendFn)
 
 	// L7
-	httpForm := t.httpForm(ctx, sendFn, ethernetHeader, ipv4, ipv6, tcp, http)
+	httpForm := t.httpForm(ctx)
 	httpForm.SetBorder(true).SetTitle(" HTTP ").SetTitleAlign(tview.AlignLeft)
-	dnsForm := t.dnsForm(sendFn, ethernetHeader, ipv4, ipv6, udp, dns)
+	dnsForm := t.dnsForm()
 	dnsForm.SetBorder(true).SetTitle(" DNS ").SetTitleAlign(tview.AlignLeft)
 
 	// L5~L6
-	tlsv1_2Form := t.tlsv1_2Form(sendFn, ethernetHeader)
+	tlsv1_2Form := t.tlsv1_2Form()
 	tlsv1_2Form.SetBorder(true).SetTitle(" TLSv1.2 ").SetTitleAlign(tview.AlignLeft)
 
 	// L4
-	tcpForm := t.tcpForm(sendFn, ethernetHeader, ipv4, ipv6, tcp)
+	tcpForm := t.tcpForm()
 	tcpForm.SetBorder(true).SetTitle(" TCP ").SetTitleAlign(tview.AlignLeft)
-	udpForm := t.udpForm(sendFn, ethernetHeader, ipv4, ipv6, udp)
+	udpForm := t.udpForm()
 	udpForm.SetBorder(true).SetTitle(" UDP ").SetTitleAlign(tview.AlignLeft)
-	icmpForm := t.icmpForm(sendFn, ethernetHeader, ipv4, icmp)
+	icmpForm := t.icmpForm()
 	icmpForm.SetBorder(true).SetTitle(" ICMP ").SetTitleAlign(tview.AlignLeft)
 
 	// L3
-	ipv6Form := t.ipv6Form(sendFn, ethernetHeader, ipv6)
+	ipv6Form := t.ipv6Form()
 	ipv6Form.SetBorder(true).SetTitle(" IPv6 Header ").SetTitleAlign(tview.AlignLeft)
-	ipv4Form := t.ipv4Form(sendFn, ethernetHeader, ipv4)
+	ipv4Form := t.ipv4Form()
 	ipv4Form.SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
-	arpForm := t.arpForm(sendFn, ethernetHeader, arp)
+	arpForm := t.arpForm()
 	arpForm.SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft)
 
 	// L2
-	ethernetForm := t.ethernetForm(sendFn, ethernetHeader)
+	ethernetForm := t.ethernetForm()
 	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 
 	t.pages.
@@ -123,43 +122,11 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddPage("ARP", arpForm, true, true).
 		AddPage("Ethernet", ethernetForm, true, true)
 
-	selectedLayerMap := map[string]string{}
-	selectedLayerMap["L7"] = "DNS"
-	selectedLayerMap["L5/6"] = ""
-	selectedLayerMap["L4"] = "UDP"
-	selectedLayerMap["L3"] = "IPv4"
-	selectedLayerMap["L2"] = "Ethernet"
-
-	selectedLayers := tview.NewTextView()
-	selectedLayers.Box.SetTitle("Selected Layers").SetBorder(true)
-	selectedLayers.SetLabel("!!test!!")
-	selectedLayers.SetText(fmt.Sprintf(
-		"[%s]/[%s]/[%s]/[%s]/[%s]",
-		selectedLayerMap["L2"],
-		selectedLayerMap["L3"],
-		selectedLayerMap["L4"],
-		selectedLayerMap["L5/6"],
-		selectedLayerMap["L7"],
-	))
-
-	// TODO: 画面左の各層で選択されたプロトコルでパケット組み立てるようにすると楽かも？
-	//       これまで、例えば EtherType で指定した上位層で作ってたけど、それはなくなる
-	//       あと、各フォームの Over Layer / Under Layer のところもこれを仕様にするなら変更必要
-	//       結構大きく変わりそう
 	switchProtocol := func(targetLayer string) func(targetProtocol string, switchableProtocols []string) {
 		return func(targetProtocol string, switchableProtocols []string) {
 			for _, protocol := range switchableProtocols {
 				if targetProtocol == protocol {
-					selectedLayerMap[targetLayer] = targetProtocol
-					selectedLayers.SetText(fmt.Sprintf(
-						"[%s]/[%s]/[%s]/[%s]/[%s]",
-						selectedLayerMap["L2"],
-						selectedLayerMap["L3"],
-						selectedLayerMap["L4"],
-						selectedLayerMap["L5/6"],
-						selectedLayerMap["L7"],
-					))
-
+					t.sender.selectedLayerMap[targetLayer] = targetProtocol
 					t.pages.SwitchToPage(targetProtocol)
 					t.app.SetFocus(t.pages)
 				}
@@ -189,7 +156,7 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 	l4Protocols.SetOptions(l4s, func(text string, index int) {
 		switchProtocol("L4")(text, l4s)
 	})
-	l4Protocols.SetCurrentOption(1)
+	l4Protocols.SetCurrentOption(3)
 
 	l3s := []string{"", "ARP", "IPv4", "IPv6"}
 	l3Protocols := tview.NewDropDown()
@@ -244,26 +211,25 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddItem(l7Protocols, 4, 0, 1, 1, layerRowNum, 0, false).
 
 		// 右側
-		AddItem(t.pages, 0, 1, 7, 1, 0, 0, false).
-		AddItem(selectedLayers, 7, 1, 1, 1, 0, 0, false).
+		AddItem(t.pages, 0, 1, 8, 1, 0, 0, false).
 		AddItem(interfaceTable, 8, 1, 2, 1, 0, 0, false)
 
 	return nil
 }
 
-type defaults struct {
-	e    *packemon.EthernetHeader
-	a    *packemon.ARP
-	ip   *packemon.IPv4
-	ipv6 *packemon.IPv6
-	ic   *packemon.ICMP
-	t    *packemon.TCP
-	u    *packemon.UDP
-	d    *packemon.DNS
-	h    *packemon.HTTP
+type packets struct {
+	ethernet *packemon.EthernetHeader
+	arp      *packemon.ARP
+	ipv4     *packemon.IPv4
+	ipv6     *packemon.IPv6
+	icmpv4   *packemon.ICMP
+	tcp      *packemon.TCP
+	udp      *packemon.UDP
+	dns      *packemon.DNS
+	http     *packemon.HTTP
 }
 
-func defaultPackets() (*defaults, error) {
+func defaultPackets() (*packets, error) {
 	http := &packemon.HTTP{
 		Method:    DEFAULT_HTTP_METHOD,
 		Uri:       DEFAULT_HTTP_URI,
@@ -409,7 +375,7 @@ func defaultPackets() (*defaults, error) {
 		Flags:          0x40,
 		FragmentOffset: 0x0,
 		Ttl:            0x80,
-		Protocol:       packemon.IPv4_PROTO_ICMP,
+		Protocol:       packemon.IPv4_PROTO_UDP,
 		HeaderChecksum: 0,
 		SrcAddr:        binary.BigEndian.Uint32(srcIP),
 		DstAddr:        binary.BigEndian.Uint32(dstIP),
@@ -501,16 +467,16 @@ func defaultPackets() (*defaults, error) {
 		Typ: packemon.ETHER_TYPE_IPv4,
 	}
 
-	return &defaults{
-		e:    ethernetHeader,
-		a:    arp,
-		ip:   ipv4,
-		ipv6: ipv6,
-		ic:   icmp,
-		u:    udp,
-		t:    tcp,
-		d:    dns,
-		h:    http,
+	return &packets{
+		ethernet: ethernetHeader,
+		arp:      arp,
+		ipv4:     ipv4,
+		ipv6:     ipv6,
+		icmpv4:   icmp,
+		udp:      udp,
+		tcp:      tcp,
+		dns:      dns,
+		http:     http,
 	}, nil
 }
 

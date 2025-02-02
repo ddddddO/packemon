@@ -284,7 +284,7 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 								s.packets.ethernet,
 								s.packets.ipv4,
 								s.packets.tcp,
-								s.packets.http,
+								s.packets.http.Bytes(),
 							)
 							return nil
 						case "IPv6":
@@ -294,7 +294,7 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 								s.packets.ethernet,
 								s.packets.ipv6,
 								s.packets.tcp,
-								s.packets.http,
+								s.packets.http.Bytes(),
 							)
 							return nil
 						case "ARP":

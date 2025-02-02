@@ -193,8 +193,7 @@ func EstablishConnectionAndSendPayload(nwInterface string, dstIPAddr []byte, dst
 // このなかで、ログ出力などしないこと。Monitor の下に出てくる
 // 挙動を詳細に確認する場合は、internal内の SendTCP3wayhandshake 関数でやること
 // TODO: 対向からRST,RST/ACKが来た時にreturnするようにする
-// TODO: http専用になっちゃってるから、他のプロトコルでも使えるよう汎用的にする
-func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv4 *IPv4, fTcp *TCP, fHttp *HTTP) error {
+func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv4 *IPv4, fTcp *TCP, upperLayerData []byte) error {
 	nw, err := NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
@@ -264,7 +263,7 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 								return err
 							}
 
-							tcp = NewTCPWithData(srcPort, dstPort, fHttp.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+							tcp = NewTCPWithData(srcPort, dstPort, upperLayerData, tcp.Sequence, tcp.Acknowledgment)
 							ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 							tcp.CalculateChecksum(ipv4)
 
@@ -360,7 +359,7 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 	}
 }
 
-func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv6 *IPv6, fTcp *TCP, fHttp *HTTP) error {
+func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv6 *IPv6, fTcp *TCP, upperLayerData []byte) error {
 	nw, err := NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
@@ -428,7 +427,7 @@ func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterfac
 								return err
 							}
 
-							tcp = NewTCPWithData(srcPort, dstPort, fHttp.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+							tcp = NewTCPWithData(srcPort, dstPort, upperLayerData, tcp.Sequence, tcp.Acknowledgment)
 							ipv6 = NewIPv6(IPv6_NEXT_HEADER_TCP, srcIPAddr, dstIPAddr)
 							tcp.CalculateChecksumForIPv6(ipv6)
 

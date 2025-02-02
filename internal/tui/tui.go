@@ -20,6 +20,8 @@ type tui struct {
 	grid  *tview.Grid
 	pages *tview.Pages
 	list  *tview.List
+
+	sender *sender
 }
 
 func NewTUI(networkInterface *packemon.NetworkInterface, wantSend bool) *tui {

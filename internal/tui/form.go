@@ -74,40 +74,40 @@ var (
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
 // とすると、高レイヤーの入力から埋めて進めていくようにしないといけなさそう. ユーザーが選べるようにするのがいいかも
 func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) error) error {
-	d, err := defaultPackets()
+	packets, err := defaultPackets()
 	if err != nil {
 		return err
 	}
-	ethernetHeader, arp, ipv4, ipv6, icmp, udp, tcp, dns, http := d.e, d.a, d.ip, d.ipv6, d.ic, d.u, d.t, d.d, d.h
+	t.sender = newSender(packets, sendFn)
 
 	// L7
-	httpForm := t.httpForm(ctx, sendFn, ethernetHeader, ipv4, ipv6, tcp, http)
+	httpForm := t.httpForm(ctx)
 	httpForm.SetBorder(true).SetTitle(" HTTP ").SetTitleAlign(tview.AlignLeft)
-	dnsForm := t.dnsForm(sendFn, ethernetHeader, ipv4, ipv6, udp, dns)
+	dnsForm := t.dnsForm()
 	dnsForm.SetBorder(true).SetTitle(" DNS ").SetTitleAlign(tview.AlignLeft)
 
 	// L5~L6
-	tlsv1_2Form := t.tlsv1_2Form(sendFn, ethernetHeader)
+	tlsv1_2Form := t.tlsv1_2Form()
 	tlsv1_2Form.SetBorder(true).SetTitle(" TLSv1.2 ").SetTitleAlign(tview.AlignLeft)
 
 	// L4
-	tcpForm := t.tcpForm(sendFn, ethernetHeader, ipv4, ipv6, tcp)
+	tcpForm := t.tcpForm()
 	tcpForm.SetBorder(true).SetTitle(" TCP ").SetTitleAlign(tview.AlignLeft)
-	udpForm := t.udpForm(sendFn, ethernetHeader, ipv4, ipv6, udp)
+	udpForm := t.udpForm()
 	udpForm.SetBorder(true).SetTitle(" UDP ").SetTitleAlign(tview.AlignLeft)
-	icmpForm := t.icmpForm(sendFn, ethernetHeader, ipv4, icmp)
+	icmpForm := t.icmpForm()
 	icmpForm.SetBorder(true).SetTitle(" ICMP ").SetTitleAlign(tview.AlignLeft)
 
 	// L3
-	ipv6Form := t.ipv6Form(sendFn, ethernetHeader, ipv6)
+	ipv6Form := t.ipv6Form()
 	ipv6Form.SetBorder(true).SetTitle(" IPv6 Header ").SetTitleAlign(tview.AlignLeft)
-	ipv4Form := t.ipv4Form(sendFn, ethernetHeader, ipv4)
+	ipv4Form := t.ipv4Form()
 	ipv4Form.SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
-	arpForm := t.arpForm(sendFn, ethernetHeader, arp)
+	arpForm := t.arpForm()
 	arpForm.SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft)
 
 	// L2
-	ethernetForm := t.ethernetForm(sendFn, ethernetHeader)
+	ethernetForm := t.ethernetForm()
 	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 
 	t.pages.
@@ -122,55 +122,62 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddPage("ARP", arpForm, true, true).
 		AddPage("Ethernet", ethernetForm, true, true)
 
-	l2Protocols := tview.NewList()
-	l2Protocols.SetTitle("L2").SetBorder(true)
-	l2Protocols.AddItem("Ethernet", "", '1', func() {
-		t.pages.SwitchToPage("Ethernet")
-		t.app.SetFocus(t.pages)
-	})
+	switchProtocol := func(targetLayer string) func(targetProtocol string, switchableProtocols []string) {
+		return func(targetProtocol string, switchableProtocols []string) {
+			for _, protocol := range switchableProtocols {
+				if targetProtocol == protocol {
+					t.sender.selectedLayerMap[targetLayer] = targetProtocol
+					t.pages.SwitchToPage(targetProtocol)
+					t.app.SetFocus(t.pages)
+				}
+			}
+		}
+	}
 
-	l3Protocols := tview.NewList()
-	l3Protocols.SetTitle("L3").SetBorder(true)
-	l3Protocols.AddItem("ARP", "", '1', func() {
-		t.pages.SwitchToPage("ARP")
-		t.app.SetFocus(t.pages)
-	}).AddItem("IPv4", "", '2', func() {
-		t.pages.SwitchToPage("IPv4")
-		t.app.SetFocus(t.pages)
-	}).AddItem("IPv6", "", '3', func() {
-		t.pages.SwitchToPage("IPv6")
-		t.app.SetFocus(t.pages)
-	})
+	// TODO: というよりはメモ
+	//       QUIC が UDP より上位でアプリケーションレイヤより下位でしかも、TLS を内部で使って暗号化するみたいで、そうするとL5/6の内に入りそうだけど、TLS と同居はできない（今の Generator 実装上）
+	//       L5 と L6 でそれぞれ分けていいかもだけど、OSI参照モデルのセッション層・プレゼンテーション層と合わないだろうし、
+	//       L + ギリシャ文字 でレイヤを表すようにする。ref: ギリシャ文字: https://opencourse.doshisha.ac.jp/opc/bj01/math-intro/PC/greece.html
 
-	l4Protocols := tview.NewList()
-	l4Protocols.SetTitle("L4").SetBorder(true)
-	l4Protocols.AddItem("ICMP", "", '1', func() {
-		t.pages.SwitchToPage("ICMP")
-		t.app.SetFocus(t.pages)
-	}).AddItem("TCP", "", '2', func() {
-		t.pages.SwitchToPage("TCP")
-		t.app.SetFocus(t.pages)
-	}).AddItem("UDP", "", '3', func() {
-		t.pages.SwitchToPage("UDP")
-		t.app.SetFocus(t.pages)
+	l7s := []string{"", "DNS", "HTTP"}
+	l7Protocols := tview.NewDropDown()
+	l7Protocols.SetTitle("Lε").SetBorder(true)
+	l7Protocols.SetOptions(l7s, func(text string, index int) {
+		switchProtocol("L7")(text, l7s)
 	})
+	l7Protocols.SetCurrentOption(1)
 
-	l5_6Protocols := tview.NewList()
-	l5_6Protocols.SetTitle("L5/6").SetBorder(true)
-	l5_6Protocols.AddItem("TLSv1.2", "", '1', func() {
-		t.pages.SwitchToPage("TLSv1.2")
-		t.app.SetFocus(t.pages)
+	l5_6s := []string{"", "TLSv1.2"}
+	l5_6Protocols := tview.NewDropDown()
+	l5_6Protocols.SetTitle("Lδ").SetBorder(true)
+	l5_6Protocols.SetOptions(l5_6s, func(text string, index int) {
+		switchProtocol("L5/6")(text, l5_6s)
 	})
+	l5_6Protocols.SetCurrentOption(0)
 
-	l7Protocols := tview.NewList()
-	l7Protocols.SetTitle("L7").SetBorder(true)
-	l7Protocols.AddItem("DNS", "", '1', func() {
-		t.pages.SwitchToPage("DNS")
-		t.app.SetFocus(t.pages)
-	}).AddItem("HTTP", "", '2', func() {
-		t.pages.SwitchToPage("HTTP")
-		t.app.SetFocus(t.pages)
+	l4s := []string{"", "ICMP", "TCP", "UDP"}
+	l4Protocols := tview.NewDropDown()
+	l4Protocols.SetTitle("Lγ").SetBorder(true)
+	l4Protocols.SetOptions(l4s, func(text string, index int) {
+		switchProtocol("L4")(text, l4s)
 	})
+	l4Protocols.SetCurrentOption(3)
+
+	l3s := []string{"", "ARP", "IPv4", "IPv6"}
+	l3Protocols := tview.NewDropDown()
+	l3Protocols.SetTitle("Lβ").SetBorder(true)
+	l3Protocols.SetOptions(l3s, func(text string, index int) {
+		switchProtocol("L3")(text, l3s)
+	})
+	l3Protocols.SetCurrentOption(2)
+
+	l2s := []string{"Ethernet"}
+	l2Protocols := tview.NewDropDown()
+	l2Protocols.SetTitle("Lα").SetBorder(true)
+	l2Protocols.SetOptions(l2s, func(text string, index int) {
+		switchProtocol("L2")(text, l2s)
+	})
+	l2Protocols.SetCurrentOption(0)
 
 	// Interface の情報を出力するための
 	interfaceTable := tview.NewTable().SetBorders(true)
@@ -195,44 +202,39 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		}
 	}
 
+	layerRowNum := 3
 	t.grid.
-		SetRows(1, 0).
-		SetColumns(15, 0)
+		SetRows(layerRowNum, layerRowNum, layerRowNum, layerRowNum, layerRowNum, -2, -2).
+		SetColumns(-1, -5)
 
-	// プロトコル増えて縦に収まりきらなくなったら、このあたりいじって隣の列とかに移す or Table にしてスクロールできるようにできないか
 	t.grid.
-		AddItem(l2Protocols, 1, 0, 1, 1, 0, 0, true).
-		AddItem(l3Protocols, 2, 0, 1, 1, 0, 0, false).
-		AddItem(l4Protocols, 3, 0, 1, 1, 0, 0, false).
-		AddItem(l5_6Protocols, 4, 0, 1, 1, 0, 0, false).
-		AddItem(l7Protocols, 5, 0, 1, 1, 0, 0, false).
-		AddItem(t.pages, 1, 1, 4, 1, 0, 0, false).
-		AddItem(interfaceTable, 5, 1, 1, 1, 0, 0, false)
+		// 左側
+		AddItem(l2Protocols, 0, 0, 1, 1, layerRowNum, 0, true).
+		AddItem(l3Protocols, 1, 0, 1, 1, layerRowNum, 0, false).
+		AddItem(l4Protocols, 2, 0, 1, 1, layerRowNum, 0, false).
+		AddItem(l5_6Protocols, 3, 0, 1, 1, layerRowNum, 0, false).
+		AddItem(l7Protocols, 4, 0, 1, 1, layerRowNum, 0, false).
 
-	// Layout for screens wider than 100 cells.
-	// t.grid.AddItem(t.list, 1, 0, 1, 1, 0, 100, true).
-	// 	AddItem(t.pages, 1, 1, 1, 1, 0, 100, false)
-	// t.grid.AddItem(l2Protocols, 1, 0, 1, 1, 0, 100, true).
-	// 	AddItem(l3Protocols, 2, 0, 1, 1, 0, 100, false).
-	// 	AddItem(l4Protocols, 3, 0, 1, 1, 0, 100, false).
-	// 	AddItem(t.pages, 1, 1, 1, 1, 0, 100, false)
+		// 右側
+		AddItem(t.pages, 0, 1, 8, 1, 0, 0, false).
+		AddItem(interfaceTable, 8, 1, 2, 1, 0, 0, false)
 
 	return nil
 }
 
-type defaults struct {
-	e    *packemon.EthernetHeader
-	a    *packemon.ARP
-	ip   *packemon.IPv4
-	ipv6 *packemon.IPv6
-	ic   *packemon.ICMP
-	t    *packemon.TCP
-	u    *packemon.UDP
-	d    *packemon.DNS
-	h    *packemon.HTTP
+type packets struct {
+	ethernet *packemon.EthernetHeader
+	arp      *packemon.ARP
+	ipv4     *packemon.IPv4
+	ipv6     *packemon.IPv6
+	icmpv4   *packemon.ICMP
+	tcp      *packemon.TCP
+	udp      *packemon.UDP
+	dns      *packemon.DNS
+	http     *packemon.HTTP
 }
 
-func defaultPackets() (*defaults, error) {
+func defaultPackets() (*packets, error) {
 	http := &packemon.HTTP{
 		Method:    DEFAULT_HTTP_METHOD,
 		Uri:       DEFAULT_HTTP_URI,
@@ -378,7 +380,7 @@ func defaultPackets() (*defaults, error) {
 		Flags:          0x40,
 		FragmentOffset: 0x0,
 		Ttl:            0x80,
-		Protocol:       packemon.IPv4_PROTO_ICMP,
+		Protocol:       packemon.IPv4_PROTO_UDP,
 		HeaderChecksum: 0,
 		SrcAddr:        binary.BigEndian.Uint32(srcIP),
 		DstAddr:        binary.BigEndian.Uint32(dstIP),
@@ -470,16 +472,16 @@ func defaultPackets() (*defaults, error) {
 		Typ: packemon.ETHER_TYPE_IPv4,
 	}
 
-	return &defaults{
-		e:    ethernetHeader,
-		a:    arp,
-		ip:   ipv4,
-		ipv6: ipv6,
-		ic:   icmp,
-		u:    udp,
-		t:    tcp,
-		d:    dns,
-		h:    http,
+	return &packets{
+		ethernet: ethernetHeader,
+		arp:      arp,
+		ipv4:     ipv4,
+		ipv6:     ipv6,
+		icmpv4:   icmp,
+		udp:      udp,
+		tcp:      tcp,
+		dns:      dns,
+		http:     http,
 	}, nil
 }
 

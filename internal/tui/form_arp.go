@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"encoding/binary"
 	"strings"
 
@@ -8,7 +9,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, arp *packemon.ARP) *tview.Form {
+func (t *tui) arpForm() *tview.Form {
 	arpForm := tview.NewForm().
 		AddTextView("ARP", "This section generates the ARP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Hardware Type(hex)", DEFAULT_ARP_HARDWARE_TYPE, 6, func(textToCheck string, lastChar rune) bool {
@@ -22,7 +23,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			arp.HardwareType = binary.BigEndian.Uint16(b)
+			t.sender.packets.arp.HardwareType = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -37,7 +38,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			arp.ProtocolType = binary.BigEndian.Uint16(b)
+			t.sender.packets.arp.ProtocolType = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -52,7 +53,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			arp.HardwareAddrLength = b
+			t.sender.packets.arp.HardwareAddrLength = b
 
 			return true
 		}, nil).
@@ -67,7 +68,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			arp.ProtocolLength = b
+			t.sender.packets.arp.ProtocolLength = b
 
 			return true
 		}, nil).
@@ -82,7 +83,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			arp.Operation = binary.BigEndian.Uint16(b)
+			t.sender.packets.arp.Operation = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -97,7 +98,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			arp.SenderHardwareAddr = packemon.HardwareAddr(b)
+			t.sender.packets.arp.SenderHardwareAddr = packemon.HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -111,7 +112,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 					return false
 				}
 
-				arp.SenderIPAddr = binary.BigEndian.Uint32(ip)
+				t.sender.packets.arp.SenderIPAddr = binary.BigEndian.Uint32(ip)
 				return true
 			}
 
@@ -128,7 +129,7 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			arp.TargetHardwareAddr = packemon.HardwareAddr(b)
+			t.sender.packets.arp.TargetHardwareAddr = packemon.HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -142,26 +143,16 @@ func (t *tui) arpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 					return false
 				}
 
-				arp.TargetIPAddr = binary.BigEndian.Uint32(ip)
+				t.sender.packets.arp.TargetIPAddr = binary.BigEndian.Uint32(ip)
 				return true
 			}
 
 			return false
 		}, nil).
-		AddButton("List", func() {
-			t.app.SetFocus(t.list)
-		}).
 		AddButton("Send!", func() {
-			ethernetFrame := &packemon.EthernetFrame{
-				Header: ethernetHeader,
-				Data:   arp.Bytes(),
-			}
-			if err := sendFn(ethernetFrame); err != nil {
+			if err := t.sender.sendLayer3(context.TODO()); err != nil {
 				t.addErrPage(err)
 			}
-		}).
-		AddButton("Under layer", func() {
-			t.pages.SwitchToPage("Ethernet")
 		}).
 		AddButton("Quit", func() {
 			t.app.Stop()

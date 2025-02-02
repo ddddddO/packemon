@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"encoding/binary"
 
 	"github.com/ddddddO/packemon"
@@ -9,7 +10,7 @@ import (
 
 var checkedCalcUDPLength = false
 
-func (t *tui) udpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader *packemon.EthernetHeader, ipv4 *packemon.IPv4, ipv6 *packemon.IPv6, udp *packemon.UDP) *tview.Form {
+func (t *tui) udpForm() *tview.Form {
 	udpForm := tview.NewForm().
 		AddTextView("UDP", "This section generates the UDP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Source Port", DEFAULT_UDP_PORT_SOURCE, 5, func(textToCheck string, lastChar rune) bool {
@@ -18,7 +19,7 @@ func (t *tui) udpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 				if err != nil {
 					return false
 				}
-				udp.SrcPort = n
+				t.sender.packets.udp.SrcPort = n
 				return true
 			}
 			return false
@@ -29,7 +30,7 @@ func (t *tui) udpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 				if err != nil {
 					return false
 				}
-				udp.DstPort = n
+				t.sender.packets.udp.DstPort = n
 				return true
 			}
 			return false
@@ -52,49 +53,15 @@ func (t *tui) udpForm(sendFn func(*packemon.EthernetFrame) error, ethernetHeader
 			if err != nil {
 				return false
 			}
-			udp.Length = binary.BigEndian.Uint16(b)
+			t.sender.packets.udp.Length = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
-		AddButton("List", func() {
-			t.app.SetFocus(t.list)
-		}).
 		AddButton("Send!", func() {
-			udp.Checksum = 0x0000
-			udp.Data = []byte{} // 前回分の UDP より上のデータをクリア
-			if checkedCalcUDPLength {
-				udp.Len()
-			}
-			ethernetFrame := &packemon.EthernetFrame{
-				Header: ethernetHeader,
-			}
-
-			if underIPv6 {
-				udp.CalculateChecksumForIPv6(ipv6)
-				ipv6.Data = udp.Bytes()
-				ipv6.PayloadLength = uint16(len(ipv6.Data))
-				ethernetFrame.Data = ipv6.Bytes()
-			} else {
-				ipv4.Data = udp.Bytes()
-				ipv4.CalculateTotalLength()
-				// 前回Send分が残ってると計算誤るため
-				ipv4.HeaderChecksum = 0x0
-				ipv4.CalculateChecksum()
-				ethernetFrame.Data = ipv4.Bytes()
-			}
-
-			if err := sendFn(ethernetFrame); err != nil {
+			if err := t.sender.sendLayer4(context.TODO()); err != nil {
 				t.addErrPage(err)
 			}
 		}).
-		AddButton("Under layer", func() {
-			if underIPv6 {
-				t.pages.SwitchToPage("IPv6")
-			} else {
-				t.pages.SwitchToPage("IPv4")
-			}
-		}).
-		// TODO: 上のレイヤーどれにするか選択肢あったほうが？
 		AddButton("Quit", func() {
 			t.app.Stop()
 		})

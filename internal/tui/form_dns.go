@@ -124,7 +124,7 @@ func (t *tui) dnsForm() *tview.Form {
 			return true
 		}, nil).
 		AddButton("Send!", func() {
-			if err := t.sender.send(context.TODO(), "L7"); err != nil {
+			if err := t.sender.sendLayer7(context.TODO()); err != nil {
 				t.addErrPage(err)
 			}
 		}).

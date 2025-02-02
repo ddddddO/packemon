@@ -57,7 +57,7 @@ func (t *tui) ethernetForm() *tview.Form {
 			}
 		}).
 		AddButton("Send!", func() {
-			if err := t.sender.send(context.TODO(), "L2"); err != nil {
+			if err := t.sender.sendLayer2(context.TODO()); err != nil {
 				t.addErrPage(err)
 			}
 		}).

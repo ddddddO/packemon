@@ -150,7 +150,7 @@ func (t *tui) arpForm() *tview.Form {
 			return false
 		}, nil).
 		AddButton("Send!", func() {
-			if err := t.sender.send(context.TODO(), "L3"); err != nil {
+			if err := t.sender.sendLayer3(context.TODO()); err != nil {
 				t.addErrPage(err)
 			}
 		}).

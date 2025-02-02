@@ -57,7 +57,7 @@ func (t *tui) ipv6Form() *tview.Form {
 
 		}, nil).
 		AddButton("Send!", func() {
-			if err := t.sender.send(context.TODO(), "L3"); err != nil {
+			if err := t.sender.sendLayer3(context.TODO()); err != nil {
 				t.addErrPage(err)
 			}
 		}).

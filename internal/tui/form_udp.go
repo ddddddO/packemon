@@ -58,7 +58,7 @@ func (t *tui) udpForm() *tview.Form {
 			return true
 		}, nil).
 		AddButton("Send!", func() {
-			if err := t.sender.send(context.TODO(), "L4"); err != nil {
+			if err := t.sender.sendLayer4(context.TODO()); err != nil {
 				t.addErrPage(err)
 			}
 		}).

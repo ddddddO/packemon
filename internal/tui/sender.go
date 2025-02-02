@@ -30,6 +30,22 @@ func newSender(packets *packets, sendFn func(*packemon.EthernetFrame) error) *se
 	}
 }
 
+func (s *sender) sendLayer2(ctx context.Context) error {
+	return s.send(ctx, "L2")
+}
+
+func (s *sender) sendLayer3(ctx context.Context) error {
+	return s.send(ctx, "L3")
+}
+
+func (s *sender) sendLayer4(ctx context.Context) error {
+	return s.send(ctx, "L4")
+}
+
+func (s *sender) sendLayer7(ctx context.Context) error {
+	return s.send(ctx, "L7")
+}
+
 func (s *sender) send(ctx context.Context, currentLayer string) error {
 	// selectedL2 := s.selectedLayerMap["L2"] // 今、固定でイーサネットだからコメントアウト
 	selectedL3 := s.selectedLayerMap["L3"]

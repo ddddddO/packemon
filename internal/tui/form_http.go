@@ -57,7 +57,7 @@ func (t *tui) httpForm(ctx context.Context) *tview.Form {
 			return false
 		}, nil).
 		AddButton("Send!", func() {
-			if err := t.sender.send(ctx, "L7"); err != nil {
+			if err := t.sender.sendLayer7(ctx); err != nil {
 				t.addErrPage(err)
 			}
 		}).

@@ -222,37 +222,66 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 
 					return s.sendFn(ethernetFrame)
 				case "TCP":
-					// TODO: 3way handshake やるかどうかの
+					if do3wayHandshakeForDNS {
+						switch selectedL3 {
+						case "":
+							return fmt.Errorf("not implemented")
+						case "IPv4":
+							go packemon.EstablishConnectionAndSendPayloadXxx(
+								ctx,
+								DEFAULT_NW_INTERFACE,
+								s.packets.ethernet,
+								s.packets.ipv4,
+								s.packets.tcp,
+								s.packets.dns.Bytes(),
+							)
+							return nil
+						case "IPv6":
+							go packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
+								ctx,
+								DEFAULT_NW_INTERFACE,
+								s.packets.ethernet,
+								s.packets.ipv6,
+								s.packets.tcp,
+								s.packets.dns.Bytes(),
+							)
+							return nil
+						case "ARP":
+							return fmt.Errorf("unsupported under protocol: %s", selectedL3)
+						default:
+							return fmt.Errorf("unsupported under protocol: %s", selectedL3)
+						}
+					} else {
+						s.packets.tcp.Checksum = 0x0000
+						s.packets.tcp.Data = s.packets.dns.Bytes()
+						ethernetFrame := &packemon.EthernetFrame{
+							Header: s.packets.ethernet,
+						}
 
-					s.packets.tcp.Checksum = 0x0000
-					s.packets.tcp.Data = s.packets.dns.Bytes()
-					ethernetFrame := &packemon.EthernetFrame{
-						Header: s.packets.ethernet,
+						switch selectedL3 {
+						case "":
+							ethernetFrame.Data = s.packets.tcp.Bytes()
+						case "IPv4":
+							s.packets.tcp.CalculateChecksum(s.packets.ipv4)
+							s.packets.ipv4.Data = s.packets.tcp.Bytes()
+							s.packets.ipv4.CalculateTotalLength()
+							// 前回Send分が残ってると計算誤るため
+							s.packets.ipv4.HeaderChecksum = 0x0
+							s.packets.ipv4.CalculateChecksum()
+							ethernetFrame.Data = s.packets.ipv4.Bytes()
+						case "IPv6":
+							s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
+							s.packets.ipv6.Data = s.packets.tcp.Bytes()
+							s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
+							ethernetFrame.Data = s.packets.ipv6.Bytes()
+						case "ARP":
+							return fmt.Errorf("unsupported under ARP")
+						default:
+							return fmt.Errorf("not implemented under protocol: %s", selectedL3)
+						}
+
+						return s.sendFn(ethernetFrame)
 					}
-
-					switch selectedL3 {
-					case "":
-						ethernetFrame.Data = s.packets.tcp.Bytes()
-					case "IPv4":
-						s.packets.tcp.CalculateChecksum(s.packets.ipv4)
-						s.packets.ipv4.Data = s.packets.tcp.Bytes()
-						s.packets.ipv4.CalculateTotalLength()
-						// 前回Send分が残ってると計算誤るため
-						s.packets.ipv4.HeaderChecksum = 0x0
-						s.packets.ipv4.CalculateChecksum()
-						ethernetFrame.Data = s.packets.ipv4.Bytes()
-					case "IPv6":
-						s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
-						s.packets.ipv6.Data = s.packets.tcp.Bytes()
-						s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
-						ethernetFrame.Data = s.packets.ipv6.Bytes()
-					case "ARP":
-						return fmt.Errorf("unsupported under ARP")
-					default:
-						return fmt.Errorf("not implemented under protocol: %s", selectedL3)
-					}
-
-					return s.sendFn(ethernetFrame)
 				default:
 					return fmt.Errorf("not implemented under protocol: %s", selectedL4)
 				}

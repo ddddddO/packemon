@@ -262,7 +262,7 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 						case "":
 							return fmt.Errorf("not implemented")
 						case "IPv4":
-							return packemon.EstablishConnectionAndSendPayloadXxx(
+							go packemon.EstablishConnectionAndSendPayloadXxx(
 								ctx,
 								DEFAULT_NW_INTERFACE,
 								s.packets.ethernet,
@@ -270,8 +270,9 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 								s.packets.tcp,
 								s.packets.http,
 							)
+							return nil
 						case "IPv6":
-							return packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
+							go packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
 								ctx,
 								DEFAULT_NW_INTERFACE,
 								s.packets.ethernet,
@@ -279,6 +280,7 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 								s.packets.tcp,
 								s.packets.http,
 							)
+							return nil
 						case "ARP":
 							return fmt.Errorf("unsupported under protocol: %s", selectedL3)
 						default:

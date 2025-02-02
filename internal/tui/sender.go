@@ -10,23 +10,23 @@ import (
 )
 
 type sender struct {
-	selectedLayerMap map[string]string
-	packets          *packets
-	sendFn           func(*packemon.EthernetFrame) error
+	selectedProtocolByLayer map[string]string
+	packets                 *packets
+	sendFn                  func(*packemon.EthernetFrame) error
 }
 
 func newSender(packets *packets, sendFn func(*packemon.EthernetFrame) error) *sender {
-	selectedLayerMap := map[string]string{}
-	selectedLayerMap["L7"] = "DNS"
-	selectedLayerMap["L5/6"] = ""
-	selectedLayerMap["L4"] = "UDP"
-	selectedLayerMap["L3"] = "IPv4"
-	selectedLayerMap["L2"] = "Ethernet"
+	selectedProtocolByLayer := map[string]string{}
+	selectedProtocolByLayer["L7"] = "DNS"
+	selectedProtocolByLayer["L5/6"] = ""
+	selectedProtocolByLayer["L4"] = "UDP"
+	selectedProtocolByLayer["L3"] = "IPv4"
+	selectedProtocolByLayer["L2"] = "Ethernet"
 
 	return &sender{
-		selectedLayerMap: selectedLayerMap,
-		packets:          packets,
-		sendFn:           sendFn,
+		selectedProtocolByLayer: selectedProtocolByLayer,
+		packets:                 packets,
+		sendFn:                  sendFn,
 	}
 }
 
@@ -47,11 +47,11 @@ func (s *sender) sendLayer7(ctx context.Context) error {
 }
 
 func (s *sender) send(ctx context.Context, currentLayer string) error {
-	// selectedL2 := s.selectedLayerMap["L2"] // 今、固定でイーサネットだからコメントアウト
-	selectedL3 := s.selectedLayerMap["L3"]
-	selectedL4 := s.selectedLayerMap["L4"]
-	selectedL5_6 := s.selectedLayerMap["L5/6"]
-	selectedL7 := s.selectedLayerMap["L7"]
+	// selectedL2 := s.selectedProtocolByLayer["L2"] // 今、固定でイーサネットだからコメントアウト
+	selectedL3 := s.selectedProtocolByLayer["L3"]
+	selectedL4 := s.selectedProtocolByLayer["L4"]
+	selectedL5_6 := s.selectedProtocolByLayer["L5/6"]
+	selectedL7 := s.selectedProtocolByLayer["L7"]
 
 	switch currentLayer {
 	case "L2":

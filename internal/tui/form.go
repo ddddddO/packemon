@@ -126,7 +126,7 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		return func(targetProtocol string, switchableProtocols []string) {
 			for _, protocol := range switchableProtocols {
 				if targetProtocol == protocol {
-					t.sender.selectedLayerMap[targetLayer] = targetProtocol
+					t.sender.selectedProtocolByLayer[targetLayer] = targetProtocol
 					t.pages.SwitchToPage(targetProtocol)
 					t.app.SetFocus(t.pages)
 				}

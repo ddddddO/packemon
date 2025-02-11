@@ -12,8 +12,8 @@ import (
 func (dnw *debugNetworkInterface) SendHTTPSGetAfterTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
 	var srcPort uint16 = 0xa331
 
-	var dstPort uint16 = 0x28cb // 10443
-	// var dstPort uint16 = 0x01bb // 443
+	// var dstPort uint16 = 0x28cb // 10443
+	var dstPort uint16 = 0x01bb // 443
 
 	var srcIPAddr uint32 = 0xac163718
 	var dstIPAddr uint32 = 0xc0a80a70 // raspberry pi . raspberry pi 上で https-server 起動で、うまくいった

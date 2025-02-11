@@ -54,13 +54,13 @@ func ParsedTCP(payload []byte) *TCP {
 
 	// Wiresharkとpackemonのパケット詳細見比べるに、
 	// ( tcpヘッダーのheader lengthを10進数に変換した値 / 4 ) - 20 = options のbyte数 になるよう
-	// optionLength := tcp.HeaderLength>>2 - 20
-	// if optionLength > 0 {
-	// 	tcp.Options = payload[20 : optionLength+20]
-	// }
-	// tcp.Data = payload[optionLength+20:]
+	optionLength := tcp.HeaderLength>>2 - 20
+	if optionLength > 0 {
+		tcp.Options = payload[20 : optionLength+20]
+	}
+	tcp.Data = payload[optionLength+20:]
 
-	tcp.Data = payload[20:]
+	// tcp.Data = payload[20:]
 	return tcp
 }
 

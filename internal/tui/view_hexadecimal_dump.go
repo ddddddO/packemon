@@ -13,6 +13,8 @@ type HexadecimalDump struct {
 	*packemon.ICMP
 	*packemon.TCP
 	*packemon.UDP
+	*packemon.TLSClientHello
+	*packemon.TLSServerHello
 	*packemon.DNS
 	*packemon.HTTP
 	*packemon.HTTPResponse
@@ -21,7 +23,8 @@ type HexadecimalDump struct {
 }
 
 func (h *HexadecimalDump) rows() int {
-	return 20
+	// TODO: データ量でよしなに決めたい
+	return 30
 }
 
 func (*HexadecimalDump) columns() int {
@@ -62,8 +65,18 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 		loopForL4View = viewHexadecimalDump(table, loopForL4View, "UDP", h.UDP.Bytes()[0:udpHeaderLength])
 	}
 
+	// L5~6
+	loopForL5_6View := 1 + loopForL4View
+	switch {
+	case h.TLSClientHello != nil:
+		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.2", h.TLSClientHello.Bytes())
+	case h.TLSServerHello != nil:
+		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.2", h.TLSServerHello.Bytes())
+	}
+
 	// L7
-	loopForL7View := 1 + loopForL4View
+	// loopForL7View := 1 + loopForL4View
+	loopForL7View := 1 + loopForL5_6View
 	switch {
 	case h.DNS != nil:
 		if h.UDP != nil {

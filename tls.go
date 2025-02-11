@@ -14,6 +14,29 @@ import (
 	"log"
 )
 
+func ParsedTLSToPassive(tcp *TCP, p *Passive) {
+	// 以下、tcp.Data[1:3] にある(Record Layer) version あてにならないかも。tls version 1.0 の値でも wireshark 上で、tls1.2 or 1.3 の record という表示になってる
+	// なので、HandshakeProtocol 内の、Version で確認する
+	// if bytes.Equal(TLS_VERSION_1_2, tcp.Data[1:3]) {
+
+	// TODO: support TLSv1.3
+	if bytes.Equal(TLS_VERSION_1_2, tcp.Data[9:11]) {
+		// TLS の Content Type をチェック
+		switch tcp.Data[0] {
+		case TLS_CONTENT_TYPE_HANDSHAKE:
+			if tcp.Data[5] == TLS_HANDSHAKE_TYPE_CLIENT_HELLO {
+				tlsClientHello := ParsedTLSClientHello(tcp.Data)
+				p.TLSClientHello = tlsClientHello
+			}
+
+			if tcp.Data[5] == TLS_HANDSHAKE_TYPE_SERVER_HELLO {
+				tlsServerHello := ParsedTLSServerHello(tcp.Data)
+				p.TLSServerHello = tlsServerHello
+			}
+		}
+	}
+}
+
 const TLS_CONTENT_TYPE_HANDSHAKE = 0x16
 const TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC = 0x14
 const TLS_CONTENT_TYPE_APPLICATION_DATA = 0x17
@@ -89,19 +112,23 @@ type TLSClientHello struct {
 	HandshakeProtocol *TLSHandshakeProtocol
 }
 
-const CLIENT_HELLO = 0x01
+const TLS_HANDSHAKE_TYPE_CLIENT_HELLO = 0x01
+const TLS_HANDSHAKE_TYPE_SERVER_HELLO = 0x02
 const COMPRESSION_METHOD_NULL = 0x00
 
 var TLS_VERSION_1_2 = []byte{0x03, 0x03}
 
 func NewTLSClientHello() *TLSClientHello {
 	handshake := &TLSHandshakeProtocol{
-		HandshakeType: []byte{CLIENT_HELLO},
+		HandshakeType: []byte{TLS_HANDSHAKE_TYPE_CLIENT_HELLO},
 		Length:        []byte{0x00, 0x00, 0x00}, // 後で計算して求めるが、初期化のため
 		Version:       TLS_VERSION_1_2,
 		Random:        make([]byte, 32), // 000000....
 		SessionID:     []byte{0x00},
 		// SessionID: make([]byte, 32),
+
+		// TODO: あれ、ここにCipherSuitesLength指定しないでいいの？
+
 		CipherSuites: []uint16{
 			// tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
 			// tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
@@ -148,6 +175,46 @@ func NewTLSClientHello() *TLSClientHello {
 		},
 		HandshakeProtocol: handshake,
 	}
+}
+
+func ParsedTLSClientHello(b []byte) *TLSClientHello {
+	cipherSuitesLength := b[44:46]
+	cipherSuites := []uint16{}
+	// たぶん、2byteずつ増えていくでokと思うけど
+	for i := 0; i < (bytesToInt(cipherSuitesLength) / 2); i++ {
+		point := i * 2
+		cipherSuite := binary.BigEndian.Uint16(b[46+point : 46+point+2])
+		cipherSuites = append(cipherSuites, cipherSuite)
+	}
+
+	compressionMethodsLength := b[46+bytesToInt(cipherSuitesLength) : 47+bytesToInt(cipherSuitesLength)]
+	extensionsLength := b[47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0]) : 47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])+2]
+
+	return &TLSClientHello{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      b[3:5],
+		},
+		HandshakeProtocol: &TLSHandshakeProtocol{
+			HandshakeType:            []byte{b[5]},
+			Length:                   b[6:9],
+			Version:                  b[9:11],
+			Random:                   b[11:43],
+			SessionID:                []byte{b[43]},
+			CipherSuitesLength:       cipherSuitesLength,
+			CipherSuites:             cipherSuites,
+			CompressionMethodsLength: compressionMethodsLength,
+			CompressionMethods:       b[47+bytesToInt(cipherSuitesLength) : 47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])],
+			ExtensionsLength:         extensionsLength,
+			Extentions:               b[47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])+2 : 47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])+2+bytesToInt(extensionsLength)],
+		},
+	}
+}
+
+// 2byteをintへ変換
+func bytesToInt(b []byte) int {
+	return int(b[0])<<8 + int(b[1])
 }
 
 func (tch *TLSClientHello) Bytes() []byte {
@@ -275,7 +342,7 @@ func (sd *ServerHelloDone) Bytes() []byte {
 
 func ParsedTLSServerHello(b []byte) *TLSServerHello {
 	certificateLength := parsedCertificatesLength(b[56:59])
-	log.Printf("certificateLength: %d\n", certificateLength)
+	// log.Printf("certificateLength: %d\n", certificateLength)
 
 	return &TLSServerHello{
 		ServerHello: &ServerHello{

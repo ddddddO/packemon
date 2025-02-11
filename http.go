@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	PORT_HTTP = 0x0050
+	PORT_HTTP  = 0x0050
+	PORT_HTTPS = 0x01bb // 443
 )
 
 type HTTP struct {

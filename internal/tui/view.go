@@ -76,6 +76,17 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 		viewers = append(viewers, &UDP{passive.UDP})
 		hexdump.UDP = passive.UDP
 	}
+
+	// TODO: どうにかしたい. TLS でまとめたい
+	if passive.TLSClientHello != nil {
+		viewers = append(viewers, &TLSv1_2_CLIENT_HELLO{passive.TLSClientHello})
+		hexdump.TLSClientHello = passive.TLSClientHello
+	}
+	if passive.TLSServerHello != nil {
+		viewers = append(viewers, &TLSv1_2_SERVER_HELLO{passive.TLSServerHello})
+		hexdump.TLSServerHello = passive.TLSServerHello
+	}
+
 	if passive.DNS != nil {
 		viewers = append(viewers, &DNS{passive.DNS})
 		hexdump.DNS = passive.DNS

@@ -91,3 +91,28 @@ func (t *TLSv1_2_ClientKeyExchange) viewTable() *tview.Table {
 
 	return table
 }
+
+type TLSv1_2_ChangeCipherSpecAndEncryptedHandshakeMessage struct {
+	*packemon.TLSChangeCipherSpecAndEncryptedHandshakeMessage
+}
+
+func (*TLSv1_2_ChangeCipherSpecAndEncryptedHandshakeMessage) rows() int {
+	return 8
+}
+
+func (*TLSv1_2_ChangeCipherSpecAndEncryptedHandshakeMessage) columns() int {
+	return 30
+}
+
+func (t *TLSv1_2_ChangeCipherSpecAndEncryptedHandshakeMessage) viewTable() *tview.Table {
+	table := tview.NewTable().SetBorders(false)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLSv1.2 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+
+	table.SetCell(0, 0, tableCellTitle("Change Chiper Spec Protocol"))
+	table.SetCell(0, 1, tableCellContent("%x", t.ChangeCipherSpecProtocol.Bytes()))
+
+	table.SetCell(1, 0, tableCellTitle("Encrypted Handshake Message"))
+	table.SetCell(1, 1, tableCellContent("%x", t.EncryptedHandshakeMessage.Bytes()))
+
+	return table
+}

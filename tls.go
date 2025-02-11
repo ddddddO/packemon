@@ -42,6 +42,10 @@ func ParsedTLSToPassive(tcp *TCP, p *Passive) {
 				p.TLSClientKeyExchange = tlsClientKeyExchange
 				return
 			}
+		case TLS_HANDSHAKE_TYPE_CHANGE_CIPHER_SPEC:
+			tlsChangeCipherSpecAndEncryptedHandshakeMessage := ParsedTLSChangeCipherSpecAndEncryptedHandshakeMessage(tcp.Data)
+			p.TLSChangeCipherSpecAndEncryptedHandshakeMessage = tlsChangeCipherSpecAndEncryptedHandshakeMessage
+			return
 
 		default:
 
@@ -549,6 +553,7 @@ func (e *EncryptedHandshakeMessage) Bytes() []byte {
 }
 
 const TLS_HANDSHAKE_TYPE_CLIENT_KEY_EXCHANGE = 0x10
+const TLS_HANDSHAKE_TYPE_CHANGE_CIPHER_SPEC = 0x14
 const TLS_HANDSHAKE_TYPE_FINISHED = 0x14
 
 func NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(clientHello *TLSClientHello, serverHello *TLSServerHello) (*TLSClientKeyExchange, *KeyBlock, int, []byte, []byte) {
@@ -783,6 +788,7 @@ type ForVerifing struct {
 	ClientFinished    []byte // 暗号化前の
 }
 
+// これは、自作 tls handshake 用で、Monitor に表示するためのものではない
 func ParsedTLSChangeCipherSpecAndFinished(b []byte, keyblock *KeyBlock, clientSequenceNum int, verifyingData *ForVerifing) *ChangeCipherSpecAndFinished {
 	finished := &Finished{
 		RecordLayer: &TLSRecordLayer{
@@ -873,6 +879,49 @@ func verifyTLSFinished(target []byte, v *ForVerifing) bool {
 	log.Printf("verifing: %x\n", ret)
 
 	return bytes.Equal(target[4:], ret)
+}
+
+// サーバから来る
+type TLSChangeCipherSpecAndEncryptedHandshakeMessage struct {
+	ChangeCipherSpecProtocol  *ChangeCipherSpecProtocol
+	EncryptedHandshakeMessage *EncryptedHandshakeMessage
+}
+
+func (t *TLSChangeCipherSpecAndEncryptedHandshakeMessage) Bytes() []byte {
+	buf := bytes.Buffer{}
+	buf.Write(t.ChangeCipherSpecProtocol.Bytes())
+	buf.Write(t.EncryptedHandshakeMessage.Bytes())
+	return buf.Bytes()
+}
+
+// これは、Monitor 表示用に、受信したものをただパースする関数
+func ParsedTLSChangeCipherSpecAndEncryptedHandshakeMessage(b []byte) *TLSChangeCipherSpecAndEncryptedHandshakeMessage {
+	lengthOfChangeCipherSpecProtocol := b[3:5]
+	changeCipherSpecProtocol := &ChangeCipherSpecProtocol{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      lengthOfChangeCipherSpecProtocol,
+		},
+		ChangeCipherSpecMessage: b[5 : 5+bytesToInt(lengthOfChangeCipherSpecProtocol)],
+	}
+	nextPosition := 5 + bytesToInt(lengthOfChangeCipherSpecProtocol)
+
+	lengthOfEncryptedHandshakeMessage := b[nextPosition+3 : nextPosition+5]
+	encryptedHandshakeMessage := &EncryptedHandshakeMessage{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[nextPosition]},
+			Version:     b[nextPosition+1 : nextPosition+3],
+			Length:      lengthOfEncryptedHandshakeMessage,
+		},
+	}
+	nextPosition += 5
+	encryptedHandshakeMessage.EncryptedHandshakeMessage_ = b[nextPosition : nextPosition+bytesToInt(lengthOfEncryptedHandshakeMessage)]
+
+	return &TLSChangeCipherSpecAndEncryptedHandshakeMessage{
+		ChangeCipherSpecProtocol:  changeCipherSpecProtocol,
+		EncryptedHandshakeMessage: encryptedHandshakeMessage,
+	}
 }
 
 // こちらで作る分にはこのstructは不要

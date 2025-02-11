@@ -90,6 +90,10 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 		viewers = append(viewers, &TLSv1_2_ClientKeyExchange{passive.TLSClientKeyExchange})
 		hexdump.TLSClientKeyExchange = passive.TLSClientKeyExchange
 	}
+	if passive.TLSChangeCipherSpecAndEncryptedHandshakeMessage != nil {
+		viewers = append(viewers, &TLSv1_2_ChangeCipherSpecAndEncryptedHandshakeMessage{passive.TLSChangeCipherSpecAndEncryptedHandshakeMessage})
+		hexdump.TLSChangeCipherSpecAndEncryptedHandshakeMessage = passive.TLSChangeCipherSpecAndEncryptedHandshakeMessage
+	}
 
 	if passive.DNS != nil {
 		viewers = append(viewers, &DNS{passive.DNS})

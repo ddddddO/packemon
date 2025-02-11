@@ -48,14 +48,11 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
   - [x] TCP (WIP)
   - [x] UDP (WIP)
   - [ ] TLSv1.2 (WIP)
-    - [Currently there is only debug mode](./cmd/debugging/tls-server/README.md)
-      - TCP 3way handshake ~ TLS handshake ~ TLS Application data
+    - This tool is not very useful because the number of cipher suites it supports is still small, but an environment where you can try it out can be found [here](./cmd/debugging/https-server/README.md).
+      - TCP 3way handshake ~ TLS handshake ~ TLS Application data (encrypted HTTP)
   - [ ] TLSv1.3
   - [x] DNS (WIP)
   - [x] HTTP (WIP)
-  - [ ] HTTP**S** (WIP)
-    - [Currently there is only debug mode](./cmd/debugging/https-server/README.md)
-      - TCP 3way handshake ~ TLS handshake ~ TLS Application data (HTTP GET request / response)
   - [ ] xxxxx....
   - [ ] Routing Protocols
     - IGP (Interior Gateway Protocol)

@@ -341,52 +341,65 @@ func (sd *ServerHelloDone) Bytes() []byte {
 }
 
 func ParsedTLSServerHello(b []byte) *TLSServerHello {
-	certificateLength := parsedCertificatesLength(b[56:59])
-	// log.Printf("certificateLength: %d\n", certificateLength)
+	slength := b[3:5]
+	serverHello := &ServerHello{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      slength,
+		},
+		HandshakeProtocol: &TLSHandshakeProtocol{
+			HandshakeType:      []byte{b[5]},
+			Length:             b[6:9],
+			Version:            b[9:11],
+			Random:             b[11:43],
+			SessionID:          []byte{b[43]},
+			CipherSuites:       []uint16{parsedCipherSuites(b[44:46])},
+			CompressionMethods: []byte{b[46]},
+		},
+	}
+	nextPosition := 47
+	if bytesToInt(slength) > 42 {
+		extentionsLength := b[nextPosition : nextPosition+2]
+		serverHello.HandshakeProtocol.ExtensionsLength = extentionsLength
+
+		nextPosition += 2
+		serverHello.HandshakeProtocol.Extentions = b[nextPosition : nextPosition+bytesToInt(extentionsLength)]
+		nextPosition += bytesToInt(extentionsLength)
+	}
+
+	certificate := &Certificate{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[nextPosition]},
+			Version:     b[nextPosition+1 : nextPosition+3],
+			Length:      b[nextPosition+3 : nextPosition+5],
+		},
+		HandshakeProtocol: &TLSHandshakeProtocol{
+			HandshakeType: []byte{b[nextPosition+5]},
+			Length:        b[nextPosition+6 : nextPosition+9],
+		},
+		CertificatesLength: b[nextPosition+9 : nextPosition+12],
+	}
+	certificateLength := parsedCertificatesLength(b[nextPosition+9 : nextPosition+12])
+	certificate.Certificates = b[nextPosition+12 : nextPosition+12+certificateLength]
+	nextPosition += 12 + certificateLength
+
+	serverHelloDone := &ServerHelloDone{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[nextPosition]},
+			Version:     b[nextPosition+1 : nextPosition+3],
+			Length:      b[nextPosition+3 : nextPosition+5],
+		},
+		HandshakeProtocol: &TLSHandshakeProtocol{
+			HandshakeType: []byte{b[nextPosition+5]},
+			Length:        b[nextPosition+6 : nextPosition+9],
+		},
+	}
 
 	return &TLSServerHello{
-		ServerHello: &ServerHello{
-			RecordLayer: &TLSRecordLayer{
-				ContentType: []byte{b[0]},
-				Version:     b[1:3],
-				Length:      b[3:5],
-			},
-			HandshakeProtocol: &TLSHandshakeProtocol{
-				HandshakeType:      []byte{b[5]},
-				Length:             b[6:9],
-				Version:            b[9:11],
-				Random:             b[11:43],
-				SessionID:          []byte{b[43]},
-				CipherSuites:       []uint16{parsedCipherSuites(b[44:46])},
-				CompressionMethods: []byte{b[46]},
-			},
-		},
-
-		Certificate: &Certificate{
-			RecordLayer: &TLSRecordLayer{
-				ContentType: []byte{b[47]},
-				Version:     b[48:50],
-				Length:      b[50:52],
-			},
-			HandshakeProtocol: &TLSHandshakeProtocol{
-				HandshakeType: []byte{b[52]},
-				Length:        b[53:56],
-			},
-			CertificatesLength: b[56:59],
-			Certificates:       b[59 : 59+certificateLength],
-		},
-
-		ServerHelloDone: &ServerHelloDone{
-			RecordLayer: &TLSRecordLayer{
-				ContentType: []byte{b[59+certificateLength]},
-				Version:     b[59+certificateLength+1 : 59+certificateLength+1+2],
-				Length:      b[59+certificateLength+1+2 : 59+certificateLength+1+2+2],
-			},
-			HandshakeProtocol: &TLSHandshakeProtocol{
-				HandshakeType: []byte{b[59+certificateLength+1+2+2]},
-				Length:        b[59+certificateLength+1+2+2+1 : 59+certificateLength+1+2+2+1+3],
-			},
-		},
+		ServerHello:     serverHello,
+		Certificate:     certificate,
+		ServerHelloDone: serverHelloDone,
 	}
 }
 

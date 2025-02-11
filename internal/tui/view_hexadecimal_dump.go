@@ -24,7 +24,8 @@ type HexadecimalDump struct {
 
 func (h *HexadecimalDump) rows() int {
 	// TODO: データ量でよしなに決めたい
-	return 30
+	// あと、スクロールなにか指定しないといけない？最後までスクロールできてないみたい
+	return 100
 }
 
 func (*HexadecimalDump) columns() int {

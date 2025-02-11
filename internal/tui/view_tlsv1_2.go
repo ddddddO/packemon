@@ -147,3 +147,34 @@ func (t *TLSv1_2_ApplicationData) viewTable() *tview.Table {
 
 	return table
 }
+
+type TLSv1_2_EncryptedAlert struct {
+	*packemon.TLSEncryptedAlert
+}
+
+func (*TLSv1_2_EncryptedAlert) rows() int {
+	return 8
+}
+
+func (*TLSv1_2_EncryptedAlert) columns() int {
+	return 30
+}
+
+func (t *TLSv1_2_EncryptedAlert) viewTable() *tview.Table {
+	table := tview.NewTable().SetBorders(false)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLSv1.2 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+
+	table.SetCell(0, 0, tableCellTitle("Content Type"))
+	table.SetCell(0, 1, tableCellContent("%x", t.RecordLayer.ContentType))
+
+	table.SetCell(1, 0, tableCellTitle("Version"))
+	table.SetCell(1, 1, tableCellContent("%x", t.RecordLayer.Version))
+
+	table.SetCell(2, 0, tableCellTitle("Length"))
+	table.SetCell(2, 1, tableCellContent("%x", t.RecordLayer.Length))
+
+	table.SetCell(3, 0, tableCellTitle("Alert Message"))
+	table.SetCell(3, 1, tableCellContent("%x", t.AlertMessage))
+
+	return table
+}

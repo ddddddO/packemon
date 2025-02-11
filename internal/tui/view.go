@@ -98,6 +98,10 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 		viewers = append(viewers, &TLSv1_2_ApplicationData{passive.TLSApplicationData})
 		hexdump.TLSApplicationData = passive.TLSApplicationData
 	}
+	if passive.TLSEncryptedAlert != nil {
+		viewers = append(viewers, &TLSv1_2_EncryptedAlert{passive.TLSEncryptedAlert})
+		hexdump.TLSEncryptedAlert = passive.TLSEncryptedAlert
+	}
 
 	if passive.DNS != nil {
 		viewers = append(viewers, &DNS{passive.DNS})

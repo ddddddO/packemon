@@ -50,6 +50,10 @@ func ParsedTLSToPassive(tcp *TCP, p *Passive) {
 			tlsApplicationData := ParsedTLSApplicationData(tcp.Data)
 			p.TLSApplicationData = tlsApplicationData
 			return
+		case TLS_CONTENT_TYPE_ALERT:
+			tlsEncryptedAlert := ParsedTLSEncryptedAlert(tcp.Data)
+			p.TLSEncryptedAlert = tlsEncryptedAlert
+			return
 		default:
 
 		}
@@ -988,4 +992,30 @@ func (a *TLSApplicationData) Bytes() []byte {
 	b = append(b, a.RecordLayer.Bytes()...)
 	b = append(b, a.EncryptedApplicationData...)
 	return b
+}
+
+type TLSEncryptedAlert struct {
+	RecordLayer  *TLSRecordLayer
+	AlertMessage []byte
+}
+
+const TLS_CONTENT_TYPE_ALERT = 0x15
+
+func ParsedTLSEncryptedAlert(b []byte) *TLSEncryptedAlert {
+	length := b[3:5]
+	return &TLSEncryptedAlert{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      length,
+		},
+		AlertMessage: b[5 : 5+bytesToInt(length)],
+	}
+}
+
+func (t *TLSEncryptedAlert) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	buf.Write(t.RecordLayer.Bytes())
+	buf.Write(t.AlertMessage)
+	return buf.Bytes()
 }

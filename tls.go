@@ -46,7 +46,10 @@ func ParsedTLSToPassive(tcp *TCP, p *Passive) {
 			tlsChangeCipherSpecAndEncryptedHandshakeMessage := ParsedTLSChangeCipherSpecAndEncryptedHandshakeMessage(tcp.Data)
 			p.TLSChangeCipherSpecAndEncryptedHandshakeMessage = tlsChangeCipherSpecAndEncryptedHandshakeMessage
 			return
-
+		case TLS_CONTENT_TYPE_APPLICATION_DATA:
+			tlsApplicationData := ParsedTLSApplicationData(tcp.Data)
+			p.TLSApplicationData = tlsApplicationData
+			return
 		default:
 
 		}
@@ -924,10 +927,21 @@ func ParsedTLSChangeCipherSpecAndEncryptedHandshakeMessage(b []byte) *TLSChangeC
 	}
 }
 
-// こちらで作る分にはこのstructは不要
 type TLSApplicationData struct {
 	RecordLayer              *TLSRecordLayer
 	EncryptedApplicationData []byte
+}
+
+func ParsedTLSApplicationData(b []byte) *TLSApplicationData {
+	length := b[3:5]
+	return &TLSApplicationData{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      length,
+		},
+		EncryptedApplicationData: b[5 : 5+bytesToInt(length)],
+	}
 }
 
 func NewTLSApplicationData(data []byte, keyblock *KeyBlock, clientSequence int) []byte {

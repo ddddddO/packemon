@@ -10,7 +10,7 @@ import (
 
 // SendTCP3wayAndTLShandshake とほぼ同じ。違いは client から送る Application Data が http のフォーマット
 func (dnw *debugNetworkInterface) SendHTTPSGetAfterTCP3wayAndTLShandshake(firsthopMACAddr [6]byte) error {
-	var srcPort uint16 = 0xa331
+	var srcPort uint16 = 0xa334
 
 	// var dstPort uint16 = 0x28cb // 10443
 	var dstPort uint16 = 0x01bb // 443

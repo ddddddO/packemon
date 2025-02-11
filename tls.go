@@ -14,6 +14,52 @@ import (
 	"log"
 )
 
+func ParsedTLSToPassive(tcp *TCP, p *Passive) {
+	// 以下、tcp.Data[1:3] にある(Record Layer) version あてにならないかも。tls version 1.0 の値でも wireshark 上で、tls1.2 or 1.3 の record という表示になってる
+	// なので、HandshakeProtocol 内の、Version でも確認する
+	// if bytes.Equal(TLS_VERSION_1_2, tcp.Data[1:3]) {
+
+	// TODO: support TLSv1.3
+	if bytes.Equal(TLS_VERSION_1_2, tcp.Data[9:11]) || bytes.Equal(TLS_VERSION_1_2, tcp.Data[1:3]) {
+		// TLS の 先頭の Content Type をチェック
+		// TODO: あくまで先頭の、なので、パケットが分割されて例えば、ChangeChiperSpec のみ来たりする可能性はあるかも
+		switch tcp.Data[0] {
+		case TLS_CONTENT_TYPE_HANDSHAKE:
+			if tcp.Data[5] == TLS_HANDSHAKE_TYPE_CLIENT_HELLO {
+				tlsClientHello := ParsedTLSClientHello(tcp.Data)
+				p.TLSClientHello = tlsClientHello
+				return
+			}
+
+			if tcp.Data[5] == TLS_HANDSHAKE_TYPE_SERVER_HELLO {
+				tlsServerHello := ParsedTLSServerHello(tcp.Data)
+				p.TLSServerHello = tlsServerHello
+				return
+			}
+
+			if tcp.Data[5] == TLS_HANDSHAKE_TYPE_CLIENT_KEY_EXCHANGE {
+				tlsClientKeyExchange := ParsedTLSClientKeyexchange(tcp.Data)
+				p.TLSClientKeyExchange = tlsClientKeyExchange
+				return
+			}
+		case TLS_HANDSHAKE_TYPE_CHANGE_CIPHER_SPEC:
+			tlsChangeCipherSpecAndEncryptedHandshakeMessage := ParsedTLSChangeCipherSpecAndEncryptedHandshakeMessage(tcp.Data)
+			p.TLSChangeCipherSpecAndEncryptedHandshakeMessage = tlsChangeCipherSpecAndEncryptedHandshakeMessage
+			return
+		case TLS_CONTENT_TYPE_APPLICATION_DATA:
+			tlsApplicationData := ParsedTLSApplicationData(tcp.Data)
+			p.TLSApplicationData = tlsApplicationData
+			return
+		case TLS_CONTENT_TYPE_ALERT:
+			tlsEncryptedAlert := ParsedTLSEncryptedAlert(tcp.Data)
+			p.TLSEncryptedAlert = tlsEncryptedAlert
+			return
+		default:
+
+		}
+	}
+}
+
 const TLS_CONTENT_TYPE_HANDSHAKE = 0x16
 const TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC = 0x14
 const TLS_CONTENT_TYPE_APPLICATION_DATA = 0x17
@@ -89,19 +135,23 @@ type TLSClientHello struct {
 	HandshakeProtocol *TLSHandshakeProtocol
 }
 
-const CLIENT_HELLO = 0x01
+const TLS_HANDSHAKE_TYPE_CLIENT_HELLO = 0x01
+const TLS_HANDSHAKE_TYPE_SERVER_HELLO = 0x02
 const COMPRESSION_METHOD_NULL = 0x00
 
 var TLS_VERSION_1_2 = []byte{0x03, 0x03}
 
 func NewTLSClientHello() *TLSClientHello {
 	handshake := &TLSHandshakeProtocol{
-		HandshakeType: []byte{CLIENT_HELLO},
+		HandshakeType: []byte{TLS_HANDSHAKE_TYPE_CLIENT_HELLO},
 		Length:        []byte{0x00, 0x00, 0x00}, // 後で計算して求めるが、初期化のため
 		Version:       TLS_VERSION_1_2,
 		Random:        make([]byte, 32), // 000000....
 		SessionID:     []byte{0x00},
 		// SessionID: make([]byte, 32),
+
+		// TODO: あれ、ここにCipherSuitesLength指定しないでいいの？
+
 		CipherSuites: []uint16{
 			// tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
 			// tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
@@ -148,6 +198,51 @@ func NewTLSClientHello() *TLSClientHello {
 		},
 		HandshakeProtocol: handshake,
 	}
+}
+
+func ParsedTLSClientHello(b []byte) *TLSClientHello {
+	cipherSuitesLength := b[44:46]
+	cipherSuites := []uint16{}
+	// たぶん、2byteずつ増えていくでokと思うけど
+	for i := 0; i < (bytesToInt(cipherSuitesLength) / 2); i++ {
+		point := i * 2
+		cipherSuite := binary.BigEndian.Uint16(b[46+point : 46+point+2])
+		cipherSuites = append(cipherSuites, cipherSuite)
+	}
+
+	compressionMethodsLength := b[46+bytesToInt(cipherSuitesLength) : 47+bytesToInt(cipherSuitesLength)]
+	extensionsLength := b[47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0]) : 47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])+2]
+
+	return &TLSClientHello{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      b[3:5],
+		},
+		HandshakeProtocol: &TLSHandshakeProtocol{
+			HandshakeType:            []byte{b[5]},
+			Length:                   b[6:9],
+			Version:                  b[9:11],
+			Random:                   b[11:43],
+			SessionID:                []byte{b[43]},
+			CipherSuitesLength:       cipherSuitesLength,
+			CipherSuites:             cipherSuites,
+			CompressionMethodsLength: compressionMethodsLength,
+			CompressionMethods:       b[47+bytesToInt(cipherSuitesLength) : 47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])],
+			ExtensionsLength:         extensionsLength,
+			Extentions:               b[47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])+2 : 47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])+2+bytesToInt(extensionsLength)],
+		},
+	}
+}
+
+// 2byteをintへ変換
+func bytesToInt(b []byte) int {
+	return int(b[0])<<8 + int(b[1])
+}
+
+// 3byteをintへ変換
+func bytesToInt2(b []byte) int {
+	return int(b[0])<<16 + int(b[1])<<8 + int(b[2])
 }
 
 func (tch *TLSClientHello) Bytes() []byte {
@@ -274,52 +369,65 @@ func (sd *ServerHelloDone) Bytes() []byte {
 }
 
 func ParsedTLSServerHello(b []byte) *TLSServerHello {
-	certificateLength := parsedCertificatesLength(b[56:59])
-	log.Printf("certificateLength: %d\n", certificateLength)
+	slength := b[3:5]
+	serverHello := &ServerHello{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      slength,
+		},
+		HandshakeProtocol: &TLSHandshakeProtocol{
+			HandshakeType:      []byte{b[5]},
+			Length:             b[6:9],
+			Version:            b[9:11],
+			Random:             b[11:43],
+			SessionID:          []byte{b[43]},
+			CipherSuites:       []uint16{parsedCipherSuites(b[44:46])},
+			CompressionMethods: []byte{b[46]},
+		},
+	}
+	nextPosition := 47
+	if bytesToInt(slength) > 42 {
+		extentionsLength := b[nextPosition : nextPosition+2]
+		serverHello.HandshakeProtocol.ExtensionsLength = extentionsLength
+
+		nextPosition += 2
+		serverHello.HandshakeProtocol.Extentions = b[nextPosition : nextPosition+bytesToInt(extentionsLength)]
+		nextPosition += bytesToInt(extentionsLength)
+	}
+
+	certificate := &Certificate{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[nextPosition]},
+			Version:     b[nextPosition+1 : nextPosition+3],
+			Length:      b[nextPosition+3 : nextPosition+5],
+		},
+		HandshakeProtocol: &TLSHandshakeProtocol{
+			HandshakeType: []byte{b[nextPosition+5]},
+			Length:        b[nextPosition+6 : nextPosition+9],
+		},
+		CertificatesLength: b[nextPosition+9 : nextPosition+12],
+	}
+	certificateLength := parsedCertificatesLength(b[nextPosition+9 : nextPosition+12])
+	certificate.Certificates = b[nextPosition+12 : nextPosition+12+certificateLength]
+	nextPosition += 12 + certificateLength
+
+	serverHelloDone := &ServerHelloDone{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[nextPosition]},
+			Version:     b[nextPosition+1 : nextPosition+3],
+			Length:      b[nextPosition+3 : nextPosition+5],
+		},
+		HandshakeProtocol: &TLSHandshakeProtocol{
+			HandshakeType: []byte{b[nextPosition+5]},
+			Length:        b[nextPosition+6 : nextPosition+9],
+		},
+	}
 
 	return &TLSServerHello{
-		ServerHello: &ServerHello{
-			RecordLayer: &TLSRecordLayer{
-				ContentType: []byte{b[0]},
-				Version:     b[1:3],
-				Length:      b[3:5],
-			},
-			HandshakeProtocol: &TLSHandshakeProtocol{
-				HandshakeType:      []byte{b[5]},
-				Length:             b[6:9],
-				Version:            b[9:11],
-				Random:             b[11:43],
-				SessionID:          []byte{b[43]},
-				CipherSuites:       []uint16{parsedCipherSuites(b[44:46])},
-				CompressionMethods: []byte{b[46]},
-			},
-		},
-
-		Certificate: &Certificate{
-			RecordLayer: &TLSRecordLayer{
-				ContentType: []byte{b[47]},
-				Version:     b[48:50],
-				Length:      b[50:52],
-			},
-			HandshakeProtocol: &TLSHandshakeProtocol{
-				HandshakeType: []byte{b[52]},
-				Length:        b[53:56],
-			},
-			CertificatesLength: b[56:59],
-			Certificates:       b[59 : 59+certificateLength],
-		},
-
-		ServerHelloDone: &ServerHelloDone{
-			RecordLayer: &TLSRecordLayer{
-				ContentType: []byte{b[59+certificateLength]},
-				Version:     b[59+certificateLength+1 : 59+certificateLength+1+2],
-				Length:      b[59+certificateLength+1+2 : 59+certificateLength+1+2+2],
-			},
-			HandshakeProtocol: &TLSHandshakeProtocol{
-				HandshakeType: []byte{b[59+certificateLength+1+2+2]},
-				Length:        b[59+certificateLength+1+2+2+1 : 59+certificateLength+1+2+2+1+3],
-			},
-		},
+		ServerHello:     serverHello,
+		Certificate:     certificate,
+		ServerHelloDone: serverHelloDone,
 	}
 }
 
@@ -341,6 +449,55 @@ type TLSClientKeyExchange struct {
 	ClientKeyExchange         *ClientKeyExchange
 	ChangeCipherSpecProtocol  *ChangeCipherSpecProtocol
 	EncryptedHandshakeMessage []byte
+}
+
+func ParsedTLSClientKeyexchange(b []byte) *TLSClientKeyExchange {
+	encryptedPreMasterLength := b[9:11]
+	clientKeyExchange := &ClientKeyExchange{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      b[3:5],
+		},
+		HandshakeProtocol: &TLSHandshakeProtocol{
+			HandshakeType: []byte{b[5]},
+			Length:        b[6:9],
+		},
+		RSAEncryptedPreMasterSecret: &RSAEncryptedPreMasterSecret{
+			EncryptedPreMasterLength: encryptedPreMasterLength,
+		},
+	}
+	nextPosition := 11
+	clientKeyExchange.RSAEncryptedPreMasterSecret.EncryptedPreMaster = b[nextPosition : nextPosition+bytesToInt(encryptedPreMasterLength)]
+	nextPosition += bytesToInt(encryptedPreMasterLength)
+
+	lengthOfChangeCipherSpecProtocol := b[nextPosition+3 : nextPosition+5]
+	changeCipherSpecProtocol := &ChangeCipherSpecProtocol{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[nextPosition]},
+			Version:     b[nextPosition+1 : nextPosition+3],
+			Length:      lengthOfChangeCipherSpecProtocol,
+		},
+		ChangeCipherSpecMessage: b[nextPosition+5 : nextPosition+5+bytesToInt(lengthOfChangeCipherSpecProtocol)],
+	}
+	nextPosition += 5 + bytesToInt(lengthOfChangeCipherSpecProtocol)
+
+	lengthOfEncryptedHandshakeMessage := b[nextPosition+3 : nextPosition+5]
+	encryptedHandshakeMessage := &EncryptedHandshakeMessage{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[nextPosition]},
+			Version:     b[nextPosition+1 : nextPosition+3],
+			Length:      lengthOfEncryptedHandshakeMessage,
+		},
+		EncryptedHandshakeMessage_: b[nextPosition+5 : nextPosition+5+bytesToInt(lengthOfEncryptedHandshakeMessage)],
+	}
+
+	return &TLSClientKeyExchange{
+		ClientKeyExchange:         clientKeyExchange,
+		ChangeCipherSpecProtocol:  changeCipherSpecProtocol,
+		EncryptedHandshakeMessage: encryptedHandshakeMessage.Bytes(),
+	}
+
 }
 
 func (tlsclientkeyexchange *TLSClientKeyExchange) Bytes() []byte {
@@ -403,6 +560,7 @@ func (e *EncryptedHandshakeMessage) Bytes() []byte {
 }
 
 const TLS_HANDSHAKE_TYPE_CLIENT_KEY_EXCHANGE = 0x10
+const TLS_HANDSHAKE_TYPE_CHANGE_CIPHER_SPEC = 0x14
 const TLS_HANDSHAKE_TYPE_FINISHED = 0x14
 
 func NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(clientHello *TLSClientHello, serverHello *TLSServerHello) (*TLSClientKeyExchange, *KeyBlock, int, []byte, []byte) {
@@ -637,6 +795,7 @@ type ForVerifing struct {
 	ClientFinished    []byte // 暗号化前の
 }
 
+// これは、自作 tls handshake 用で、Monitor に表示するためのものではない
 func ParsedTLSChangeCipherSpecAndFinished(b []byte, keyblock *KeyBlock, clientSequenceNum int, verifyingData *ForVerifing) *ChangeCipherSpecAndFinished {
 	finished := &Finished{
 		RecordLayer: &TLSRecordLayer{
@@ -729,10 +888,64 @@ func verifyTLSFinished(target []byte, v *ForVerifing) bool {
 	return bytes.Equal(target[4:], ret)
 }
 
-// こちらで作る分にはこのstructは不要
+// サーバから来る
+type TLSChangeCipherSpecAndEncryptedHandshakeMessage struct {
+	ChangeCipherSpecProtocol  *ChangeCipherSpecProtocol
+	EncryptedHandshakeMessage *EncryptedHandshakeMessage
+}
+
+func (t *TLSChangeCipherSpecAndEncryptedHandshakeMessage) Bytes() []byte {
+	buf := bytes.Buffer{}
+	buf.Write(t.ChangeCipherSpecProtocol.Bytes())
+	buf.Write(t.EncryptedHandshakeMessage.Bytes())
+	return buf.Bytes()
+}
+
+// これは、Monitor 表示用に、受信したものをただパースする関数
+func ParsedTLSChangeCipherSpecAndEncryptedHandshakeMessage(b []byte) *TLSChangeCipherSpecAndEncryptedHandshakeMessage {
+	lengthOfChangeCipherSpecProtocol := b[3:5]
+	changeCipherSpecProtocol := &ChangeCipherSpecProtocol{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      lengthOfChangeCipherSpecProtocol,
+		},
+		ChangeCipherSpecMessage: b[5 : 5+bytesToInt(lengthOfChangeCipherSpecProtocol)],
+	}
+	nextPosition := 5 + bytesToInt(lengthOfChangeCipherSpecProtocol)
+
+	lengthOfEncryptedHandshakeMessage := b[nextPosition+3 : nextPosition+5]
+	encryptedHandshakeMessage := &EncryptedHandshakeMessage{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[nextPosition]},
+			Version:     b[nextPosition+1 : nextPosition+3],
+			Length:      lengthOfEncryptedHandshakeMessage,
+		},
+	}
+	nextPosition += 5
+	encryptedHandshakeMessage.EncryptedHandshakeMessage_ = b[nextPosition : nextPosition+bytesToInt(lengthOfEncryptedHandshakeMessage)]
+
+	return &TLSChangeCipherSpecAndEncryptedHandshakeMessage{
+		ChangeCipherSpecProtocol:  changeCipherSpecProtocol,
+		EncryptedHandshakeMessage: encryptedHandshakeMessage,
+	}
+}
+
 type TLSApplicationData struct {
 	RecordLayer              *TLSRecordLayer
 	EncryptedApplicationData []byte
+}
+
+func ParsedTLSApplicationData(b []byte) *TLSApplicationData {
+	length := b[3:5]
+	return &TLSApplicationData{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      length,
+		},
+		EncryptedApplicationData: b[5 : 5+bytesToInt(length)],
+	}
 }
 
 func NewTLSApplicationData(data []byte, keyblock *KeyBlock, clientSequence int) []byte {
@@ -779,4 +992,30 @@ func (a *TLSApplicationData) Bytes() []byte {
 	b = append(b, a.RecordLayer.Bytes()...)
 	b = append(b, a.EncryptedApplicationData...)
 	return b
+}
+
+type TLSEncryptedAlert struct {
+	RecordLayer  *TLSRecordLayer
+	AlertMessage []byte
+}
+
+const TLS_CONTENT_TYPE_ALERT = 0x15
+
+func ParsedTLSEncryptedAlert(b []byte) *TLSEncryptedAlert {
+	length := b[3:5]
+	return &TLSEncryptedAlert{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      length,
+		},
+		AlertMessage: b[5 : 5+bytesToInt(length)],
+	}
+}
+
+func (t *TLSEncryptedAlert) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	buf.Write(t.RecordLayer.Bytes())
+	buf.Write(t.AlertMessage)
+	return buf.Bytes()
 }

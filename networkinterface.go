@@ -159,6 +159,10 @@ func ParsedPacket(recieved []byte) *Passive {
 					}
 				}
 				return passive
+
+			case PORT_HTTPS:
+				ParsedTLSToPassive(tcp, passive)
+				return passive
 			}
 
 			switch tcp.SrcPort {
@@ -168,6 +172,10 @@ func ParsedPacket(recieved []byte) *Passive {
 						passive.HTTPRes = httpRes
 					}
 				}
+				return passive
+
+			case PORT_HTTPS:
+				ParsedTLSToPassive(tcp, passive)
 				return passive
 			}
 

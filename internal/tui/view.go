@@ -76,6 +76,33 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 		viewers = append(viewers, &UDP{passive.UDP})
 		hexdump.UDP = passive.UDP
 	}
+
+	// TODO: どうにかしたい. TLS でまとめたい
+	if passive.TLSClientHello != nil {
+		viewers = append(viewers, &TLSv1_2_CLIENT_HELLO{passive.TLSClientHello})
+		hexdump.TLSClientHello = passive.TLSClientHello
+	}
+	if passive.TLSServerHello != nil {
+		viewers = append(viewers, &TLSv1_2_SERVER_HELLO{passive.TLSServerHello})
+		hexdump.TLSServerHello = passive.TLSServerHello
+	}
+	if passive.TLSClientKeyExchange != nil {
+		viewers = append(viewers, &TLSv1_2_ClientKeyExchange{passive.TLSClientKeyExchange})
+		hexdump.TLSClientKeyExchange = passive.TLSClientKeyExchange
+	}
+	if passive.TLSChangeCipherSpecAndEncryptedHandshakeMessage != nil {
+		viewers = append(viewers, &TLSv1_2_ChangeCipherSpecAndEncryptedHandshakeMessage{passive.TLSChangeCipherSpecAndEncryptedHandshakeMessage})
+		hexdump.TLSChangeCipherSpecAndEncryptedHandshakeMessage = passive.TLSChangeCipherSpecAndEncryptedHandshakeMessage
+	}
+	if passive.TLSApplicationData != nil {
+		viewers = append(viewers, &TLSv1_2_ApplicationData{passive.TLSApplicationData})
+		hexdump.TLSApplicationData = passive.TLSApplicationData
+	}
+	if passive.TLSEncryptedAlert != nil {
+		viewers = append(viewers, &TLSv1_2_EncryptedAlert{passive.TLSEncryptedAlert})
+		hexdump.TLSEncryptedAlert = passive.TLSEncryptedAlert
+	}
+
 	if passive.DNS != nil {
 		viewers = append(viewers, &DNS{passive.DNS})
 		hexdump.DNS = passive.DNS

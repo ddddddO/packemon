@@ -50,6 +50,7 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
   - [ ] TLSv1.2 (WIP)
     - [Currently there is only debug mode](./cmd/debugging/tls-server/README.md)
       - TCP 3way handshake ~ TLS handshake ~ TLS Application data
+  - [ ] TLSv1.3
   - [x] DNS (WIP)
   - [x] HTTP (WIP)
   - [ ] HTTP**S** (WIP)
@@ -80,6 +81,8 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
   - [ ] ICMPv6
   - [x] TCP (WIP)
   - [x] UDP
+  - [x] TLSv1.2 (WIP)
+  - [ ] TLSv1.3
   - [ ] DNS (WIP)
     - [x] DNS query
     - [x] DNS query response

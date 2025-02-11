@@ -366,8 +366,42 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 					return fmt.Errorf("not implemented under protocol: %s", selectedL4)
 				}
 			case "TLSv1.2":
-				// TODO:
-				// あわせて、3way handshake するかも
+				switch selectedL4 {
+				case "TCP":
+					if do3wayHandshakeForHTTP {
+						switch selectedL3 {
+						case "":
+							return fmt.Errorf("not implemented")
+						case "IPv4":
+							go packemon.EstablishTCPTLSv1_2AndSendPayload(
+								ctx,
+								DEFAULT_NW_INTERFACE,
+								s.packets.ethernet,
+								s.packets.ipv4,
+								s.packets.tcp,
+								s.packets.http.Bytes(),
+							)
+							return nil
+						case "IPv6":
+							return fmt.Errorf("not implemented")
+							// go packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
+							// 	ctx,
+							// 	DEFAULT_NW_INTERFACE,
+							// 	s.packets.ethernet,
+							// 	s.packets.ipv6,
+							// 	s.packets.tcp,
+							// 	s.packets.http.Bytes(),
+							// )
+							// return nil
+						case "ARP":
+							return fmt.Errorf("unsupported under protocol: %s", selectedL3)
+						default:
+							return fmt.Errorf("unsupported under protocol: %s", selectedL3)
+						}
+					} else {
+						return fmt.Errorf("require tcp 3way handshake")
+					}
+				}
 				return fmt.Errorf("not implemtented")
 			}
 		default:

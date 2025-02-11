@@ -11,7 +11,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/binary"
-	"log"
 )
 
 func ParsedTLSToPassive(tcp *TCP, p *Passive) {
@@ -142,36 +141,48 @@ const COMPRESSION_METHOD_NULL = 0x00
 var TLS_VERSION_1_2 = []byte{0x03, 0x03}
 
 func NewTLSClientHello() *TLSClientHello {
+	cipherSuites := []uint16{
+		// tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+		// tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+		// tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		// tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+		// tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, // github へ curl した時の server hello で、これが指定されていた。client hello ではこれの指定以外に、いくつか extension を指定しないとダメみたい
+		// tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+		// tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		// tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		// tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		// tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+
+		tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+
+		// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+		// tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+		// tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+		// tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+		// tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+	}
+
+	random := make([]byte, 32)
+	if _, err := rand.Read(random); err != nil {
+		panic(err)
+	}
+
 	handshake := &TLSHandshakeProtocol{
 		HandshakeType: []byte{TLS_HANDSHAKE_TYPE_CLIENT_HELLO},
 		Length:        []byte{0x00, 0x00, 0x00}, // 後で計算して求めるが、初期化のため
 		Version:       TLS_VERSION_1_2,
-		Random:        make([]byte, 32), // 000000....
-		SessionID:     []byte{0x00},
+
+		// TODO: debug 環境の https-server あてにリクエストするときは、以下を使う。復号される
+		// Random:        make([]byte, 32), // 000000....
+		Random: random,
+
+		SessionID: []byte{0x00},
 		// SessionID: make([]byte, 32),
 
-		// TODO: あれ、ここにCipherSuitesLength指定しないでいいの？
+		CipherSuitesLength: []byte{0x00, 0x02}, // 一旦固定
+		// CipherSuitesLength:       []byte{0x00, 0x04}, // 一旦固定
 
-		CipherSuites: []uint16{
-			// tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-			// tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-			// tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			// tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			// tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			// tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			// tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-			// tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-			// tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-			// tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-
-			tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-
-			// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			// tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-			// tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-			// tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-			// tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-		},
+		CipherSuites:             cipherSuites,
 		CompressionMethodsLength: []byte{0x00}, // 後で計算して求めるが、初期化のため
 		CompressionMethods:       []byte{COMPRESSION_METHOD_NULL},
 		ExtensionsLength:         []byte{0x00, 0x00}, // 後で計算して求めるが、初期化のため
@@ -304,10 +315,10 @@ func (c *Certificate) Validate() error {
 	// log.Printf("validation cert: \n%x\n", c.Certificates[3:])
 	certs, err := x509.ParseCertificates(c.Certificates[3:]) // TODO: 最初の3byteはCertificate Length
 	if err != nil {
-		log.Println(err)
+		// log.Println(err)
 		return err
 	}
-	log.Printf("certificate num: %d\n", len(certs))
+	// log.Printf("certificate num: %d\n", len(certs))
 	c.certs = certs
 
 	ospool, err := x509.SystemCertPool()
@@ -315,7 +326,7 @@ func (c *Certificate) Validate() error {
 		return err
 	}
 
-	log.Println("start verify server certificate")
+	// log.Println("start verify server certificate")
 	for i := len(c.certs) - 1; i >= 0; i-- {
 		opts := x509.VerifyOptions{}
 		if len(c.certs[i].DNSNames) == 0 {
@@ -323,12 +334,11 @@ func (c *Certificate) Validate() error {
 		} else {
 			opts.Roots = ospool
 			opts.DNSName = c.certs[i].DNSNames[0]
-
-			log.Printf("\tDNS name in server certificate: %s\n", c.certs[i].DNSNames[0])
+			// log.Printf("\tDNS name in server certificate: %s\n", c.certs[i].DNSNames[0])
 		}
 
 		if _, err := c.certs[i].Verify(opts); err != nil {
-			log.Printf("\tfailed to verify server certificate: %s\n", err)
+			// log.Printf("\tfailed to verify server certificate: %s\n", err)
 			// return err
 
 			// TODO: 以下対応までエラーとしないようにする
@@ -338,18 +348,18 @@ func (c *Certificate) Validate() error {
 			ospool.AddCert(c.certs[1])
 		}
 	}
-	log.Println("finish verify server certificate")
+	// log.Println("finish verify server certificate")
 	return nil
 }
 
 func (c *Certificate) ServerPublicKey() *rsa.PublicKey {
 	if len(c.certs) == 0 {
-		log.Println("nil ServerPublicKey")
+		// log.Println("nil ServerPublicKey")
 		return nil
 	}
 	pub, ok := c.certs[0].PublicKey.(*rsa.PublicKey)
 	if !ok {
-		log.Printf("not public key")
+		// log.Printf("not public key")
 		return nil
 	}
 	return pub
@@ -436,7 +446,7 @@ func parsedCipherSuites(b []byte) uint16 {
 		return tls.TLS_RSA_WITH_AES_128_GCM_SHA256
 	}
 
-	log.Printf("TLS not parsed CipherSuites: %x\n", b)
+	// log.Printf("TLS not parsed CipherSuites: %x\n", b)
 	return tls.TLS_RSA_WITH_AES_128_GCM_SHA256
 }
 
@@ -567,8 +577,8 @@ func NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(clientHello *TLSClien
 	publicKey := serverHello.Certificate.ServerPublicKey()
 	preMastersecret, encryptedPreMastersecret := generatePreMasterSecret(publicKey)
 
-	log.Printf("pre master secret:\n%x\n", preMastersecret)
-	log.Printf("encryptedPreMastersecret:\n%x\n", encryptedPreMastersecret)
+	// log.Printf("pre master secret:\n%x\n", preMastersecret)
+	// log.Printf("encryptedPreMastersecret:\n%x\n", encryptedPreMastersecret)
 
 	encryptedPreMasterLength := &bytes.Buffer{}
 	WriteUint16(encryptedPreMasterLength, uint16(len(encryptedPreMastersecret)))
@@ -608,7 +618,7 @@ func NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(clientHello *TLSClien
 	}
 
 	rawFinished, encrypted, keyblock, clientSequence, master := generateEncryptedHandshakeMessage(preMastersecret, clientHello, serverHello, clientKeyExchange)
-	log.Printf("Encrypted:\n%x\n", encrypted)
+	// log.Printf("Encrypted:\n%x\n", encrypted)
 
 	return &TLSClientKeyExchange{
 		ClientKeyExchange:         clientKeyExchange,
@@ -630,7 +640,7 @@ func generatePreMasterSecret(publicKey *rsa.PublicKey) ([]byte, []byte) {
 	preMasterSecret := append(clientVersion, random...)
 	encryptedPreMasterSecret, err := rsa.EncryptPKCS1v15(rand.Reader, publicKey, preMasterSecret)
 	if err != nil {
-		log.Println(err)
+		// log.Println(err)
 		return nil, nil
 	}
 	return preMasterSecret, encryptedPreMasterSecret
@@ -700,7 +710,7 @@ func encryptClientMessage(keyblock *KeyBlock, plaintext []byte) ([]byte, int) {
 	length := &bytes.Buffer{}
 	WriteUint16(length, uint16(len(plaintext)))
 
-	log.Printf("length.Bytes(): %x\n", length.Bytes())
+	// log.Printf("length.Bytes(): %x\n", length.Bytes())
 
 	h := &TLSRecordLayer{
 		ContentType: []byte{TLS_CONTENT_TYPE_HANDSHAKE},
@@ -797,35 +807,38 @@ type ForVerifing struct {
 
 // これは、自作 tls handshake 用で、Monitor に表示するためのものではない
 func ParsedTLSChangeCipherSpecAndFinished(b []byte, keyblock *KeyBlock, clientSequenceNum int, verifyingData *ForVerifing) *ChangeCipherSpecAndFinished {
-	finished := &Finished{
-		RecordLayer: &TLSRecordLayer{
-			ContentType: []byte{b[6]},
-			Version:     b[7:9],
-			Length:      b[9:11],
-		},
-		RawEncrypted: b[11:51], // TODO: とりあえずベタで指定
-	}
-
-	plaintext := decryptServerMessage(finished, keyblock, clientSequenceNum, TLS_CONTENT_TYPE_HANDSHAKE)
-	log.Printf("Finishe.decrypted text:\n%x\n", plaintext)
-	if verifyTLSFinished(plaintext, verifyingData) {
-		log.Println("Succeeded verify!!")
-	} else {
-		log.Println("Failed to verify...")
-	}
-
+	lengthOfChangeCipherSpecProtocol := b[3:5]
 	ret := &ChangeCipherSpecAndFinished{
 		ChangeCipherSpecProtocol: &ChangeCipherSpecProtocol{
 			RecordLayer: &TLSRecordLayer{
 				ContentType: []byte{b[0]},
 				Version:     b[1:3],
-				Length:      b[3:5],
+				Length:      lengthOfChangeCipherSpecProtocol,
 			},
-			ChangeCipherSpecMessage: []byte{b[5]},
+			ChangeCipherSpecMessage: b[5 : 5+bytesToInt(lengthOfChangeCipherSpecProtocol)],
 		},
-
-		Finished: finished,
 	}
+	nextPoint := 5 + bytesToInt(lengthOfChangeCipherSpecProtocol)
+
+	lengthOfFinished := b[nextPoint+3 : nextPoint+5]
+	finished := &Finished{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[nextPoint]},
+			Version:     b[nextPoint+1 : nextPoint+3],
+			Length:      lengthOfFinished,
+		},
+		RawEncrypted: b[nextPoint+5 : nextPoint+5+bytesToInt(lengthOfFinished)],
+	}
+	ret.Finished = finished
+
+	plaintext := decryptServerMessage(finished, keyblock, clientSequenceNum, TLS_CONTENT_TYPE_HANDSHAKE)
+	// log.Printf("Finishe.decrypted text:\n%x\n", plaintext)
+	if verifyTLSFinished(plaintext, verifyingData) {
+		// log.Println("Succeeded verify!!")
+	} else {
+		// log.Println("Failed to verify...")
+	}
+
 	return ret
 }
 
@@ -850,10 +863,10 @@ func decryptServerMessage(finished *Finished, keyblock *KeyBlock, clientSequence
 	WriteUint16(plainLength, uint16(l))
 	add = append(add, plainLength.Bytes()...)
 
-	log.Printf("nonce is : %x, ciphertext is %x, add is %x\n", nonce, ciphertext, add)
+	// log.Printf("nonce is : %x, ciphertext is %x, add is %x\n", nonce, ciphertext, add)
 	plaintext, err := aesgcm.Open(nil, nonce, ciphertext, add)
 	if err != nil {
-		log.Println(err)
+		// log.Println(err)
 		return nil
 	}
 
@@ -882,10 +895,12 @@ func verifyTLSFinished(target []byte, v *ForVerifing) bool {
 	messages := hasher.Sum(nil)
 
 	ret := prf(v.Master, []byte("server finished"), messages, 12)
-	log.Printf("target  : %x\n", target)
-	log.Printf("verifing: %x\n", ret)
-
-	return bytes.Equal(target[4:], ret)
+	// log.Printf("👺target  : %x\n", target)
+	// log.Printf("👺verifing: %x\n", ret)
+	if len(target) > 4 {
+		return bytes.Equal(target[4:], ret)
+	}
+	return false // FIXME:
 }
 
 // サーバから来る
@@ -958,7 +973,7 @@ func encryptApplicationData(keyblock *KeyBlock, plaintext []byte, clientSequence
 	length := &bytes.Buffer{}
 	WriteUint16(length, uint16(len(plaintext)))
 
-	log.Printf("length.Bytes(): %x\n", length.Bytes())
+	// log.Printf("length.Bytes(): %x\n", length.Bytes())
 
 	h := &TLSRecordLayer{
 		ContentType: []byte{TLS_CONTENT_TYPE_APPLICATION_DATA},

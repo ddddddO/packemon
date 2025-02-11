@@ -37,7 +37,7 @@ func main() {
 		//CurvePreferences: []tls.CurveID{tls.X25519},
 		KeyLogWriter: w,
 	}
-	tlsListener, err := tls.Listen("tcp", ":10443", config)
+	tlsListener, err := tls.Listen("tcp", ":443", config)
 	if err != nil {
 		log.Fatal(err)
 	}

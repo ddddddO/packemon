@@ -63,3 +63,31 @@ func (t *TLSv1_2_SERVER_HELLO) viewTable() *tview.Table {
 
 	return table
 }
+
+type TLSv1_2_ClientKeyExchange struct {
+	*packemon.TLSClientKeyExchange
+}
+
+func (*TLSv1_2_ClientKeyExchange) rows() int {
+	return 8
+}
+
+func (*TLSv1_2_ClientKeyExchange) columns() int {
+	return 30
+}
+
+func (t *TLSv1_2_ClientKeyExchange) viewTable() *tview.Table {
+	table := tview.NewTable().SetBorders(false)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLSv1.2 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+
+	table.SetCell(0, 0, tableCellTitle("Client Key eXchange"))
+	table.SetCell(0, 1, tableCellContent("%x", t.ClientKeyExchange.Bytes()))
+
+	table.SetCell(1, 0, tableCellTitle("Change Chiper Spec Protocol"))
+	table.SetCell(1, 1, tableCellContent("%x", t.ChangeCipherSpecProtocol.Bytes()))
+
+	table.SetCell(2, 0, tableCellTitle("Encrypted Handshake Message"))
+	table.SetCell(2, 1, tableCellContent("%x", t.EncryptedHandshakeMessage))
+
+	return table
+}

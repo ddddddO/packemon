@@ -15,6 +15,7 @@ type HexadecimalDump struct {
 	*packemon.UDP
 	*packemon.TLSClientHello
 	*packemon.TLSServerHello
+	*packemon.TLSClientKeyExchange
 	*packemon.DNS
 	*packemon.HTTP
 	*packemon.HTTPResponse
@@ -73,6 +74,8 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.2", h.TLSClientHello.Bytes())
 	case h.TLSServerHello != nil:
 		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.2", h.TLSServerHello.Bytes())
+	case h.TLSClientKeyExchange != nil:
+		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.2", h.TLSClientKeyExchange.Bytes())
 	}
 
 	// L7

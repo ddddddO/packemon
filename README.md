@@ -3,7 +3,7 @@
 Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ) <br>
 
 <!-- ![](./assets/packemon.gif) -->
-https://github.com/user-attachments/assets/d4ec78d1-ed1e-4c6e-8abe-70808742f549
+https://github.com/user-attachments/assets/dbb0baeb-a0b8-4e18-8647-ac05020f83d5
 
 TUI tool for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows and macOS. I have confirmed that it works on Linux (Debian and Ubuntu on WSL2) .**<br>
 
@@ -156,22 +156,22 @@ $ apk add --allow-untrusted packemon.apk
 
     ← Generator | Monitor →
 
-    ![](./assets/sending_dns_query_and_monitoring_dns_response/1.png)
+    ![](./assets/packemon_dns.png)
 
 2. Generator
-    - `Protocols` > `Ethernet` > `Ether Type` > **IPv4**
-    - `Protocols` > `IPv4` > `Protocol` > **UDP**
-    - `Protocols` > `IPv4` > `Destination IP Addr` > **1.1.1.1**
+    - `Lα` > `Ethernet` > `Ether Type` > **IPv4**
+    - `Lβ` > `IPv4` > `Protocol` > **UDP**
+    - `Lβ` > `IPv4` > `Destination IP Addr` > **1.1.1.1**
       - Enter the address of DNS resolver here. Above is the address of Cloudflare resolver.
-    - `Protocols` > `UDP` > `Destination Port` > **53**
-    - `Protocols` > `UDP` > `Automatically calculate length ?` > **(Check!)**
-    - `Protocols` > `DNS` > `Queries Domain` > **go.dev**
+    - `Lγ` > `UDP` > `Destination Port` > **53**
+    - `Lγ` > `UDP` > `Automatically calculate length ?` > **(Check!)**
+    - `Lε` > `DNS` > `Queries Domain` > **go.dev**
       - Enter here the domain for which you want to name resolution.
 
-    - `Protocols` > `DNS` > Click on **Send!**
+    - `Lε` > `DNS` > Click on **Send!**
       - At this time, DNS query is sent with the contents set so far.
 
-    ![](./assets/sending_dns_query_and_monitoring_dns_response/2.png)
+    ![](./assets/packemon_dns_response_2.png)
 
 3. Monitor
 

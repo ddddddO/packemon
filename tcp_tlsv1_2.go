@@ -180,7 +180,8 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 						// SeverHello(0x02)
 						if bytes.Equal(tlsHandshakeType, []byte{0x02}) && bytes.Equal(tlsContentType, []byte{TLS_CONTENT_TYPE_HANDSHAKE}) {
 							// TODO: server から、ServerHello/Certificate/ServerHelloDone でひとまとまりで返ってくればパースできるが、ServerHello と Certificate/ServerHelloDone がわかれて返ってくることがある。それで失敗してるよう？
-							// 分かれてるとき、ServerHell はフラグが ACK だけど、分かれてないとき PSH/ACK
+							// 分かれてるとき、ServerHello はフラグが ACK だけど、分かれてないとき PSH/ACK
+							//  <- そうでもなかった、環境によるみたい。example.com にリクエストすると ServerHello 単体パケットで PSH/ACK
 							tlsServerHello = ParsedTLSServerHello(tcp.Data)
 							if err := tlsServerHello.Certificate.Validate(); err != nil {
 								return err

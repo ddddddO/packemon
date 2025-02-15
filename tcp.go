@@ -262,7 +262,6 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 				if err := nw.Send(ethernetFrame); err != nil {
 					return err
 				}
-				tcpConn.SetState(TCP_STATE_3WAY_HANDSHAKE_SEND_ACK)
 				tcpConn.EstablishedConnection()
 
 				tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, upperLayerData, tcp.Sequence, tcp.Acknowledgment)
@@ -419,7 +418,6 @@ func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterfac
 				if err := nw.Send(ethernetFrame); err != nil {
 					return err
 				}
-				tcpConn.SetState(TCP_STATE_3WAY_HANDSHAKE_SEND_ACK)
 				tcpConn.EstablishedConnection()
 
 				tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, upperLayerData, tcp.Sequence, tcp.Acknowledgment)

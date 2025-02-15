@@ -78,7 +78,6 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 			if err := nw.Send(ethernetFrame); err != nil {
 				return err
 			}
-			tcpConn.SetState(TCP_STATE_3WAY_HANDSHAKE_SEND_ACK)
 			tcpConn.EstablishedConnection()
 
 			// ここで TLS Client Helloを送る

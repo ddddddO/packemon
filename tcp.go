@@ -361,14 +361,13 @@ func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterfac
 		return err
 	}
 
-	var srcPort uint16 = fTcp.SrcPort
-	var dstPort uint16 = fTcp.DstPort
 	var srcIPAddr []uint8 = fIpv6.SrcAddr
 	var dstIPAddr []uint8 = fIpv6.DstAddr
 	dstMACAddr := fEthrh.Dst
 	srcMACAddr := fEthrh.Src
 
-	tcp := NewTCPSyn(srcPort, dstPort)
+	tcpConn := NewTCPConnection(fTcp.SrcPort, fTcp.DstPort)
+	tcp := NewTCPSyn(tcpConn.SrcPort, tcpConn.DstPort)
 	ipv6 := NewIPv6(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 	tcp.CalculateChecksumForIPv6(ipv6)
 
@@ -406,12 +405,12 @@ func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterfac
 					tcp := ParsedTCP(ipv6.Data)
 
 					switch tcp.DstPort {
-					case srcPort: // synパケットの送信元ポート
+					case tcpConn.SrcPort: // synパケットの送信元ポート
 						if tcp.Flags == TCP_FLAGS_SYN_ACK {
 							// log.Println("passive TCP_FLAGS_SYN_ACK")
 
 							// syn/ackを受け取ったのでack送信
-							tcp := NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+							tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
 							ipv6 := NewIPv6(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 							tcp.CalculateChecksumForIPv6(ipv6)
 
@@ -423,7 +422,7 @@ func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterfac
 								return err
 							}
 
-							tcp = NewTCPWithData(srcPort, dstPort, upperLayerData, tcp.Sequence, tcp.Acknowledgment)
+							tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, upperLayerData, tcp.Sequence, tcp.Acknowledgment)
 							ipv6 = NewIPv6(IPv6_NEXT_HEADER_TCP, srcIPAddr, dstIPAddr)
 							tcp.CalculateChecksumForIPv6(ipv6)
 
@@ -459,7 +458,7 @@ func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterfac
 								// そのackを返す
 								// log.Printf("Length of http resp: %d\n", resp.Len())
 
-								tcp := NewTCPAckForPassiveData(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
+								tcp := NewTCPAckForPassiveData(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
 								ipv6 := NewIPv6(IPv6_NEXT_HEADER_TCP, srcIPAddr, dstIPAddr)
 								tcp.CalculateChecksumForIPv6(ipv6)
 
@@ -472,7 +471,7 @@ func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterfac
 								}
 
 								// 続けてFinAck
-								tcp = NewTCPFinAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+								tcp = NewTCPFinAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
 								ipv6 = NewIPv6(IPv6_NEXT_HEADER_TCP, srcIPAddr, dstIPAddr)
 								tcp.CalculateChecksumForIPv6(ipv6)
 
@@ -491,7 +490,7 @@ func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterfac
 							// log.Println("passive TCP_FLAGS_FIN_ACK")
 
 							// それにack
-							tcp := NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+							tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
 							ipv6 := NewIPv6(IPv6_NEXT_HEADER_TCP, srcIPAddr, dstIPAddr)
 							tcp.CalculateChecksumForIPv6(ipv6)
 

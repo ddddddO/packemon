@@ -7,6 +7,8 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+const IP_PAYLOAD_MAX_LENGTH = 1500 - 14 // =1486byte(IPヘッダ含む。14byteはEthernetヘッダ分)
+
 // TCP 3way handshake と TLSv1.2 の handshake 後にリクエストする関数
 func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv4 *IPv4, fTcp *TCP, upperLayerData []byte) error {
 	nw, err := NewNetworkInterface(nwInterface)
@@ -57,6 +59,8 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 		}
 
 		tcp := ParsedTCP(ipv4.Data)
+		// TODO: このあたりで(10)443ポートがdstで絞った方がいいかも
+
 		if tcpConn.IsPassiveSynAckForHandshake(tcp) {
 			// syn/ackを受け取ったのでack送信
 			tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
@@ -82,7 +86,6 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 		}
 
 		// ServerHello/Certificate/ServerHelloDone がセグメント分割されたパケットで届くことが多々あるため、このブロック内で連続して受信している
-		// TODO: (10)443ポートがdstで絞った方がいいかも
 		if tcpConn.IsPassiveAck(tcp) && tlsConn.IsPassiveServerHello(tcp) {
 			for {
 				recieved := make([]byte, 1500)
@@ -155,7 +158,6 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 		}
 
 		// ServerHelloを受信
-		// TODO: (10)443ポートがdstで絞った方がいいかも
 		// SeverHello(0x02)
 		if tcpConn.IsPassivePshAck(tcp) && tlsConn.IsPassiveServerHello(tcp) {
 			// TODO: server から、ServerHello/Certificate/ServerHelloDone でひとまとまりで返ってくればパースできるが、ServerHello と Certificate/ServerHelloDone がわかれて返ってくることがある。それで失敗してるよう？
@@ -202,7 +204,6 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 		}
 
 		// ChangeCipherSpec/Finishedを受信
-		// TODO: (10)443ポートがdstとかもっと絞った方がいいかも
 		if tcpConn.IsPassivePshAck(tcp) && tlsConn.IsPassiveChangeCipherSpecAndFinished(tcp) {
 			tlsChangeCiperSpecAndFinished := ParsedTLSChangeCipherSpecAndFinished(tcp.Data, tlsConn.KeyBlock, tlsConn.ClientSequence, tlsConn.VerifingData())
 			_ = tlsChangeCiperSpecAndFinished

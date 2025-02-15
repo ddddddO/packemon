@@ -199,14 +199,14 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 		return err
 	}
 
-	var srcPort uint16 = fTcp.SrcPort
-	var dstPort uint16 = fTcp.DstPort
 	var srcIPAddr uint32 = fIpv4.SrcAddr
 	var dstIPAddr uint32 = fIpv4.DstAddr
 	dstMACAddr := fEthrh.Dst
 	srcMACAddr := fEthrh.Src
 
-	tcp := NewTCPSyn(srcPort, dstPort)
+	tcpConn := NewTCPConnection(fTcp.SrcPort, fTcp.DstPort)
+	tcp := NewTCPSyn(tcpConn.SrcPort, tcpConn.DstPort)
+
 	ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 	tcp.CalculateChecksum(ipv4)
 
@@ -218,6 +218,7 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 	if err := nw.Send(ethernetFrame); err != nil {
 		return err
 	}
+	tcpConn.SetState(TCP_STATE_3WAY_HANDSHAKE_SEND_SYN)
 
 	for {
 		select {
@@ -244,13 +245,61 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 				case IPv4_PROTO_TCP:
 					tcp := ParsedTCP(ipv4.Data)
 
-					switch tcp.DstPort {
-					case srcPort: // synパケットの送信元ポート
-						if tcp.Flags == TCP_FLAGS_SYN_ACK {
-							// log.Println("passive TCP_FLAGS_SYN_ACK")
+					if tcpConn.IsPassiveSynAckForHandshake(tcp) {
+						// log.Println("passive TCP_FLAGS_SYN_ACK")
 
-							// syn/ackを受け取ったのでack送信
-							tcp := NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+						// syn/ackを受け取ったのでack送信
+						tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
+						ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+						tcp.CalculateChecksum(ipv4)
+
+						ipv4.Data = tcp.Bytes()
+						ipv4.CalculateTotalLength()
+						ipv4.CalculateChecksum()
+
+						ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+						if err := nw.Send(ethernetFrame); err != nil {
+							return err
+						}
+						tcpConn.SetState(TCP_STATE_3WAY_HANDSHAKE_SEND_ACK)
+						tcpConn.EstablishedConnection()
+
+						tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, upperLayerData, tcp.Sequence, tcp.Acknowledgment)
+						ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+						tcp.CalculateChecksum(ipv4)
+
+						ipv4.Data = tcp.Bytes()
+						ipv4.CalculateTotalLength()
+						ipv4.CalculateChecksum()
+
+						ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+						if err := nw.Send(ethernetFrame); err != nil {
+							return err
+						}
+
+						continue
+					}
+
+					if tcpConn.IsPassiveAck(tcp) {
+						// log.Println("passive TCP_FLAGS_ACK")
+						continue
+					}
+
+					if tcpConn.IsPassivePshAck(tcp) {
+						lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
+						if lineLength == -1 {
+							// log.Println("-1")
+							continue
+						}
+						// log.Println("passive TCP_FLAGS_PSH_ACK")
+
+						// HTTPレスポンス受信
+						if tcp.SrcPort == PORT_HTTP {
+							resp := ParsedHTTPResponse(tcp.Data)
+							// log.Printf("%+v\n", resp)
+
+							// そのackを返す
+							tcp := NewTCPAckForPassiveData(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
 							ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 							tcp.CalculateChecksum(ipv4)
 
@@ -263,7 +312,8 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 								return err
 							}
 
-							tcp = NewTCPWithData(srcPort, dstPort, upperLayerData, tcp.Sequence, tcp.Acknowledgment)
+							// 続けてFinAck
+							tcp = NewTCPFinAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
 							ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 							tcp.CalculateChecksum(ipv4)
 
@@ -275,84 +325,31 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 							if err := nw.Send(ethernetFrame); err != nil {
 								return err
 							}
-
-							continue
 						}
-
-						if tcp.Flags == TCP_FLAGS_ACK {
-							// log.Println("passive TCP_FLAGS_ACK")
-							continue
-						}
-
-						if tcp.Flags == TCP_FLAGS_PSH_ACK {
-							lineLength := bytes.Index(tcp.Data, []byte{0x0d, 0x0a}) // "\r\n"
-							if lineLength == -1 {
-								// log.Println("-1")
-								continue
-							}
-							// log.Println("passive TCP_FLAGS_PSH_ACK")
-
-							// HTTPレスポンス受信
-							if tcp.SrcPort == PORT_HTTP {
-								resp := ParsedHTTPResponse(tcp.Data)
-								// log.Printf("%+v\n", resp)
-
-								// そのackを返す
-								// log.Printf("Length of http resp: %d\n", resp.Len())
-
-								tcp := NewTCPAckForPassiveData(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment, resp.Len())
-								ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-								tcp.CalculateChecksum(ipv4)
-
-								ipv4.Data = tcp.Bytes()
-								ipv4.CalculateTotalLength()
-								ipv4.CalculateChecksum()
-
-								ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-								if err := nw.Send(ethernetFrame); err != nil {
-									return err
-								}
-
-								// 続けてFinAck
-								tcp = NewTCPFinAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
-								ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-								tcp.CalculateChecksum(ipv4)
-
-								ipv4.Data = tcp.Bytes()
-								ipv4.CalculateTotalLength()
-								ipv4.CalculateChecksum()
-
-								ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-								if err := nw.Send(ethernetFrame); err != nil {
-									return err
-								}
-							}
-							continue
-						}
-
-						if tcp.Flags == TCP_FLAGS_FIN_ACK {
-							// log.Println("passive TCP_FLAGS_FIN_ACK")
-
-							// それにack
-							tcp := NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
-							ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-							tcp.CalculateChecksum(ipv4)
-
-							ipv4.Data = tcp.Bytes()
-							ipv4.CalculateTotalLength()
-							ipv4.CalculateChecksum()
-
-							ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-							if err := nw.Send(ethernetFrame); err != nil {
-								return err
-							}
-							return nil
-						}
-
 						continue
-					default:
-						// noop
 					}
+
+					if tcpConn.IsPassiveFinAck(tcp) {
+						// log.Println("passive TCP_FLAGS_FIN_ACK")
+
+						// それにack
+						tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
+						ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+						tcp.CalculateChecksum(ipv4)
+
+						ipv4.Data = tcp.Bytes()
+						ipv4.CalculateTotalLength()
+						ipv4.CalculateChecksum()
+
+						ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+						if err := nw.Send(ethernetFrame); err != nil {
+							return err
+						}
+						tcpConn.Close()
+						return nil
+					}
+
+					continue
 				}
 			}
 		}

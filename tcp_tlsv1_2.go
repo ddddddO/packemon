@@ -14,14 +14,13 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 		return err
 	}
 
-	srcPort := fTcp.SrcPort
-	dstPort := fTcp.DstPort
 	srcIPAddr := fIpv4.SrcAddr
 	dstIPAddr := fIpv4.DstAddr
 	srcMACAddr := fEthrh.Src
 	dstMACAddr := fEthrh.Dst
 
-	tcp := NewTCPSyn(srcPort, dstPort)
+	tcpConn := NewTCPConnection(fTcp.SrcPort, fTcp.DstPort)
+	tcp := NewTCPSyn(tcpConn.SrcPort, tcpConn.DstPort)
 	ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 	tcp.CalculateChecksum(ipv4)
 
@@ -33,6 +32,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 	if err := nw.Send(ethernetFrame); err != nil {
 		return err
 	}
+	tcpConn.SetState(TCP_STATE_3WAY_HANDSHAKE_SEND_SYN)
 
 	tlsClientHello := NewTLSClientHello()
 	var tlsServerHello *TLSServerHello
@@ -64,10 +64,10 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 				tcp := ParsedTCP(ipv4.Data)
 
 				switch tcp.DstPort {
-				case srcPort: // synパケットの送信元ポート
+				case tcpConn.SrcPort: // synパケットの送信元ポート
 					if tcp.Flags == TCP_FLAGS_SYN_ACK {
 						// syn/ackを受け取ったのでack送信
-						tcp := NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+						tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
 						ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 						tcp.CalculateChecksum(ipv4)
 
@@ -81,7 +81,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 						}
 
 						// ここで TLS Client Helloを送る
-						if err := SendTLSClientHello(nw, tlsClientHello, srcPort, dstPort, srcIPAddr, dstIPAddr, dstMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
+						if err := SendTLSClientHello(nw, tlsClientHello, tcpConn.SrcPort, tcpConn.DstPort, srcIPAddr, dstIPAddr, dstMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
 							return err
 						}
 
@@ -130,7 +130,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 									}
 
 									// ackを返し
-									tcp := NewTCPAck(srcPort, dstPort, t.Sequence, t.Acknowledgment)
+									tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, t.Sequence, t.Acknowledgment)
 									ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 									tcp.CalculateChecksum(ipv4)
 
@@ -148,7 +148,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 										tlsClientHello,
 										tlsServerHello,
 									)
-									tcp = NewTCPWithData(srcPort, dstPort, tlsClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+									tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
 									ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 									tcp.CalculateChecksum(ipv4)
 
@@ -188,7 +188,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 							}
 
 							// ackを返し
-							tcp := NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+							tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
 							ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 							tcp.CalculateChecksum(ipv4)
 
@@ -206,7 +206,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 								tlsClientHello,
 								tlsServerHello,
 							)
-							tcp = NewTCPWithData(srcPort, dstPort, tlsClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+							tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
 							ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 							tcp.CalculateChecksum(ipv4)
 
@@ -241,7 +241,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 							clientSequence++
 							tlsApplicationData := NewTLSApplicationData(upperLayerData, keyblock, clientSequence)
 
-							tcp = NewTCPWithData(srcPort, dstPort, tlsApplicationData, tcp.Acknowledgment, tcp.Sequence)
+							tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsApplicationData, tcp.Acknowledgment, tcp.Sequence)
 							ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 							tcp.CalculateChecksum(ipv4)
 
@@ -260,7 +260,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 
 					if tcp.Flags == TCP_FLAGS_FIN_ACK {
 						// それにack
-						tcp := NewTCPAck(srcPort, dstPort, tcp.Sequence, tcp.Acknowledgment)
+						tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
 						ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 						tcp.CalculateChecksum(ipv4)
 

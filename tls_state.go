@@ -45,3 +45,13 @@ func (t *TLSv12Connection) IsPassiveChangeCipherSpecAndFinished(tcp *TCP) bool {
 	tlsContentType := []byte{tcp.Data[0]}
 	return bytes.Equal(tlsContentType, []byte{TLS_CONTENT_TYPE_CHANGE_CIPHER_SPEC})
 }
+
+func (t *TLSv12Connection) VerifingData() *ForVerifing {
+	return &ForVerifing{
+		Master:            t.Master,
+		ClientHello:       t.TLSClientHello,
+		ServerHello:       t.TLSServerHello,
+		ClientKeyExchange: t.TLSClientKeyExchange.ClientKeyExchange,
+		ClientFinished:    t.TLSClientFinished,
+	}
+}

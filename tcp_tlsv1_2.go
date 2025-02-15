@@ -204,14 +204,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 		// ChangeCipherSpec/Finishedを受信
 		// TODO: (10)443ポートがdstとかもっと絞った方がいいかも
 		if tcpConn.IsPassivePshAck(tcp) && tlsConn.IsPassiveChangeCipherSpecAndFinished(tcp) {
-			verifingData := &ForVerifing{
-				Master:            tlsConn.Master,
-				ClientHello:       tlsConn.TLSClientHello,
-				ServerHello:       tlsConn.TLSServerHello,
-				ClientKeyExchange: tlsConn.TLSClientKeyExchange.ClientKeyExchange,
-				ClientFinished:    tlsConn.TLSClientFinished,
-			}
-			tlsChangeCiperSpecAndFinished := ParsedTLSChangeCipherSpecAndFinished(tcp.Data, tlsConn.KeyBlock, tlsConn.ClientSequence, verifingData)
+			tlsChangeCiperSpecAndFinished := ParsedTLSChangeCipherSpecAndFinished(tcp.Data, tlsConn.KeyBlock, tlsConn.ClientSequence, tlsConn.VerifingData())
 			_ = tlsChangeCiperSpecAndFinished
 
 			// TODO: 上のParsed内でserverからきたFinishedの検証してるけど、この辺りに持ってきた方がいいかも

@@ -35,14 +35,6 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 	tcpConn.SetState(TCP_STATE_3WAY_HANDSHAKE_SEND_SYN)
 
 	tlsConn := NewTLSv12Connection()
-	tlsClientHello := NewTLSClientHello()
-	var tlsServerHello *TLSServerHello
-	var tlsClientKeyExchange *TLSClientKeyExchange
-	var tlsClientFinished []byte
-
-	var keyblock *KeyBlock
-	var clientSequence int
-	var master []byte
 
 	for {
 		recieved := make([]byte, 1500)
@@ -82,7 +74,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 			tcpConn.EstablishedConnection()
 
 			// ここで TLS Client Helloを送る
-			if err := SendTLSClientHello(nw, tlsClientHello, tcpConn.SrcPort, tcpConn.DstPort, srcIPAddr, dstIPAddr, dstMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
+			if err := SendTLSClientHello(nw, tlsConn.TLSClientHello, tcpConn.SrcPort, tcpConn.DstPort, srcIPAddr, dstIPAddr, dstMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
 				return err
 			}
 
@@ -117,8 +109,8 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 					}
 					mergedTCPData := append(tmp1, tmp2...)
 
-					tlsServerHello = ParsedTLSServerHello(mergedTCPData)
-					if err := tlsServerHello.Certificate.Validate(); err != nil {
+					tlsConn.TLSServerHello = ParsedTLSServerHello(mergedTCPData)
+					if err := tlsConn.TLSServerHello.Certificate.Validate(); err != nil {
 						return err
 					}
 
@@ -137,11 +129,11 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 					}
 
 					// さらに ClientKeyExchange や Finished などを返す
-					tlsClientKeyExchange, keyblock, clientSequence, master, tlsClientFinished = NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(
-						tlsClientHello,
-						tlsServerHello,
+					tlsConn.TLSClientKeyExchange, tlsConn.KeyBlock, tlsConn.ClientSequence, tlsConn.Master, tlsConn.TLSClientFinished = NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(
+						tlsConn.TLSClientHello,
+						tlsConn.TLSServerHello,
 					)
-					tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+					tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsConn.TLSClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
 					ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 					tcp.CalculateChecksum(ipv4)
 
@@ -169,8 +161,8 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 			// TODO: server から、ServerHello/Certificate/ServerHelloDone でひとまとまりで返ってくればパースできるが、ServerHello と Certificate/ServerHelloDone がわかれて返ってくることがある。それで失敗してるよう？
 			// 分かれてるとき、ServerHello はフラグが ACK だけど、分かれてないとき PSH/ACK
 			//  <- そうでもなかった、環境によるみたい。example.com にリクエストすると ServerHello 単体パケットで PSH/ACK
-			tlsServerHello = ParsedTLSServerHello(tcp.Data)
-			if err := tlsServerHello.Certificate.Validate(); err != nil {
+			tlsConn.TLSServerHello = ParsedTLSServerHello(tcp.Data)
+			if err := tlsConn.TLSServerHello.Certificate.Validate(); err != nil {
 				return err
 			}
 
@@ -189,11 +181,11 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 			}
 
 			// さらに ClientKeyExchange や Finished などを返す
-			tlsClientKeyExchange, keyblock, clientSequence, master, tlsClientFinished = NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(
-				tlsClientHello,
-				tlsServerHello,
+			tlsConn.TLSClientKeyExchange, tlsConn.KeyBlock, tlsConn.ClientSequence, tlsConn.Master, tlsConn.TLSClientFinished = NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(
+				tlsConn.TLSClientHello,
+				tlsConn.TLSServerHello,
 			)
-			tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+			tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsConn.TLSClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
 			ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 			tcp.CalculateChecksum(ipv4)
 
@@ -213,20 +205,20 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 		// TODO: (10)443ポートがdstとかもっと絞った方がいいかも
 		if tcpConn.IsPassivePshAck(tcp) && tlsConn.IsPassiveChangeCipherSpecAndFinished(tcp) {
 			verifingData := &ForVerifing{
-				Master:            master,
-				ClientHello:       tlsClientHello,
-				ServerHello:       tlsServerHello,
-				ClientKeyExchange: tlsClientKeyExchange.ClientKeyExchange,
-				ClientFinished:    tlsClientFinished,
+				Master:            tlsConn.Master,
+				ClientHello:       tlsConn.TLSClientHello,
+				ServerHello:       tlsConn.TLSServerHello,
+				ClientKeyExchange: tlsConn.TLSClientKeyExchange.ClientKeyExchange,
+				ClientFinished:    tlsConn.TLSClientFinished,
 			}
-			tlsChangeCiperSpecAndFinished := ParsedTLSChangeCipherSpecAndFinished(tcp.Data, keyblock, clientSequence, verifingData)
+			tlsChangeCiperSpecAndFinished := ParsedTLSChangeCipherSpecAndFinished(tcp.Data, tlsConn.KeyBlock, tlsConn.ClientSequence, verifingData)
 			_ = tlsChangeCiperSpecAndFinished
 
 			// TODO: 上のParsed内でserverからきたFinishedの検証してるけど、この辺りに持ってきた方がいいかも
 
 			// Finishedの検証が成功したので、以降からApplicationDataをやりとり
-			clientSequence++
-			tlsApplicationData := NewTLSApplicationData(upperLayerData, keyblock, clientSequence)
+			tlsConn.ClientSequence++
+			tlsApplicationData := NewTLSApplicationData(upperLayerData, tlsConn.KeyBlock, tlsConn.ClientSequence)
 
 			tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsApplicationData, tcp.Acknowledgment, tcp.Sequence)
 			ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)

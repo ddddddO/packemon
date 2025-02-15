@@ -12,11 +12,21 @@ const (
 type TLSv12Connection struct {
 	currentState TLSv12State
 	established  bool
+
+	TLSClientHello       *TLSClientHello
+	TLSServerHello       *TLSServerHello
+	TLSClientKeyExchange *TLSClientKeyExchange
+	TLSClientFinished    []byte
+	KeyBlock             *KeyBlock
+	ClientSequence       int
+	Master               []byte
 }
 
 func NewTLSv12Connection() *TLSv12Connection {
 	return &TLSv12Connection{
 		currentState: TLSv12_STATE_INIT,
+
+		TLSClientHello: NewTLSClientHello(),
 	}
 }
 

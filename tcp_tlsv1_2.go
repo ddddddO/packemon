@@ -109,7 +109,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 					ip := ParsedIPv4(eth.Data)
 					t := ParsedTCP(ip.Data)
 
-					if t.Flags == TCP_FLAGS_PSH_ACK {
+					if tcpConn.IsPassivePshAck(t) {
 						// tcp data の末尾の0パディングを取り除く
 						tmp1 := tcp.Data
 						for offset := len(tcp.Data) - 2; bytes.Equal(tcp.Data[offset:offset+2], []byte{00, 00}); offset -= 2 {
@@ -249,7 +249,8 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 					return err
 				}
 
-				// TODO: 本当なら Application Data 送ったあと、ack 受けたら、こちらから finack 送りたい
+				// TODO: 本当なら Application Data 送ったあとにまた向こうからそのレスポンス（Application Data）を受けた後に finack しないといけない
+				//       現状、リクエスト続けてる
 
 				continue
 			}

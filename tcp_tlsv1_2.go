@@ -210,6 +210,8 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 
 			// TODO: 上のParsed内でserverからきたFinishedの検証してるけど、この辺りに持ってきた方がいいかも
 
+			tlsConn.EstablishedConnection()
+
 			// Finishedの検証が成功したので、以降からApplicationDataをやりとり
 			tlsConn.ClientSequence++
 			tlsApplicationData := NewTLSApplicationData(upperLayerData, tlsConn.KeyBlock, tlsConn.ClientSequence)
@@ -226,10 +228,49 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 			if err := nw.Send(ethernetFrame); err != nil {
 				return err
 			}
+			tlsConn.SetState(TLSv12_STATE_SEND_APPLICATION_DATA)
 
-			// TODO: 本当なら Application Data 送ったあとにまた向こうからそのレスポンス（Application Data）を受けた後に finack しないといけない
-			//       現状、リクエスト続けてる
+			continue
+		}
 
+		// 送信した Application Data に対するレスポンスを受けて FinAck 送信
+		if tcpConn.IsPassivePshAck(tcp) && tlsConn.IsSendApplicationData() {
+			// 受信した Application Data を復号
+			lengthOfEncrypted := bytesToInt(tcp.Data[3:5])
+			encrypted := tcp.Data[5 : 5+lengthOfEncrypted]
+			decrypted := DecryptApplicationData(encrypted, tlsConn.KeyBlock, tlsConn.ClientSequence)
+			// log.Printf("👺decrypted application data: %x, %s\n", decrypted, string(decrypted))
+			_ = decrypted
+
+			// TLS handshake の終了開始
+			tlsConn.ClientSequence++
+			tlsEncryptedAlert, _ := EncryptClientMessageForAlert(tlsConn.KeyBlock, tlsConn.ClientSequence, []byte{0x01, 0x00})
+			tcp := NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsEncryptedAlert, tcp.Acknowledgment, tcp.Sequence)
+			ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+			tcp.CalculateChecksum(ipv4)
+
+			ipv4.Data = tcp.Bytes()
+			ipv4.CalculateTotalLength()
+			ipv4.CalculateChecksum()
+
+			ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+			if err := nw.Send(ethernetFrame); err != nil {
+				return err
+			}
+
+			// 続けてFinAck
+			tcp = NewTCPFinAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence+uint32(len(tcp.Data)), tcp.Acknowledgment)
+			ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+			tcp.CalculateChecksum(ipv4)
+
+			ipv4.Data = tcp.Bytes()
+			ipv4.CalculateTotalLength()
+			ipv4.CalculateChecksum()
+
+			ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+			if err := nw.Send(ethernetFrame); err != nil {
+				return err
+			}
 			continue
 		}
 
@@ -247,6 +288,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 			if err := nw.Send(ethernetFrame); err != nil {
 				return err
 			}
+			tlsConn.Close()
 			tcpConn.Close()
 			return nil
 		}

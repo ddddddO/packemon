@@ -740,6 +740,40 @@ func encryptClientMessage(keyblock *KeyBlock, plaintext []byte) ([]byte, int) {
 	return encryptedMessage, clientSequence
 }
 
+// TODO: 上の encryptClientMessage と共通化を
+func EncryptClientMessageForAlert(keyblock *KeyBlock, clientSequence int, plaintext []byte) ([]byte, int) {
+	length := &bytes.Buffer{}
+	WriteUint16(length, uint16(len(plaintext)))
+
+	// log.Printf("length.Bytes(): %x\n", length.Bytes())
+
+	h := &TLSRecordLayer{
+		ContentType: []byte{TLS_CONTENT_TYPE_ALERT},
+		Version:     TLS_VERSION_1_2,
+		Length:      length.Bytes(),
+	}
+	header := h.Bytes()
+	record_seq := append(header, getNonce(clientSequence, 8)...)
+
+	nonce := keyblock.ClientWriteIV
+	nonce = append(nonce, getNonce(clientSequence, 8)...)
+
+	add := getNonce(clientSequence, 8)
+	add = append(add, header...)
+
+	block, _ := aes.NewCipher(keyblock.ClientWriteKey)
+	aesgcm, _ := cipher.NewGCM(block)
+
+	encryptedMessage := aesgcm.Seal(record_seq, nonce, plaintext, add)
+	tmp := &bytes.Buffer{}
+	WriteUint16(tmp, uint16(len(encryptedMessage)-5))
+	updatelength := tmp.Bytes()
+	encryptedMessage[3] = updatelength[0]
+	encryptedMessage[4] = updatelength[1]
+
+	return encryptedMessage, clientSequence
+}
+
 func getNonce(i, length int) []byte {
 	b := make([]byte, length)
 	binary.BigEndian.PutUint64(b, uint64(i))
@@ -1007,6 +1041,13 @@ func (a *TLSApplicationData) Bytes() []byte {
 	b = append(b, a.RecordLayer.Bytes()...)
 	b = append(b, a.EncryptedApplicationData...)
 	return b
+}
+
+func DecryptApplicationData(encryptedText []byte, keyBlock *KeyBlock, clientSequence int) []byte {
+	f := &Finished{
+		RawEncrypted: encryptedText,
+	}
+	return decryptServerMessage(f, keyBlock, clientSequence, TLS_CONTENT_TYPE_APPLICATION_DATA)
 }
 
 type TLSEncryptedAlert struct {

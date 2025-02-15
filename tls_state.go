@@ -7,6 +7,7 @@ type TLSv12State int
 const (
 	TLSv12_STATE_INIT TLSv12State = iota
 	TLSv12_STATE_PASSIVE_SERVER_HELLO
+	TLSv12_STATE_SEND_APPLICATION_DATA
 )
 
 type TLSv12Connection struct {
@@ -54,4 +55,24 @@ func (t *TLSv12Connection) VerifingData() *ForVerifing {
 		ClientKeyExchange: t.TLSClientKeyExchange.ClientKeyExchange,
 		ClientFinished:    t.TLSClientFinished,
 	}
+}
+
+func (t *TLSv12Connection) SetState(s TLSv12State) {
+	t.currentState = s
+}
+
+func (t *TLSv12Connection) EstablishedConnection() {
+	t.established = true
+}
+
+func (t *TLSv12Connection) IsEstablished() bool {
+	return t.established
+}
+
+func (t *TLSv12Connection) IsSendApplicationData() bool {
+	return t.currentState == TLSv12_STATE_SEND_APPLICATION_DATA
+}
+
+func (t *TLSv12Connection) Close() {
+	t.established = false
 }

@@ -50,6 +50,7 @@ func (conn *TCPConnection) IsPassiveSynAckForHandshake(tcp *TCP) bool {
 }
 
 func (conn *TCPConnection) EstablishedConnection() {
+	conn.currentState = TCP_STATE_3WAY_HANDSHAKE_SEND_ACK
 	conn.established = true
 }
 

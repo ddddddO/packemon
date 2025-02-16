@@ -22,7 +22,7 @@ func (t *tui) updateView(passive *packemon.Passive) {
 			if e := recover(); e != nil {
 				trace := debug.Stack()
 				err := fmt.Errorf("Panic!!\n%v\nstack trace\n%s\n", e, string(trace))
-				t.addErrPage(err)
+				t.addErrPageForMonitor(err)
 			}
 		}()
 

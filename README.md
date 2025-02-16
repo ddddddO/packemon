@@ -49,12 +49,20 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
   - [x] UDP (WIP)
   - [ ] TLSv1.2 (WIP)
     <details>
-      - This tool is not very useful because the number of cipher suites it supports is still small, but an environment where you can try it out can be found [here](./cmd/debugging/https-server/README.md).
-        - TCP 3way handshake ~ TLS handshake ~ TLS Application data (encrypted HTTP)
-      - Supported cipher suites include
-        - `TLS_RSA_WITH_AES_128_GCM_SHA256`
-      - You can check the server for available cipher suites with the following command
-        - `nmap --script ssl-enum-ciphers -p 443 <server ip>`
+      <ul>
+        <li> This tool is not very useful because the number of cipher suites it supports is still small, but an environment where you can try it out can be found <a href="./cmd/debugging/https-server/README.md">here</a>.</li>
+          <ul>
+            <li>TCP 3way handshake ~ TLS handshake ~ TLS Application data (encrypted HTTP)</li>
+          </ul>
+        <li>Supported cipher suites include</li>
+          <ul>
+            <li><b>TLS_RSA_WITH_AES_128_GCM_SHA256</b></li>
+          <ul>
+        <li>You can check the server for available cipher suites with the following command</li>
+          <ul>
+            <li><b>nmap --script ssl-enum-ciphers -p 443 <server ip></b></li>
+          </ul>
+      </ul>
     </details>
   - [ ] TLSv1.3
   - [x] DNS (WIP)

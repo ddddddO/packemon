@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"fmt"
 
 	"golang.org/x/sys/unix"
 )
@@ -223,7 +224,7 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return fmt.Errorf("timeout!")
 
 		default:
 			recieved := make([]byte, 1500)
@@ -382,7 +383,7 @@ func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterfac
 	for {
 		select {
 		case <-ctx.Done():
-			return nil
+			return fmt.Errorf("timeout!")
 
 		default:
 			recieved := make([]byte, 1500)

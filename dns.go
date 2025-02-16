@@ -145,7 +145,7 @@ func (d *DNS) Domain(domain string) {
 		}
 	}
 
-	buf[len(domain)+1] = 0x00
+	buf[cnt] = 0x00
 	d.Queries.Domain = buf
 }
 

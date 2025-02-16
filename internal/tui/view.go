@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"runtime/debug"
 	"strings"
 
 	"github.com/ddddddO/packemon"
@@ -17,6 +18,14 @@ type Viewer interface {
 
 func (t *tui) updateView(passive *packemon.Passive) {
 	go func(viewers []Viewer) {
+		defer func() {
+			if e := recover(); e != nil {
+				trace := debug.Stack()
+				err := fmt.Errorf("Panic!!\n%v\nstack trace\n%s\n", e, string(trace))
+				t.addErrPage(err)
+			}
+		}()
+
 		t.app.QueueUpdate(func() {
 			t.grid.Clear()
 		})

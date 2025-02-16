@@ -102,16 +102,20 @@ func (d *DNS) bytesToFlags() string {
 
 func (d *DNS) bytesToDomain() string {
 	s := ""
-	for _, b := range d.Queries.Domain {
+	for i := 0; i < len(d.Queries.Domain); {
+		b := d.Queries.Domain[i]
+		charCnt := int(b)
+
+		for j := 0; j < charCnt; j++ {
+			i++
+			s += string(d.Queries.Domain[i])
+		}
+		i++
+
 		if b == 0x00 {
 			return s
 		}
-		if b == 0x03 {
-			s += "."
-			continue
-		}
-
-		s += string(b)
+		s += "."
 	}
 	return s
 }

@@ -403,17 +403,17 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 								s.packets.http.Bytes(),
 							)
 						case "IPv6":
-							return fmt.Errorf("not implemented")
-							// ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
-							// defer cancel()
-							// return packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
-							// 	ctx,
-							// 	DEFAULT_NW_INTERFACE,
-							// 	s.packets.ethernet,
-							// 	s.packets.ipv6,
-							// 	s.packets.tcp,
-							// 	s.packets.http.Bytes(),
-							// )
+							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
+							defer cancel()
+
+							return packemon.EstablishTCPTLSv1_2AndSendPayloadForIPv6(
+								ctx,
+								DEFAULT_NW_INTERFACE,
+								s.packets.ethernet,
+								s.packets.ipv6,
+								s.packets.tcp,
+								s.packets.http.Bytes(),
+							)
 						case "ARP":
 							return fmt.Errorf("unsupported under protocol: %s", selectedL3)
 						default:

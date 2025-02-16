@@ -3,6 +3,7 @@ package packemon
 import (
 	"bytes"
 	"context"
+	"fmt"
 
 	"golang.org/x/sys/unix"
 )
@@ -39,258 +40,263 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 	tlsConn := NewTLSv12Connection()
 
 	for {
-		recieved := make([]byte, 1500)
-		n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
-		if err != nil {
-			if n == -1 {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout!")
+		default:
+			recieved := make([]byte, 1500)
+			n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
+			if err != nil {
+				if n == -1 {
+					continue
+				}
+				return err
+			}
+
+			ethernetFrame := ParsedEthernetFrame(recieved)
+			if ethernetFrame.Header.Typ != ETHER_TYPE_IPv4 {
 				continue
 			}
-			return err
-		}
 
-		ethernetFrame := ParsedEthernetFrame(recieved)
-		if ethernetFrame.Header.Typ != ETHER_TYPE_IPv4 {
-			continue
-		}
-
-		ipv4 := ParsedIPv4(ethernetFrame.Data)
-		if ipv4.Protocol != IPv4_PROTO_TCP {
-			continue
-		}
-
-		tcp := ParsedTCP(ipv4.Data)
-		// TODO: このあたりで(10)443ポートがdstで絞った方がいいかも
-
-		if tcpConn.IsPassiveSynAckForHandshake(tcp) {
-			// syn/ackを受け取ったのでack送信
-			tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
-			ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-			tcp.CalculateChecksum(ipv4)
-
-			ipv4.Data = tcp.Bytes()
-			ipv4.CalculateTotalLength()
-			ipv4.CalculateChecksum()
-
-			ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-			if err := nw.Send(ethernetFrame); err != nil {
-				return err
-			}
-			tcpConn.EstablishedConnection()
-
-			// ここで TLS Client Helloを送る
-			if err := SendTLSClientHello(nw, tlsConn.TLSClientHello, tcpConn.SrcPort, tcpConn.DstPort, srcIPAddr, dstIPAddr, dstMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
-				return err
+			ipv4 := ParsedIPv4(ethernetFrame.Data)
+			if ipv4.Protocol != IPv4_PROTO_TCP {
+				continue
 			}
 
-			continue
-		}
+			tcp := ParsedTCP(ipv4.Data)
+			// TODO: このあたりで(10)443ポートがdstで絞った方がいいかも
 
-		// ServerHello/Certificate/ServerHelloDone がセグメント分割されたパケットで届くことが多々あるため、このブロック内で連続して受信している
-		if tcpConn.IsPassiveAck(tcp) && tlsConn.IsPassiveServerHello(tcp) {
-			for {
-				recieved := make([]byte, 1500)
-				n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
-				if err != nil {
-					if n == -1 {
-						continue
-					}
+			if tcpConn.IsPassiveSynAckForHandshake(tcp) {
+				// syn/ackを受け取ったのでack送信
+				tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
+				ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+				tcp.CalculateChecksum(ipv4)
+
+				ipv4.Data = tcp.Bytes()
+				ipv4.CalculateTotalLength()
+				ipv4.CalculateChecksum()
+
+				ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+				if err := nw.Send(ethernetFrame); err != nil {
 					return err
 				}
-				eth := ParsedEthernetFrame(recieved)
-				ip := ParsedIPv4(eth.Data)
-				t := ParsedTCP(ip.Data)
+				tcpConn.EstablishedConnection()
 
-				if tcpConn.IsPassivePshAck(t) {
-					// tcp data の末尾の0パディングを取り除く
-					tmp1 := tcp.Data
-					for offset := len(tcp.Data) - 2; bytes.Equal(tcp.Data[offset:offset+2], []byte{00, 00}); offset -= 2 {
-						tmp1 = tmp1[:len(tmp1)-2]
-					}
-					tmp2 := t.Data
-					for offset := len(t.Data) - 4; bytes.Equal(t.Data[offset:offset+4], []byte{00, 00, 00, 00}); offset -= 4 {
-						tmp2 = tmp2[:len(tmp2)-4]
-					}
-					mergedTCPData := append(tmp1, tmp2...)
+				// ここで TLS Client Helloを送る
+				if err := SendTLSClientHello(nw, tlsConn.TLSClientHello, tcpConn.SrcPort, tcpConn.DstPort, srcIPAddr, dstIPAddr, dstMACAddr, tcp.Sequence, tcp.Acknowledgment); err != nil {
+					return err
+				}
 
-					tlsConn.TLSServerHello = ParsedTLSServerHello(mergedTCPData)
-					if err := tlsConn.TLSServerHello.Certificate.Validate(); err != nil {
+				continue
+			}
+
+			// ServerHello/Certificate/ServerHelloDone がセグメント分割されたパケットで届くことが多々あるため、このブロック内で連続して受信している
+			if tcpConn.IsPassiveAck(tcp) && tlsConn.IsPassiveServerHello(tcp) {
+				for {
+					recieved := make([]byte, 1500)
+					n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
+					if err != nil {
+						if n == -1 {
+							continue
+						}
 						return err
 					}
+					eth := ParsedEthernetFrame(recieved)
+					ip := ParsedIPv4(eth.Data)
+					t := ParsedTCP(ip.Data)
 
-					// ackを返し
-					tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, t.Sequence, t.Acknowledgment)
-					ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-					tcp.CalculateChecksum(ipv4)
+					if tcpConn.IsPassivePshAck(t) {
+						// tcp data の末尾の0パディングを取り除く
+						tmp1 := tcp.Data
+						for offset := len(tcp.Data) - 2; bytes.Equal(tcp.Data[offset:offset+2], []byte{00, 00}); offset -= 2 {
+							tmp1 = tmp1[:len(tmp1)-2]
+						}
+						tmp2 := t.Data
+						for offset := len(t.Data) - 4; bytes.Equal(t.Data[offset:offset+4], []byte{00, 00, 00, 00}); offset -= 4 {
+							tmp2 = tmp2[:len(tmp2)-4]
+						}
+						mergedTCPData := append(tmp1, tmp2...)
 
-					ipv4.Data = tcp.Bytes()
-					ipv4.CalculateTotalLength()
-					ipv4.CalculateChecksum()
+						tlsConn.TLSServerHello = ParsedTLSServerHello(mergedTCPData)
+						if err := tlsConn.TLSServerHello.Certificate.Validate(); err != nil {
+							return err
+						}
 
-					ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-					if err := nw.Send(ethernetFrame); err != nil {
-						return err
+						// ackを返し
+						tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, t.Sequence, t.Acknowledgment)
+						ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+						tcp.CalculateChecksum(ipv4)
+
+						ipv4.Data = tcp.Bytes()
+						ipv4.CalculateTotalLength()
+						ipv4.CalculateChecksum()
+
+						ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+						if err := nw.Send(ethernetFrame); err != nil {
+							return err
+						}
+
+						// さらに ClientKeyExchange や Finished などを返す
+						tlsConn.TLSClientKeyExchange, tlsConn.KeyBlock, tlsConn.ClientSequence, tlsConn.Master, tlsConn.TLSClientFinished = NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(
+							tlsConn.TLSClientHello,
+							tlsConn.TLSServerHello,
+						)
+						tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsConn.TLSClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+						ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+						tcp.CalculateChecksum(ipv4)
+
+						ipv4.Data = tcp.Bytes()
+						ipv4.CalculateTotalLength()
+						ipv4.CalculateChecksum()
+
+						ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+						if err := nw.Send(ethernetFrame); err != nil {
+							return err
+						}
+
+						break
 					}
+					continue
+				}
 
-					// さらに ClientKeyExchange や Finished などを返す
-					tlsConn.TLSClientKeyExchange, tlsConn.KeyBlock, tlsConn.ClientSequence, tlsConn.Master, tlsConn.TLSClientFinished = NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(
-						tlsConn.TLSClientHello,
-						tlsConn.TLSServerHello,
-					)
-					tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsConn.TLSClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
-					ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-					tcp.CalculateChecksum(ipv4)
+				continue
+			}
 
-					ipv4.Data = tcp.Bytes()
-					ipv4.CalculateTotalLength()
-					ipv4.CalculateChecksum()
+			// ServerHelloを受信
+			// SeverHello(0x02)
+			if tcpConn.IsPassivePshAck(tcp) && tlsConn.IsPassiveServerHello(tcp) {
+				// TODO: server から、ServerHello/Certificate/ServerHelloDone でひとまとまりで返ってくればパースできるが、ServerHello と Certificate/ServerHelloDone がわかれて返ってくることがある。それで失敗してるよう？
+				// 分かれてるとき、ServerHello はフラグが ACK だけど、分かれてないとき PSH/ACK
+				//  <- そうでもなかった、環境によるみたい。example.com にリクエストすると ServerHello 単体パケットで PSH/ACK
+				tlsConn.TLSServerHello = ParsedTLSServerHello(tcp.Data)
+				if err := tlsConn.TLSServerHello.Certificate.Validate(); err != nil {
+					return err
+				}
 
-					ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-					if err := nw.Send(ethernetFrame); err != nil {
-						return err
-					}
+				// ackを返し
+				tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
+				ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+				tcp.CalculateChecksum(ipv4)
 
-					break
+				ipv4.Data = tcp.Bytes()
+				ipv4.CalculateTotalLength()
+				ipv4.CalculateChecksum()
+
+				ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+				if err := nw.Send(ethernetFrame); err != nil {
+					return err
+				}
+
+				// さらに ClientKeyExchange や Finished などを返す
+				tlsConn.TLSClientKeyExchange, tlsConn.KeyBlock, tlsConn.ClientSequence, tlsConn.Master, tlsConn.TLSClientFinished = NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(
+					tlsConn.TLSClientHello,
+					tlsConn.TLSServerHello,
+				)
+				tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsConn.TLSClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
+				ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+				tcp.CalculateChecksum(ipv4)
+
+				ipv4.Data = tcp.Bytes()
+				ipv4.CalculateTotalLength()
+				ipv4.CalculateChecksum()
+
+				ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+				if err := nw.Send(ethernetFrame); err != nil {
+					return err
+				}
+
+				continue
+			}
+
+			// ChangeCipherSpec/Finishedを受信
+			if tcpConn.IsPassivePshAck(tcp) && tlsConn.IsPassiveChangeCipherSpecAndFinished(tcp) {
+				tlsChangeCiperSpecAndFinished := ParsedTLSChangeCipherSpecAndFinished(tcp.Data, tlsConn.KeyBlock, tlsConn.ClientSequence, tlsConn.VerifingData())
+				_ = tlsChangeCiperSpecAndFinished
+
+				// TODO: 上のParsed内でserverからきたFinishedの検証してるけど、この辺りに持ってきた方がいいかも
+
+				tlsConn.EstablishedConnection()
+
+				// Finishedの検証が成功したので、以降からApplicationDataをやりとり
+				tlsConn.ClientSequence++
+				tlsApplicationData := NewTLSApplicationData(upperLayerData, tlsConn.KeyBlock, tlsConn.ClientSequence)
+
+				tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsApplicationData, tcp.Acknowledgment, tcp.Sequence)
+				ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+				tcp.CalculateChecksum(ipv4)
+
+				ipv4.Data = tcp.Bytes()
+				ipv4.CalculateTotalLength()
+				ipv4.CalculateChecksum()
+
+				ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+				if err := nw.Send(ethernetFrame); err != nil {
+					return err
+				}
+				tlsConn.SetState(TLSv12_STATE_SEND_APPLICATION_DATA)
+
+				continue
+			}
+
+			// 送信した Application Data に対するレスポンスを受けて FinAck 送信
+			if tcpConn.IsPassivePshAck(tcp) && tlsConn.IsSendApplicationData() {
+				// 受信した Application Data を復号
+				lengthOfEncrypted := bytesToInt(tcp.Data[3:5])
+				encrypted := tcp.Data[5 : 5+lengthOfEncrypted]
+				decrypted := DecryptApplicationData(encrypted, tlsConn.KeyBlock, tlsConn.ClientSequence)
+				// log.Printf("👺decrypted application data: %x, %s\n", decrypted, string(decrypted))
+				_ = decrypted
+
+				// TLS handshake の終了開始
+				tlsConn.ClientSequence++
+				tlsEncryptedAlert, _ := EncryptClientMessageForAlert(tlsConn.KeyBlock, tlsConn.ClientSequence, []byte{0x01, 0x00})
+				tcp := NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsEncryptedAlert, tcp.Acknowledgment, tcp.Sequence)
+				ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+				tcp.CalculateChecksum(ipv4)
+
+				ipv4.Data = tcp.Bytes()
+				ipv4.CalculateTotalLength()
+				ipv4.CalculateChecksum()
+
+				ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+				if err := nw.Send(ethernetFrame); err != nil {
+					return err
+				}
+
+				// 続けてFinAck
+				tcp = NewTCPFinAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence+uint32(len(tcp.Data)), tcp.Acknowledgment)
+				ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+				tcp.CalculateChecksum(ipv4)
+
+				ipv4.Data = tcp.Bytes()
+				ipv4.CalculateTotalLength()
+				ipv4.CalculateChecksum()
+
+				ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+				if err := nw.Send(ethernetFrame); err != nil {
+					return err
 				}
 				continue
 			}
 
-			continue
-		}
+			if tcpConn.IsPassiveFinAck(tcp) {
+				// それにack
+				tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
+				ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+				tcp.CalculateChecksum(ipv4)
 
-		// ServerHelloを受信
-		// SeverHello(0x02)
-		if tcpConn.IsPassivePshAck(tcp) && tlsConn.IsPassiveServerHello(tcp) {
-			// TODO: server から、ServerHello/Certificate/ServerHelloDone でひとまとまりで返ってくればパースできるが、ServerHello と Certificate/ServerHelloDone がわかれて返ってくることがある。それで失敗してるよう？
-			// 分かれてるとき、ServerHello はフラグが ACK だけど、分かれてないとき PSH/ACK
-			//  <- そうでもなかった、環境によるみたい。example.com にリクエストすると ServerHello 単体パケットで PSH/ACK
-			tlsConn.TLSServerHello = ParsedTLSServerHello(tcp.Data)
-			if err := tlsConn.TLSServerHello.Certificate.Validate(); err != nil {
-				return err
+				ipv4.Data = tcp.Bytes()
+				ipv4.CalculateTotalLength()
+				ipv4.CalculateChecksum()
+
+				ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
+				if err := nw.Send(ethernetFrame); err != nil {
+					return err
+				}
+				tlsConn.Close()
+				tcpConn.Close()
+				return nil
 			}
-
-			// ackを返し
-			tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
-			ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-			tcp.CalculateChecksum(ipv4)
-
-			ipv4.Data = tcp.Bytes()
-			ipv4.CalculateTotalLength()
-			ipv4.CalculateChecksum()
-
-			ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-			if err := nw.Send(ethernetFrame); err != nil {
-				return err
-			}
-
-			// さらに ClientKeyExchange や Finished などを返す
-			tlsConn.TLSClientKeyExchange, tlsConn.KeyBlock, tlsConn.ClientSequence, tlsConn.Master, tlsConn.TLSClientFinished = NewTLSClientKeyExchangeAndChangeCipherSpecAndFinished(
-				tlsConn.TLSClientHello,
-				tlsConn.TLSServerHello,
-			)
-			tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsConn.TLSClientKeyExchange.Bytes(), tcp.Sequence, tcp.Acknowledgment)
-			ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-			tcp.CalculateChecksum(ipv4)
-
-			ipv4.Data = tcp.Bytes()
-			ipv4.CalculateTotalLength()
-			ipv4.CalculateChecksum()
-
-			ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-			if err := nw.Send(ethernetFrame); err != nil {
-				return err
-			}
-
-			continue
-		}
-
-		// ChangeCipherSpec/Finishedを受信
-		if tcpConn.IsPassivePshAck(tcp) && tlsConn.IsPassiveChangeCipherSpecAndFinished(tcp) {
-			tlsChangeCiperSpecAndFinished := ParsedTLSChangeCipherSpecAndFinished(tcp.Data, tlsConn.KeyBlock, tlsConn.ClientSequence, tlsConn.VerifingData())
-			_ = tlsChangeCiperSpecAndFinished
-
-			// TODO: 上のParsed内でserverからきたFinishedの検証してるけど、この辺りに持ってきた方がいいかも
-
-			tlsConn.EstablishedConnection()
-
-			// Finishedの検証が成功したので、以降からApplicationDataをやりとり
-			tlsConn.ClientSequence++
-			tlsApplicationData := NewTLSApplicationData(upperLayerData, tlsConn.KeyBlock, tlsConn.ClientSequence)
-
-			tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsApplicationData, tcp.Acknowledgment, tcp.Sequence)
-			ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-			tcp.CalculateChecksum(ipv4)
-
-			ipv4.Data = tcp.Bytes()
-			ipv4.CalculateTotalLength()
-			ipv4.CalculateChecksum()
-
-			ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-			if err := nw.Send(ethernetFrame); err != nil {
-				return err
-			}
-			tlsConn.SetState(TLSv12_STATE_SEND_APPLICATION_DATA)
-
-			continue
-		}
-
-		// 送信した Application Data に対するレスポンスを受けて FinAck 送信
-		if tcpConn.IsPassivePshAck(tcp) && tlsConn.IsSendApplicationData() {
-			// 受信した Application Data を復号
-			lengthOfEncrypted := bytesToInt(tcp.Data[3:5])
-			encrypted := tcp.Data[5 : 5+lengthOfEncrypted]
-			decrypted := DecryptApplicationData(encrypted, tlsConn.KeyBlock, tlsConn.ClientSequence)
-			// log.Printf("👺decrypted application data: %x, %s\n", decrypted, string(decrypted))
-			_ = decrypted
-
-			// TLS handshake の終了開始
-			tlsConn.ClientSequence++
-			tlsEncryptedAlert, _ := EncryptClientMessageForAlert(tlsConn.KeyBlock, tlsConn.ClientSequence, []byte{0x01, 0x00})
-			tcp := NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, tlsEncryptedAlert, tcp.Acknowledgment, tcp.Sequence)
-			ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-			tcp.CalculateChecksum(ipv4)
-
-			ipv4.Data = tcp.Bytes()
-			ipv4.CalculateTotalLength()
-			ipv4.CalculateChecksum()
-
-			ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-			if err := nw.Send(ethernetFrame); err != nil {
-				return err
-			}
-
-			// 続けてFinAck
-			tcp = NewTCPFinAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence+uint32(len(tcp.Data)), tcp.Acknowledgment)
-			ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-			tcp.CalculateChecksum(ipv4)
-
-			ipv4.Data = tcp.Bytes()
-			ipv4.CalculateTotalLength()
-			ipv4.CalculateChecksum()
-
-			ethernetFrame = NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-			if err := nw.Send(ethernetFrame); err != nil {
-				return err
-			}
-			continue
-		}
-
-		if tcpConn.IsPassiveFinAck(tcp) {
-			// それにack
-			tcp := NewTCPAck(tcpConn.SrcPort, tcpConn.DstPort, tcp.Sequence, tcp.Acknowledgment)
-			ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-			tcp.CalculateChecksum(ipv4)
-
-			ipv4.Data = tcp.Bytes()
-			ipv4.CalculateTotalLength()
-			ipv4.CalculateChecksum()
-
-			ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, ETHER_TYPE_IPv4, ipv4.Bytes())
-			if err := nw.Send(ethernetFrame); err != nil {
-				return err
-			}
-			tlsConn.Close()
-			tcpConn.Close()
-			return nil
 		}
 	}
 

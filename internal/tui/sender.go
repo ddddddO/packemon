@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"runtime/debug"
 	"time"
 
 	"github.com/ddddddO/packemon"
@@ -46,7 +47,16 @@ func (s *sender) sendLayer7(ctx context.Context) error {
 	return s.send(ctx, "L7")
 }
 
-func (s *sender) send(ctx context.Context, currentLayer string) error {
+const TIMEOUT = 5000 * time.Millisecond
+
+func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			trace := debug.Stack()
+			err = fmt.Errorf("Panic!!\n%v\nstack trace\n%s\n", e, string(trace))
+		}
+	}()
+
 	// selectedL2 := s.selectedProtocolByLayer["L2"] // 今、固定でイーサネットだからコメントアウト
 	selectedL3 := s.selectedProtocolByLayer["L3"]
 	selectedL4 := s.selectedProtocolByLayer["L4"]
@@ -227,7 +237,10 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 						case "":
 							return fmt.Errorf("not implemented")
 						case "IPv4":
-							go packemon.EstablishConnectionAndSendPayloadXxx(
+							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
+							defer cancel()
+
+							return packemon.EstablishConnectionAndSendPayloadXxx(
 								ctx,
 								DEFAULT_NW_INTERFACE,
 								s.packets.ethernet,
@@ -235,9 +248,11 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 								s.packets.tcp,
 								s.packets.dns.Bytes(),
 							)
-							return nil
 						case "IPv6":
-							go packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
+							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
+							defer cancel()
+
+							return packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
 								ctx,
 								DEFAULT_NW_INTERFACE,
 								s.packets.ethernet,
@@ -245,7 +260,6 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 								s.packets.tcp,
 								s.packets.dns.Bytes(),
 							)
-							return nil
 						case "ARP":
 							return fmt.Errorf("unsupported under protocol: %s", selectedL3)
 						default:
@@ -307,7 +321,10 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 						case "":
 							return fmt.Errorf("not implemented")
 						case "IPv4":
-							go packemon.EstablishConnectionAndSendPayloadXxx(
+							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
+							defer cancel()
+
+							return packemon.EstablishConnectionAndSendPayloadXxx(
 								ctx,
 								DEFAULT_NW_INTERFACE,
 								s.packets.ethernet,
@@ -315,9 +332,11 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 								s.packets.tcp,
 								s.packets.http.Bytes(),
 							)
-							return nil
 						case "IPv6":
-							go packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
+							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
+							defer cancel()
+
+							return packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
 								ctx,
 								DEFAULT_NW_INTERFACE,
 								s.packets.ethernet,
@@ -325,7 +344,6 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 								s.packets.tcp,
 								s.packets.http.Bytes(),
 							)
-							return nil
 						case "ARP":
 							return fmt.Errorf("unsupported under protocol: %s", selectedL3)
 						default:
@@ -373,7 +391,10 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 						case "":
 							return fmt.Errorf("not implemented")
 						case "IPv4":
-							go packemon.EstablishTCPTLSv1_2AndSendPayload(
+							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
+							defer cancel()
+
+							return packemon.EstablishTCPTLSv1_2AndSendPayload(
 								ctx,
 								DEFAULT_NW_INTERFACE,
 								s.packets.ethernet,
@@ -381,10 +402,11 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 								s.packets.tcp,
 								s.packets.http.Bytes(),
 							)
-							return nil
 						case "IPv6":
 							return fmt.Errorf("not implemented")
-							// go packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
+							// ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
+							// defer cancel()
+							// return packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
 							// 	ctx,
 							// 	DEFAULT_NW_INTERFACE,
 							// 	s.packets.ethernet,
@@ -392,7 +414,6 @@ func (s *sender) send(ctx context.Context, currentLayer string) error {
 							// 	s.packets.tcp,
 							// 	s.packets.http.Bytes(),
 							// )
-							// return nil
 						case "ARP":
 							return fmt.Errorf("unsupported under protocol: %s", selectedL3)
 						default:

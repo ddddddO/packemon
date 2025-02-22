@@ -117,8 +117,19 @@ func (nw *NetworkInterface) Close() error {
 	return unix.Close(nw.Socket)
 }
 
-func ParsedPacket(recieved []byte) *Passive {
+func ParsedPacket(recieved []byte) (passive *Passive) {
 	ethernetFrame := ParsedEthernetFrame(recieved)
+	defer func() {
+		if e := recover(); e != nil {
+			// TODO: なにかしらログ出す
+			// log.Errorf("Panic!:\n%v\n", e)
+
+			// 一旦生のイーサネットフレームを出しとく
+			passive = &Passive{
+				EthernetFrame: ethernetFrame,
+			}
+		}
+	}()
 
 	switch ethernetFrame.Header.Typ {
 	case ETHER_TYPE_ARP:

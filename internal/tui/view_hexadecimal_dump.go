@@ -29,7 +29,7 @@ type HexadecimalDump struct {
 func (h *HexadecimalDump) rows() int {
 	// TODO: データ量でよしなに決めたい
 	// あと、スクロールなにか指定しないといけない？最後までスクロールできてないみたい
-	return 100
+	return 200
 }
 
 func (*HexadecimalDump) columns() int {
@@ -109,6 +109,9 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 	case h.HTTPResponse != nil:
 		viewHexadecimalDump(table, loopForL7View, "HTTP", h.HTTPResponse.Bytes())
 	}
+
+	loopForAll := 1 + loopForL7View
+	viewHexadecimalDump(table, loopForAll, "ALL", h.EthernetFrame.Bytes())
 
 	return table
 }

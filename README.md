@@ -28,7 +28,7 @@ See **[here](https://github.com/ddddddO/packemon#sending-dns-query-and-monitorin
 
 Packemon's Monitor allows user to select each packet by pressing `Enter` key. Then, select any line and press `Enter` key to see the details of the desired packet. Pressing `Esc` key in the packet detail screen will return you to the original packet list screen.
 
-### Packet Generator
+### Generator
 
 >[!WARNING]
 > While using Generator mode, TCP RST packets automatically sent out by the kernel are dropped. When this mode is stopped, the original state is restored. Probably😅.
@@ -73,7 +73,7 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 
   </details>
 
-### Packet Monitor
+### Monitor
 
 - Monitor any network interfaces.
   - You can specify network interface with `--interface` flag. Default is `eth0`.

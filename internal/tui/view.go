@@ -2,11 +2,17 @@ package tui
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"time"
 
 	"github.com/ddddddO/packemon"
 	"github.com/gdamore/tcell/v2"
+	"github.com/gopacket/gopacket"
+	"github.com/gopacket/gopacket/layers"
+	"github.com/gopacket/gopacket/pcapgo"
 	"github.com/rivo/tview"
 )
 
@@ -30,22 +36,35 @@ func (t *tui) updateView(passive *packemon.Passive) {
 			t.grid.Clear()
 		})
 
-		rows := make([]int, len(viewers))
-		columns := make([]int, len(viewers))
+		t.grid.RemoveItem(t.grid) // ほんと？
+
+		// +1 分は、PCAP保存領域用(savingPCAPView)
+		rows := make([]int, len(viewers)+1)
+		columns := make([]int, len(viewers)+1)
+		rows[0] = 5
+		columns[0] = 30
 		for i := range viewers {
 			rows[i] = viewers[i].rows()
 			columns[i] = viewers[i].columns()
 		}
-		t.grid.RemoveItem(t.grid) // ほんと？
-		t.grid.SetRows(rows...).SetColumns(columns...).SetBorders(false)
+
+		// SetRows しなくなったので、各テーブルの rows メソッドいらないかも
+		// t.grid.SetRows(rows...).SetColumns(columns...).SetBorders(false)
+		t.grid.SetColumns(columns...).SetBorders(false)
+
 		for i := range viewers {
 			t.grid.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false) // focus=true にするとスクロールしない
 		}
+		savingPCAPView := t.savingPCAPView(passive)
+		row := len(viewers)
+		t.grid.AddItem(savingPCAPView, row, 0, 1, 3, 0, 0, false)
+
 		t.grid.SetInputCapture(
 			func(event *tcell.EventKey) *tcell.EventKey {
 				if event.Key() == tcell.KeyEscape {
 					t.grid.Clear()
 					t.pages.SwitchToPage("history")
+					t.app.SetFocus(t.pages)
 				}
 				return event
 			})
@@ -128,6 +147,61 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 	viewers = append(viewers, hexdump)
 
 	return viewers
+}
+
+func (t *tui) savingPCAPView(p *packemon.Passive) *tview.Form {
+	now := time.Now()
+	fpath := fmt.Sprintf("./packemon_pcap/%s.pcap", now.Format("20060102150405"))
+	form := tview.NewForm().
+		AddInputField("File Name", fpath, 40, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 40 {
+				fpath = textToCheck
+				return true
+			} else if len(textToCheck) > 40 {
+				return false
+			}
+			fpath = textToCheck
+			return true
+		}, nil).
+		AddButton("Save", func() {
+			if p.EthernetFrame == nil {
+				t.addErrPageForMonitor(fmt.Errorf("Empty ethernet frame..."))
+				return
+			}
+
+			dir := filepath.Dir(fpath)
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				t.addErrPageForMonitor(err)
+				return
+			}
+
+			f, err := os.Create(fpath)
+			if err != nil {
+				t.addErrPageForMonitor(err)
+				return
+			}
+			defer f.Close()
+
+			pcapw := pcapgo.NewWriter(f)
+			if err := pcapw.WriteFileHeader(1500, layers.LinkTypeEthernet); err != nil {
+				t.addErrPageForMonitor(err)
+				return
+			}
+			ci := gopacket.CaptureInfo{
+				Timestamp:     now,
+				CaptureLength: 1500,
+				Length:        1500,
+				// InterfaceIndex: intf.Index, // 必須ではなさそう
+			}
+			if err := pcapw.WritePacket(ci, p.EthernetFrame.Bytes()); err != nil {
+				t.addErrPageForMonitor(err)
+				return
+			}
+		})
+	form.SetBorder(true)
+	form.Box = tview.NewBox().SetBorder(true).SetTitle(" Save PACP ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+
+	return form
 }
 
 func tableCellTitle(title string) *tview.TableCell {

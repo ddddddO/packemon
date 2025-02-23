@@ -92,5 +92,5 @@ func (t *tui) Monitor(passiveCh <-chan *packemon.Passive, columns string) error 
 	})
 
 	go t.updateTable(passiveCh, columns)
-	return t.app.SetRoot(t.pages, true).Run()
+	return t.app.SetRoot(t.pages, true).EnableMouse(true).Run()
 }

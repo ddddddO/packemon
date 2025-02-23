@@ -194,6 +194,10 @@ $ apk add --allow-untrusted packemon.apk
 
 ## Another feature
 
+<details>
+
+<summary>⚠️ Might be repealed</summary>
+
 The local node's browser can monitor packets from remote nodes or send arbitrary packets from remote nodes.
 
 ```
@@ -231,18 +235,21 @@ The following procedure is an example of how you can expose packemon-api to the 
     ```
 1. (LOCAL) Enter the dispensed URL into your browser and you will be able to monitor and send packets to remote node.
 
+</details>
+
 ## Related tools
-- netcat
+- netcat(nc)
 - [Nmap](https://nmap.org/)
 - [Scapy](https://github.com/secdev/scapy)
 - [google/gopacket](https://github.com/google/gopacket)
+  - maintained 👉 [gopacket/gopacket](https://github.com/gopacket/gopacket)
 
 ## Acknowledgment
 - [rivo/tview](https://github.com/rivo/tview)
   - Packemon is using this TUI library.
 
 - [Golangで作るソフトウェアルータ](https://booth.pm/ja/items/5290391)
-  - The way Go handles syscalls, packet checksum logic, etc. was helpful. This is a book in Japanese.
+  - The way Go handles syscalls, packet checksum logic, etc. was helpful. Packemon was inspired by this book and began its development. This is a book in Japanese.
 
 ## Document
 - [ネットワークを知りたくて](https://zenn.dev/openlogi/articles/195d07bd9bc5b4)

@@ -38,7 +38,10 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 - Send generated packets to any network interfaces.
   - You can specify network interface with `--interface` flag. Default is `eth0`.
 
-- The following types of packets are covered.
+- Packets of various protocols are supported.
+
+  <details><summary>details</summary>
+
   - [x] Ethernet
   - [x] ARP (WIP)
   - [x] IPv4 (WIP)
@@ -68,14 +71,19 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
         - [Currently there is only debug mode](./cmd/debugging/bgp/README.md)
           - TCP 3way handshake ~ Open ~ Keepalive ~ Update ~ Notification
 
+  </details>
+
 ### Packet Monitor
 
 - Monitor any network interfaces.
   - You can specify network interface with `--interface` flag. Default is `eth0`.
 
-- Specified packets can be saved to pcap file.
+- Specified packets can be saved to pcapng file.
 
-- The following types of packets are covered.
+- Packets of various protocols are supported.
+
+  <details><summary>details</summary>
+
   - [x] Ethernet
   - [x] ARP
   - [x] IPv4 (WIP)
@@ -102,6 +110,8 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
       - [ ] RIP (Routing Information Protocol)
     - EGP (Exterior Gateway Protocol)
       - [ ] BGP (Border Gateway Protocol)
+
+  </details>
 
 ## Installation
 

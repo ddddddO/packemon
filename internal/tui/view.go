@@ -152,50 +152,50 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 func (t *tui) savingPCAPView(p *packemon.Passive) *tview.Form {
 	now := time.Now()
 	fpath := fmt.Sprintf("./packemon_pcap/%s.pcap", now.Format("20060102150405"))
+	limitLength := 60
+	save := func() error {
+		if p.EthernetFrame == nil {
+			return fmt.Errorf("Empty ethernet frame...")
+		}
+
+		dir := filepath.Dir(fpath)
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return err
+		}
+
+		f, err := os.Create(fpath)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		pcapw := pcapgo.NewWriter(f)
+		if err := pcapw.WriteFileHeader(1500, layers.LinkTypeEthernet); err != nil {
+			return err
+		}
+		ci := gopacket.CaptureInfo{
+			Timestamp:     now,
+			CaptureLength: 1500,
+			Length:        1500,
+			// InterfaceIndex: intf.Index, // 必須ではなさそう
+		}
+		return pcapw.WritePacket(ci, p.EthernetFrame.Bytes())
+	}
+
 	form := tview.NewForm().
-		AddInputField("File Name", fpath, 40, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 40 {
+		AddInputField("File Name", fpath, limitLength, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < limitLength {
 				fpath = textToCheck
 				return true
-			} else if len(textToCheck) > 40 {
+			} else if len(textToCheck) > limitLength {
 				return false
 			}
 			fpath = textToCheck
 			return true
 		}, nil).
 		AddButton("Save", func() {
-			if p.EthernetFrame == nil {
-				t.addErrPageForMonitor(fmt.Errorf("Empty ethernet frame..."))
-				return
-			}
-
-			dir := filepath.Dir(fpath)
-			if err := os.MkdirAll(dir, 0755); err != nil {
+			if err := save(); err != nil {
 				t.addErrPageForMonitor(err)
-				return
-			}
-
-			f, err := os.Create(fpath)
-			if err != nil {
-				t.addErrPageForMonitor(err)
-				return
-			}
-			defer f.Close()
-
-			pcapw := pcapgo.NewWriter(f)
-			if err := pcapw.WriteFileHeader(1500, layers.LinkTypeEthernet); err != nil {
-				t.addErrPageForMonitor(err)
-				return
-			}
-			ci := gopacket.CaptureInfo{
-				Timestamp:     now,
-				CaptureLength: 1500,
-				Length:        1500,
-				// InterfaceIndex: intf.Index, // 必須ではなさそう
-			}
-			if err := pcapw.WritePacket(ci, p.EthernetFrame.Bytes()); err != nil {
-				t.addErrPageForMonitor(err)
-				return
 			}
 		})
 	form.SetBorder(true)

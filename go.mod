@@ -8,6 +8,7 @@ require (
 	github.com/cilium/ebpf v0.17.1
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/go-playground/validator v9.31.0+incompatible
+	github.com/gopacket/gopacket v1.3.1
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/labstack/gommon v0.4.2
 	github.com/rivo/tview v0.0.0-20240426173458-c766eefb3803
@@ -20,7 +21,6 @@ require (
 	github.com/gdamore/encoding v1.0.1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/gopacket/gopacket v1.3.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect

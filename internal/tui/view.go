@@ -38,25 +38,27 @@ func (t *tui) updateView(passive *packemon.Passive) {
 
 		t.grid.RemoveItem(t.grid) // ほんと？
 
-		savingPCAPView := t.savingPCAPView(passive)
 		// +1 分は、PCAP保存領域用(savingPCAPView)
 		rows := make([]int, len(viewers)+1)
 		columns := make([]int, len(viewers)+1)
 		rows[0] = 5
 		columns[0] = 30
 		for i := range viewers {
-			rows[i+1] = viewers[i].rows()
-			columns[i+1] = viewers[i].columns()
+			rows[i] = viewers[i].rows()
+			columns[i] = viewers[i].columns()
 		}
 
 		// SetRows しなくなったので、各テーブルの rows メソッドいらないかも
 		// t.grid.SetRows(rows...).SetColumns(columns...).SetBorders(false)
 		t.grid.SetColumns(columns...).SetBorders(false)
-		t.grid.AddItem(savingPCAPView, 0, 0, 1, 3, 0, 0, true)
+
 		for i := range viewers {
-			row := i + 1
-			t.grid.AddItem(viewers[i].viewTable(), row, 0, 1, 3, 0, 0, false) // focus=true にするとスクロールしない
+			t.grid.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false) // focus=true にするとスクロールしない
 		}
+		savingPCAPView := t.savingPCAPView(passive)
+		row := len(viewers)
+		t.grid.AddItem(savingPCAPView, row, 0, 1, 3, 0, 0, false)
+
 		t.grid.SetInputCapture(
 			func(event *tcell.EventKey) *tcell.EventKey {
 				if event.Key() == tcell.KeyEscape {

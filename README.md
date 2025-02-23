@@ -35,7 +35,7 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 > Incidentally, dropping RST packets is done by running [the eBPF program](./egress_control/).
 > The background note incorporating the eBPF is the POST of X around [here](https://x.com/ddddddOpppppp/status/1798715056513056881). 
 
-- [x] Send generated packets to any network interfaces.
+- Send generated packets to any network interfaces.
   - You can specify network interface with `--interface` flag. Default is `eth0`.
 
 - The following types of packets are covered.
@@ -70,8 +70,10 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 
 ### Packet Monitor
 
-- [x] Monitor any network interfaces.
+- Monitor any network interfaces.
   - You can specify network interface with `--interface` flag. Default is `eth0`.
+
+- Specified packets can be saved to pcap file.
 
 - The following types of packets are covered.
   - [x] Ethernet

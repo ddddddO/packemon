@@ -199,7 +199,7 @@ func (t *tui) savingPCAPView(p *packemon.Passive) *tview.Form {
 			}
 		})
 	form.SetBorder(true)
-	form.Box = tview.NewBox().SetBorder(true).SetTitle(" Save PACP ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+	form.Box = tview.NewBox().SetBorder(true).SetTitle(" Save PCAP ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	return form
 }

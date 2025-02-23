@@ -151,7 +151,7 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 
 func (t *tui) savingPCAPView(p *packemon.Passive) *tview.Form {
 	now := time.Now()
-	fpath := fmt.Sprintf("./packemon_pcap/%s.pcap", now.Format("20060102150405"))
+	fpath := fmt.Sprintf("./packemon_pcap/%s.pcapng", now.Format("20060102150405"))
 	limitLength := 60
 	save := func() error {
 		if p.EthernetFrame == nil {
@@ -169,10 +169,13 @@ func (t *tui) savingPCAPView(p *packemon.Passive) *tview.Form {
 		}
 		defer f.Close()
 
-		pcapw := pcapgo.NewWriter(f)
-		if err := pcapw.WriteFileHeader(1500, layers.LinkTypeEthernet); err != nil {
+		// 以降でエラーあったら、↑で生成したファイル削除がいいかも
+		pcapw, err := pcapgo.NewNgWriter(f, layers.LinkTypeEthernet)
+		if err != nil {
 			return err
 		}
+		defer pcapw.Flush()
+
 		ci := gopacket.CaptureInfo{
 			Timestamp:     now,
 			CaptureLength: 1500,

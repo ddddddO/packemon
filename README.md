@@ -115,7 +115,9 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 
 >[!WARNING]
 > If packet parsing fails, it is indicated by “Proto:ETHER” as shown in the following image. 
+>
 > ![](./assets/failed_parse_packet.png)
+>
 > If you want to check the details of the packet, you can select the line, save it to a pcapng file, and import it into Wireshark or other software🙏
 
 ## Installation
@@ -151,12 +153,12 @@ $ apk add --allow-untrusted packemon.apk
 
 ## Usage
 
-- Packet Generator
+- Generator
   ```console
   sudo packemon --send
   ```
 
-- Packet Monitor
+- Monitor
   ```console
   sudo packemon
   ```

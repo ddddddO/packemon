@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -170,7 +171,15 @@ func (t *tui) savingPCAPView(p *packemon.Passive) *tview.Form {
 		defer f.Close()
 
 		// 以降でエラーあったら、↑で生成したファイル削除がいいかも
-		pcapw, err := pcapgo.NewNgWriter(f, layers.LinkTypeEthernet)
+		// ref: この辺りを参照. https://github.com/gopacket/gopacket/blob/de38b3ed5f55a68c3e7cdf34809dac42bf41d22a/pcapgo/ngwrite.go#L37
+		ngwIntf := pcapgo.NgInterface{
+			Name:                t.networkInterface.Intf.Name,
+			LinkType:            layers.LinkTypeEthernet,
+			OS:                  runtime.GOOS,
+			SnapLength:          0, //unlimited
+			TimestampResolution: 9,
+		}
+		pcapw, err := pcapgo.NewNgWriterInterface(f, ngwIntf, pcapgo.DefaultNgWriterOptions)
 		if err != nil {
 			return err
 		}
@@ -180,7 +189,7 @@ func (t *tui) savingPCAPView(p *packemon.Passive) *tview.Form {
 			Timestamp:     now,
 			CaptureLength: 1500,
 			Length:        1500,
-			// InterfaceIndex: intf.Index, // 必須ではなさそう
+			// InterfaceIndex: intf.Index, // 必須ではなさそう. そもそもこういう事象がある: https://x.com/ddddddOpppppp/status/1893838539881631829
 		}
 		return pcapw.WritePacket(ci, p.EthernetFrame.Bytes())
 	}

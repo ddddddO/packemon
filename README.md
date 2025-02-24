@@ -30,11 +30,6 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 
 ### Generator
 
->[!WARNING]
-> While using Generator mode, TCP RST packets automatically sent out by the kernel are dropped. When this mode is stopped, the original state is restored. Probably😅.
-> Incidentally, dropping RST packets is done by running [the eBPF program](./egress_control/).
-> The background note incorporating the eBPF is the POST of X around [here](https://x.com/ddddddOpppppp/status/1798715056513056881). 
-
 - Send generated packets to any network interfaces.
   - You can specify network interface with `--interface` flag. Default is `eth0`.
 
@@ -72,6 +67,11 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
           - TCP 3way handshake ~ Open ~ Keepalive ~ Update ~ Notification
 
   </details>
+
+>[!WARNING]
+> While using Generator mode, TCP RST packets automatically sent out by the kernel are dropped. When this mode is stopped, the original state is restored. Probably😅.
+> Incidentally, dropping RST packets is done by running [the eBPF program](./egress_control/).
+> The background note incorporating the eBPF is the POST of X around [here](https://x.com/ddddddOpppppp/status/1798715056513056881). 
 
 ### Monitor
 
@@ -112,6 +112,11 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
       - [ ] BGP (Border Gateway Protocol)
 
   </details>
+
+>[!WARNING]
+> If packet parsing fails, it is indicated by “Proto:ETHER” as shown in the following image. 
+> ![](./assets/failed_parse_packet.png)
+> If you want to check the details of the packet, you can select the line, save it to a pcapng file, and import it into Wireshark or other software🙏
 
 ## Installation
 

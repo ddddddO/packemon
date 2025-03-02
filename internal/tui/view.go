@@ -106,6 +106,10 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 		viewers = append(viewers, &TLSv1_2_SERVER_HELLO{passive.TLSServerHello})
 		hexdump.TLSServerHello = passive.TLSServerHello
 	}
+	if passive.TLSServerHelloFor1_3 != nil {
+		viewers = append(viewers, &TLSv1_3_SERVER_HELLO{passive.TLSServerHelloFor1_3})
+		hexdump.TLSServerHelloFor1_3 = passive.TLSServerHelloFor1_3
+	}
 	if passive.TLSClientKeyExchange != nil {
 		viewers = append(viewers, &TLSv1_2_ClientKeyExchange{passive.TLSClientKeyExchange})
 		hexdump.TLSClientKeyExchange = passive.TLSClientKeyExchange
@@ -165,4 +169,9 @@ func spacer(bb []byte) string {
 		}
 	}
 	return ret
+}
+
+// 2byteをintへ変換
+func bytesToInt(b []byte) int {
+	return int(b[0])<<8 + int(b[1])
 }

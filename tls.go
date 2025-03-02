@@ -15,11 +15,18 @@ import (
 
 func ParsedTLSToPassive(tcp *TCP, p *Passive) {
 	// 以下、tcp.Data[1:3] にある(Record Layer) version あてにならないかも。tls version 1.0 の値でも wireshark 上で、tls1.2 or 1.3 の record という表示になってる
-	// なので、HandshakeProtocol 内の、Version でも確認する
+	// なので、HandshakeProtocol 内の、Version でも確認する.
+	// が、これもあてにならない。TLS1.3のつもりでリクエストして(curl -s -v --tls-max 1.3 https://192.168.10.112:10443)、Client Hello みると、Version 1.0 / Handshake Protocol Version 1.2
 	// if bytes.Equal(TLS_VERSION_1_2, tcp.Data[1:3]) {
 
 	// TODO: support TLSv1.3
-	if bytes.Equal(TLS_VERSION_1_2, tcp.Data[9:11]) || bytes.Equal(TLS_VERSION_1_2, tcp.Data[1:3]) {
+	// ref: https://zenn.dev/satoken/articles/golang-tls1_3
+	if bytes.Equal(TLS_VERSION_1_0, tcp.Data[1:3]) || // 1.0 / 1.1 とか含めちゃってるのは、そういうのが1.2 / 1.3 でも入ってき得るから
+		bytes.Equal(TLS_VERSION_1_1, tcp.Data[1:3]) ||
+		bytes.Equal(TLS_VERSION_1_2, tcp.Data[1:3]) ||
+		bytes.Equal(TLS_VERSION_1_3, tcp.Data[1:3]) ||
+		bytes.Equal(TLS_VERSION_1_2, tcp.Data[9:11]) {
+
 		// TLS の 先頭の Content Type をチェック
 		// TODO: あくまで先頭の、なので、パケットが分割されて例えば、ChangeChiperSpec のみ来たりする可能性はあるかも
 		switch tcp.Data[0] {
@@ -31,6 +38,16 @@ func ParsedTLSToPassive(tcp *TCP, p *Passive) {
 			}
 
 			if tcp.Data[5] == TLS_HANDSHAKE_TYPE_SERVER_HELLO {
+				// Server Hello の、Extension.supported_versions に、TLS1.3(0x0304) が含まれていれば、それ用のパースをする
+				serverHello, _ := ParsedTLSServerHelloOnly(tcp.Data) // 以下のParsedTLSServerHelloでもこれ呼んでるからなんとかする
+				for _, e := range serverHello.HandshakeProtocol.Extentions {
+					if e.IsTLS13() {
+						tlsServerHelloFor1_3 := ParsedTLSServerHelloFor1_3(tcp.Data)
+						p.TLSServerHelloFor1_3 = tlsServerHelloFor1_3
+						return
+					}
+				}
+
 				tlsServerHello := ParsedTLSServerHello(tcp.Data)
 				p.TLSServerHello = tlsServerHello
 				return
@@ -84,13 +101,79 @@ type TLSHandshakeProtocol struct {
 	Length                   []byte
 	Version                  []byte
 	Random                   []byte
+	SessionIDLength          []byte
 	SessionID                []byte
 	CipherSuitesLength       []byte
 	CipherSuites             []uint16 // ref: https://tls12.xargs.org/#client-hello/annotated [Ciper Suites]
 	CompressionMethodsLength []byte
 	CompressionMethods       []byte
 	ExtensionsLength         []byte
-	Extentions               []byte // サイト見ると結構種類有りそう
+	Extentions               TLSExtensions
+}
+
+type TLSExtension struct {
+	Type   []byte
+	Length []byte
+	Data   []byte
+}
+
+func (e *TLSExtension) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	buf.Write(e.Type)
+	buf.Write(e.Length)
+	buf.Write(e.Data)
+	return buf.Bytes()
+}
+
+var TLS_EXTENSION_SUPPORTED_VERSIONS = []byte{0x00, 0x2b}
+
+func (e *TLSExtension) IsTLS13() bool {
+	if !bytes.Equal(e.Type, TLS_EXTENSION_SUPPORTED_VERSIONS) {
+		return false
+	}
+
+	for i := 0; i < bytesToInt(e.Length); i += 2 {
+		supportedVersion := e.Data[i : i+2]
+		if bytes.Equal(supportedVersion, TLS_VERSION_1_3) {
+			return true
+		}
+	}
+	return false
+}
+
+type TLSExtensions []*TLSExtension
+
+func (es TLSExtensions) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	for _, e := range es {
+		buf.Write(e.Bytes())
+	}
+	return buf.Bytes()
+}
+
+func ParsedTLSExtensions(extensionsLength int, b []byte) TLSExtensions {
+	if extensionsLength == 0 {
+		return TLSExtensions{}
+	}
+
+	es := []*TLSExtension{}
+	for i := 0; i < extensionsLength; {
+		typ := b[i : i+2]
+		length := b[i+2 : i+4]
+		lengthInt := bytesToInt(length)
+		data := b[i+4 : i+4+lengthInt]
+
+		e := &TLSExtension{
+			Type:   typ,
+			Length: length,
+			Data:   data,
+		}
+		es = append(es, e)
+
+		i = i + 4 + lengthInt
+	}
+
+	return es
 }
 
 func (p *TLSHandshakeProtocol) Bytes(isFromServer bool) []byte {
@@ -99,13 +182,14 @@ func (p *TLSHandshakeProtocol) Bytes(isFromServer bool) []byte {
 	buf = append(buf, p.Length...)
 	buf = append(buf, p.Version...)
 	buf = append(buf, p.Random...)
+	buf = append(buf, p.SessionIDLength...)
 	buf = append(buf, p.SessionID...)
 	buf = append(buf, p.lengthCipherSuites(isFromServer)...)
 	buf = append(buf, p.bytesCipherSuites()...)
 	buf = append(buf, p.CompressionMethodsLength...)
 	buf = append(buf, p.CompressionMethods...)
 	buf = append(buf, p.ExtensionsLength...)
-	buf = append(buf, p.Extentions...)
+	buf = append(buf, p.Extentions.Bytes()...)
 	return buf
 }
 
@@ -138,7 +222,10 @@ const TLS_HANDSHAKE_TYPE_CLIENT_HELLO = 0x01
 const TLS_HANDSHAKE_TYPE_SERVER_HELLO = 0x02
 const COMPRESSION_METHOD_NULL = 0x00
 
+var TLS_VERSION_1_0 = []byte{0x03, 0x01}
+var TLS_VERSION_1_1 = []byte{0x03, 0x02}
 var TLS_VERSION_1_2 = []byte{0x03, 0x03}
+var TLS_VERSION_1_3 = []byte{0x03, 0x04}
 
 func NewTLSClientHello() *TLSClientHello {
 	cipherSuites := []uint16{
@@ -176,7 +263,7 @@ func NewTLSClientHello() *TLSClientHello {
 		// Random:        make([]byte, 32), // 000000....
 		Random: random,
 
-		SessionID: []byte{0x00},
+		SessionIDLength: []byte{0x00},
 		// SessionID: make([]byte, 32),
 
 		CipherSuitesLength: []byte{0x00, 0x02}, // 一旦固定
@@ -186,7 +273,6 @@ func NewTLSClientHello() *TLSClientHello {
 		CompressionMethodsLength: []byte{0x00}, // 後で計算して求めるが、初期化のため
 		CompressionMethods:       []byte{COMPRESSION_METHOD_NULL},
 		ExtensionsLength:         []byte{0x00, 0x00}, // 後で計算して求めるが、初期化のため
-		Extentions:               []byte{},
 	}
 
 	handshake.CompressionMethodsLength = []byte{byte(len(handshake.CompressionMethods))}
@@ -212,17 +298,43 @@ func NewTLSClientHello() *TLSClientHello {
 }
 
 func ParsedTLSClientHello(b []byte) *TLSClientHello {
-	cipherSuitesLength := b[44:46]
+	sessionIDLength := b[43]
+	sessionIDLengthInt := int(sessionIDLength)
+
+	var sessionID []byte
+	nextPoint := 44
+	if sessionIDLengthInt > 0 {
+		sessionID = b[nextPoint : nextPoint+sessionIDLengthInt]
+		nextPoint += sessionIDLengthInt
+	}
+	cipherSuitesLength := b[nextPoint : nextPoint+2]
+	nextPoint += 2
 	cipherSuites := []uint16{}
+
 	// たぶん、2byteずつ増えていくでokと思うけど
+	sum := 0
 	for i := 0; i < (bytesToInt(cipherSuitesLength) / 2); i++ {
 		point := i * 2
-		cipherSuite := binary.BigEndian.Uint16(b[46+point : 46+point+2])
+		cipherSuite := binary.BigEndian.Uint16(b[nextPoint+point : nextPoint+point+2])
 		cipherSuites = append(cipherSuites, cipherSuite)
+		sum += 2
 	}
+	nextPoint += sum
 
-	compressionMethodsLength := b[46+bytesToInt(cipherSuitesLength) : 47+bytesToInt(cipherSuitesLength)]
-	extensionsLength := b[47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0]) : 47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])+2]
+	compressionMethodsLength := b[nextPoint]
+	compressionMethodsLengthInt := int(compressionMethodsLength)
+	compressionMethods := []byte{}
+	if compressionMethodsLengthInt > 0 {
+		compressionMethods = b[nextPoint+1 : nextPoint+1+compressionMethodsLengthInt]
+		nextPoint = nextPoint + 1 + compressionMethodsLengthInt
+	}
+	extensionsLength := b[nextPoint : nextPoint+2]
+	extensionsLengthInt := bytesToInt(extensionsLength)
+	nextPoint += 2
+	var extensions TLSExtensions
+	if extensionsLengthInt > 0 {
+		extensions = ParsedTLSExtensions(extensionsLengthInt, b[nextPoint:nextPoint+extensionsLengthInt])
+	}
 
 	return &TLSClientHello{
 		RecordLayer: &TLSRecordLayer{
@@ -235,13 +347,14 @@ func ParsedTLSClientHello(b []byte) *TLSClientHello {
 			Length:                   b[6:9],
 			Version:                  b[9:11],
 			Random:                   b[11:43],
-			SessionID:                []byte{b[43]},
+			SessionIDLength:          []byte{sessionIDLength},
+			SessionID:                sessionID,
 			CipherSuitesLength:       cipherSuitesLength,
 			CipherSuites:             cipherSuites,
-			CompressionMethodsLength: compressionMethodsLength,
-			CompressionMethods:       b[47+bytesToInt(cipherSuitesLength) : 47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])],
+			CompressionMethodsLength: []byte{compressionMethodsLength},
+			CompressionMethods:       compressionMethods,
 			ExtensionsLength:         extensionsLength,
-			Extentions:               b[47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])+2 : 47+bytesToInt(cipherSuitesLength)+int(compressionMethodsLength[0])+2+bytesToInt(extensionsLength)],
+			Extentions:               extensions,
 		},
 	}
 }
@@ -378,7 +491,18 @@ func (sd *ServerHelloDone) Bytes() []byte {
 	return b
 }
 
-func ParsedTLSServerHello(b []byte) *TLSServerHello {
+// TLS1.2/1.3 共通
+func ParsedTLSServerHelloOnly(b []byte) (*ServerHello, int) {
+	sessionIDLength := b[43]
+	sessionIDLengthInt := int(sessionIDLength)
+
+	nextPosition := 44
+	sessionID := []byte{}
+	if sessionIDLengthInt != 0 {
+		sessionID = b[nextPosition : nextPosition+sessionIDLengthInt]
+		nextPosition += sessionIDLengthInt
+	}
+
 	slength := b[3:5]
 	serverHello := &ServerHello{
 		RecordLayer: &TLSRecordLayer{
@@ -391,20 +515,28 @@ func ParsedTLSServerHello(b []byte) *TLSServerHello {
 			Length:             b[6:9],
 			Version:            b[9:11],
 			Random:             b[11:43],
-			SessionID:          []byte{b[43]},
-			CipherSuites:       []uint16{parsedCipherSuites(b[44:46])},
-			CompressionMethods: []byte{b[46]},
+			SessionIDLength:    []byte{sessionIDLength},
+			SessionID:          sessionID,
+			CipherSuites:       []uint16{parsedCipherSuites(b[nextPosition : nextPosition+2])},
+			CompressionMethods: []byte{b[nextPosition+2]},
 		},
 	}
-	nextPosition := 47
+	nextPosition = nextPosition + 3
 	if bytesToInt(slength) > 42 {
 		extentionsLength := b[nextPosition : nextPosition+2]
 		serverHello.HandshakeProtocol.ExtensionsLength = extentionsLength
 
 		nextPosition += 2
-		serverHello.HandshakeProtocol.Extentions = b[nextPosition : nextPosition+bytesToInt(extentionsLength)]
+		serverHello.HandshakeProtocol.Extentions = ParsedTLSExtensions(bytesToInt(extentionsLength), b[nextPosition:nextPosition+bytesToInt(extentionsLength)])
 		nextPosition += bytesToInt(extentionsLength)
 	}
+
+	return serverHello, nextPosition
+}
+
+// tls1.2用
+func ParsedTLSServerHello(b []byte) *TLSServerHello {
+	serverHello, nextPosition := ParsedTLSServerHelloOnly(b)
 
 	certificate := &Certificate{
 		RecordLayer: &TLSRecordLayer{
@@ -438,6 +570,55 @@ func ParsedTLSServerHello(b []byte) *TLSServerHello {
 		ServerHello:     serverHello,
 		Certificate:     certificate,
 		ServerHelloDone: serverHelloDone,
+	}
+}
+
+type TLSServerHelloFor1_3 struct {
+	ServerHello              *ServerHello
+	ChangeCipherSpecProtocol *ChangeCipherSpecProtocol
+	ApplicationDataProtocols []*TLSApplicationData
+}
+
+func (t *TLSServerHelloFor1_3) Bytes() []byte {
+	b := &bytes.Buffer{}
+	b.Write(t.ServerHello.Bytes())
+	b.Write(t.ChangeCipherSpecProtocol.Bytes())
+	for _, app := range t.ApplicationDataProtocols {
+		b.Write(app.Bytes())
+	}
+	return b.Bytes()
+}
+
+// tls1.3用
+func ParsedTLSServerHelloFor1_3(b []byte) *TLSServerHelloFor1_3 {
+	serverHello, nextPosition := ParsedTLSServerHelloOnly(b)
+	b = b[nextPosition:]
+	changeCipherSpec, nextPosition := ParsedChangeCipherSpec(b)
+	b = b[nextPosition:]
+
+	as := []*TLSApplicationData{}
+
+	// TODO: 多分、パケット2つ結合してからでないとダメかもしれん
+	//       ただ、1パケットでも大丈夫なときがありそう
+	//       ip header の total length が 1500 超えてるとき、連結するようにすればよさそう(そういうパケットでも、Don't fragment なのはそういうものなの？)
+	for {
+		applicationData := ParsedTLSApplicationData(b)
+		if applicationData == nil || applicationData.RecordLayer.ContentType[0] != TLS_CONTENT_TYPE_APPLICATION_DATA {
+			break
+		}
+
+		as = append(as, applicationData)
+
+		nextPosition = 5 + bytesToInt(applicationData.RecordLayer.Length)
+		b = b[nextPosition:]
+	}
+
+	// log.Println(fmt.Sprintf("👺Leng: %d", len(as)))
+
+	return &TLSServerHelloFor1_3{
+		ServerHello:              serverHello,
+		ChangeCipherSpecProtocol: changeCipherSpec,
+		ApplicationDataProtocols: as,
 	}
 }
 
@@ -952,16 +1133,7 @@ func (t *TLSChangeCipherSpecAndEncryptedHandshakeMessage) Bytes() []byte {
 
 // これは、Monitor 表示用に、受信したものをただパースする関数
 func ParsedTLSChangeCipherSpecAndEncryptedHandshakeMessage(b []byte) *TLSChangeCipherSpecAndEncryptedHandshakeMessage {
-	lengthOfChangeCipherSpecProtocol := b[3:5]
-	changeCipherSpecProtocol := &ChangeCipherSpecProtocol{
-		RecordLayer: &TLSRecordLayer{
-			ContentType: []byte{b[0]},
-			Version:     b[1:3],
-			Length:      lengthOfChangeCipherSpecProtocol,
-		},
-		ChangeCipherSpecMessage: b[5 : 5+bytesToInt(lengthOfChangeCipherSpecProtocol)],
-	}
-	nextPosition := 5 + bytesToInt(lengthOfChangeCipherSpecProtocol)
+	changeCipherSpecProtocol, nextPosition := ParsedChangeCipherSpec(b)
 
 	lengthOfEncryptedHandshakeMessage := b[nextPosition+3 : nextPosition+5]
 	encryptedHandshakeMessage := &EncryptedHandshakeMessage{
@@ -980,6 +1152,21 @@ func ParsedTLSChangeCipherSpecAndEncryptedHandshakeMessage(b []byte) *TLSChangeC
 	}
 }
 
+func ParsedChangeCipherSpec(b []byte) (*ChangeCipherSpecProtocol, int) {
+	lengthOfChangeCipherSpecProtocol := b[3:5]
+	changeCipherSpecProtocol := &ChangeCipherSpecProtocol{
+		RecordLayer: &TLSRecordLayer{
+			ContentType: []byte{b[0]},
+			Version:     b[1:3],
+			Length:      lengthOfChangeCipherSpecProtocol,
+		},
+		ChangeCipherSpecMessage: b[5 : 5+bytesToInt(lengthOfChangeCipherSpecProtocol)],
+	}
+	nextPosition := 5 + bytesToInt(lengthOfChangeCipherSpecProtocol)
+
+	return changeCipherSpecProtocol, nextPosition
+}
+
 type TLSApplicationData struct {
 	RecordLayer              *TLSRecordLayer
 	EncryptedApplicationData []byte
@@ -987,6 +1174,11 @@ type TLSApplicationData struct {
 
 func ParsedTLSApplicationData(b []byte) *TLSApplicationData {
 	length := b[3:5]
+
+	if len(b) < bytesToInt(length)+5 {
+		return nil
+	}
+
 	return &TLSApplicationData{
 		RecordLayer: &TLSRecordLayer{
 			ContentType: []byte{b[0]},

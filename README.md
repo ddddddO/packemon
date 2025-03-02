@@ -337,6 +337,15 @@ $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -
   $ sudo go run cmd/packemon/main.go --debug --send --proto arp
   ```
 
+#### TLS version 指定でリクエスト
+```console
+# TLS v1.2 でリクエスト
+$ curl -s -v --tls-max 1.2 https://192.168.10.112:10443
+
+# TLS v1.3 でリクエスト
+$ curl -s -v --tls-max 1.3 https://192.168.10.112:10443
+```
+
 #### 手軽にブロードキャスト
 ```console
 $ arping -c 1 1.2.3.4

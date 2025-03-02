@@ -5,6 +5,7 @@ type Passive struct {
 	HTTP                                            *HTTP
 	TLSClientHello                                  *TLSClientHello
 	TLSServerHello                                  *TLSServerHello
+	TLSServerHelloFor1_3                            *TLSServerHelloFor1_3 // TODO: まとめたい
 	TLSClientKeyExchange                            *TLSClientKeyExchange
 	TLSChangeCipherSpecAndEncryptedHandshakeMessage *TLSChangeCipherSpecAndEncryptedHandshakeMessage
 	TLSApplicationData                              *TLSApplicationData
@@ -42,8 +43,12 @@ func (p *Passive) HighLayerProto() string {
 	if p.TCP != nil {
 		proto = "TCP"
 	}
+	// TODO: ちょっとTLSのversionは出さないとかにした方がいいかも？
 	if p.TLSClientHello != nil || p.TLSServerHello != nil || p.TLSClientKeyExchange != nil || p.TLSChangeCipherSpecAndEncryptedHandshakeMessage != nil || p.TLSApplicationData != nil || p.TLSEncryptedAlert != nil {
 		proto = "TLSv1.2"
+	}
+	if p.TLSServerHelloFor1_3 != nil {
+		proto = "TLSv1.3"
 	}
 	if p.DNS != nil {
 		proto = "DNS"

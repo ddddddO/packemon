@@ -122,7 +122,7 @@ func ParsedPacket(recieved []byte) (passive *Passive) {
 	defer func() {
 		if e := recover(); e != nil {
 			// TODO: なにかしらログ出す
-			// log.Errorf("Panic!:\n%v\n", e)
+			// log.Printf("Panic!:\n%v\n", e)
 
 			// 一旦生のイーサネットフレームを出しとく
 			passive = &Passive{
@@ -130,6 +130,8 @@ func ParsedPacket(recieved []byte) (passive *Passive) {
 			}
 		}
 	}()
+
+	const DEBUG_10443 uint16 = 0x28CB // TODO: 一時的なもの。TLS1.3 を試すための
 
 	switch ethernetFrame.Header.Typ {
 	case ETHER_TYPE_ARP:
@@ -171,7 +173,7 @@ func ParsedPacket(recieved []byte) (passive *Passive) {
 				}
 				return passive
 
-			case PORT_HTTPS:
+			case PORT_HTTPS, DEBUG_10443:
 				ParsedTLSToPassive(tcp, passive)
 				return passive
 			}
@@ -185,7 +187,7 @@ func ParsedPacket(recieved []byte) (passive *Passive) {
 				}
 				return passive
 
-			case PORT_HTTPS:
+			case PORT_HTTPS, DEBUG_10443:
 				ParsedTLSToPassive(tcp, passive)
 				return passive
 			}

@@ -33,11 +33,11 @@ func main() {
 		Rand:         zeroSource{}, // for example only; don't do this.
 		MinVersion:   tls.VersionTLS12,
 		MaxVersion:   tls.VersionTLS13,
-		CipherSuites: []uint16{tls.TLS_RSA_WITH_AES_128_GCM_SHA256},
+		CipherSuites: []uint16{tls.TLS_RSA_WITH_AES_128_GCM_SHA256, tls.TLS_CHACHA20_POLY1305_SHA256},
 		//CurvePreferences: []tls.CurveID{tls.X25519},
 		KeyLogWriter: w,
 	}
-	tlsListener, err := tls.Listen("tcp", ":443", config)
+	tlsListener, err := tls.Listen("tcp", ":10443", config)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -2,6 +2,7 @@ package packemon
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/binary"
 	"strconv"
 	"strings"
@@ -77,6 +78,21 @@ func StrIntToUint16(s string) (uint16, error) {
 		return 0, err
 	}
 	return uint16(n), nil
+}
+
+func WriteHash(message []byte) []byte {
+	hasher := sha256.New()
+	hasher.Write(message)
+
+	return hasher.Sum(nil)
+}
+
+func noRandomByte(length int) []byte {
+	b := make([]byte, length)
+	for i := 0; i < length; i++ {
+		b[i] = 0x00
+	}
+	return b
 }
 
 // copy of https://github.com/sat0ken/go-curo/blob/main/utils.go#L18

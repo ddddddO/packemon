@@ -2,15 +2,22 @@ package packemon
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/tls"
 	"crypto/x509"
 	"encoding/binary"
+	"encoding/hex"
+	"fmt"
+	"log"
+	"strconv"
+
+	"golang.org/x/crypto/chacha20poly1305"
+	"golang.org/x/crypto/curve25519"
 )
 
 func ParsedTLSToPassive(tcp *TCP, p *Passive) {
@@ -110,6 +117,8 @@ type TLSHandshakeProtocol struct {
 	ExtensionsLength         []byte
 	Extentions               TLSExtensions
 }
+
+var TLS_EXTENSION_TYPE_KEY_SHARE = []byte{0x0, 0x33}
 
 type TLSExtension struct {
 	Type   []byte
@@ -216,6 +225,9 @@ func (p *TLSHandshakeProtocol) lengthCipherSuites(isFromServer bool) []byte {
 type TLSClientHello struct {
 	RecordLayer       *TLSRecordLayer
 	HandshakeProtocol *TLSHandshakeProtocol
+
+	// TODO: これがこのstruct内にあるのはおかしく、一旦実装を簡単にするため置いてるだけ。要リファクタ
+	ECDHEKeys *ECDHEKeys
 }
 
 const TLS_HANDSHAKE_TYPE_CLIENT_HELLO = 0x01
@@ -227,28 +239,14 @@ var TLS_VERSION_1_1 = []byte{0x03, 0x02}
 var TLS_VERSION_1_2 = []byte{0x03, 0x03}
 var TLS_VERSION_1_3 = []byte{0x03, 0x04}
 
-func NewTLSClientHello() *TLSClientHello {
-	cipherSuites := []uint16{
-		// tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-		// tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-		// tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		// tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-		// tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, // github へ curl した時の server hello で、これが指定されていた。client hello ではこれの指定以外に、いくつか extension を指定しないとダメみたい
-		// tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-		// tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		// tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		// tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		// tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+type ECDHEKeys struct {
+	PrivateKey []byte
+	PublicKey  []byte
+	SharedKey  []byte
+}
 
-		tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-
-		// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-		// tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-		// tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-		// tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-		// tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-	}
-
+// TODO: tls1.3 用のと汎用的に
+func NewTLSClientHello(tlsVersion []byte, cipherSuites ...uint16) *TLSClientHello {
 	random := make([]byte, 32)
 	if _, err := rand.Read(random); err != nil {
 		panic(err)
@@ -269,7 +267,7 @@ func NewTLSClientHello() *TLSClientHello {
 		CipherSuitesLength: []byte{0x00, 0x02}, // 一旦固定
 		// CipherSuitesLength:       []byte{0x00, 0x04}, // 一旦固定
 
-		CipherSuites:             cipherSuites,
+		CipherSuites:             cipherSuites, // TODO: 外から指定するようにしたので、CipherSuitesLength を計算して求めないといけない
 		CompressionMethodsLength: []byte{0x00}, // 後で計算して求めるが、初期化のため
 		CompressionMethods:       []byte{COMPRESSION_METHOD_NULL},
 		ExtensionsLength:         []byte{0x00, 0x00}, // 後で計算して求めるが、初期化のため
@@ -277,7 +275,95 @@ func NewTLSClientHello() *TLSClientHello {
 
 	handshake.CompressionMethodsLength = []byte{byte(len(handshake.CompressionMethods))}
 	tmp := &bytes.Buffer{}
-	WriteUint16(tmp, uint16(len(handshake.Extentions))) // TODO: ここ実際にExtentions指定してないで実装したから、指定したらバグってるかも
+
+	ecdheKeys := &ECDHEKeys{}
+	if bytes.Equal(tlsVersion, TLS_VERSION_1_3) {
+		// ref: https://github.com/sat0ken/go-tcpip/blob/7dd5085f8aa25747a6098cc7d8d8e336ec5fcadd/tls1_3.go#L16
+		// clientPrivateKey := make([]byte, 32)
+		// rand.Read(clientPrivateKey)
+		clientPrivateKey := noRandomByte(32)
+		clientPublicKey, err := curve25519.X25519(clientPrivateKey, curve25519.Basepoint)
+		if err != nil {
+			panic(err)
+		}
+		ecdheKeys.PrivateKey = clientPrivateKey
+		ecdheKeys.PublicKey = clientPublicKey
+
+		handshake.Extentions = []*TLSExtension{
+			{
+				// status_reqeust
+				Type:   []byte{0x00, 0x05},
+				Length: []byte{0x00, 0x05},
+				Data:   []byte{0x01, 0x00, 0x00, 0x00, 0x00},
+			},
+			{
+				// supported_groups
+				Type:   []byte{0x00, 0x0a},
+				Length: []byte{0x00, 0x04},
+				Data: []byte{
+					/*Supported Groups List Length: 2*/ 0x00, 0x02,
+					/*Supported Groups (1 groups): x25519*/ 0x0, 0x1d,
+				},
+			},
+			{
+				// ec_point_formats
+				Type:   []byte{0x0, 0x0b},
+				Length: []byte{0x0, 0x02},
+				Data: []byte{
+					0x01, 0x00,
+				},
+			},
+			{
+				// signature_algorithms
+				Type:   []byte{0x0, 0x0d},
+				Length: []byte{0x0, 0x1a},
+				Data: append(
+					[]byte{0x0, 0x18},
+					[]byte{
+						0x08, 0x04,
+						0x04, 0x03, 0x08, 0x07, 0x08, 0x05, 0x08, 0x06, 0x04, 0x01, 0x05, 0x01, 0x06, 0x01, 0x05, 0x03, 0x06, 0x03, 0x02, 0x01, 0x02, 0x03,
+					}...,
+				),
+			},
+			{
+				// renagotiation_info
+				Type:   []byte{0xff, 0x01},
+				Length: []byte{0x00, 0x01},
+				Data:   []byte{0x00},
+			},
+
+			{
+				// signed_certificate_timestamp
+				Type:   []byte{0x00, 0x12},
+				Length: []byte{0x00, 0x00},
+			},
+			{
+				// supported_versions
+				Type:   []byte{0x0, 0x2b},
+				Length: []byte{0x0, 0x03},
+				Data:   append([]byte{0x02}, TLS_VERSION_1_3...),
+			},
+			{
+				// key_share
+				Type:   []byte{0x0, 0x33},
+				Length: []byte{0x0, 0x26},
+				Data: append(
+					[]byte{
+						/* Client Key Share Length: 36 */ 0x0, 0x24,
+						// 以降、Key Share Entry:
+						/* Group: x25519 (29) */ 0x0, 0x1d,
+						/* Key Exchange Length: 32 */ 0x0, 0x20,
+					},
+					/* Key Exchange: */ ecdheKeys.PublicKey...),
+			},
+
+			// {
+			//  // http2 実装するときに使う
+			// 	// application_layer_protocol_negotiation
+			// },
+		}
+	}
+	WriteUint16(tmp, uint16(len(handshake.Extentions.Bytes()))) // TODO: ここ実際にExtentions指定してないで実装したから、指定したらバグってるかも
 	handshake.ExtensionsLength = tmp.Bytes()
 
 	lengthAll := &bytes.Buffer{}
@@ -294,6 +380,8 @@ func NewTLSClientHello() *TLSClientHello {
 			Length:      lengthAll.Bytes(),
 		},
 		HandshakeProtocol: handshake,
+
+		ECDHEKeys: ecdheKeys,
 	}
 }
 
@@ -426,9 +514,9 @@ func (c *Certificate) Bytes() []byte {
 // ref: https://zenn.dev/satoken/articles/golang-tls1_2#serverhello%2C-certificate%2C-serverhellodone
 func (c *Certificate) Validate() error {
 	// log.Printf("validation cert: \n%x\n", c.Certificates[3:])
-	certs, err := x509.ParseCertificates(c.Certificates[3:]) // TODO: 最初の3byteはCertificate Length
+	length, _ := strconv.ParseUint(fmt.Sprintf("%x", c.Certificates[:3]), 16, 16)
+	certs, err := x509.ParseCertificates(c.Certificates[3 : 3+length])
 	if err != nil {
-		// log.Println(err)
 		return err
 	}
 	// log.Printf("certificate num: %d\n", len(certs))
@@ -589,6 +677,15 @@ func (t *TLSServerHelloFor1_3) Bytes() []byte {
 	return b.Bytes()
 }
 
+func (t *TLSServerHelloFor1_3) GetServerKeyShare() []byte {
+	for _, extension := range t.ServerHello.HandshakeProtocol.Extentions {
+		if bytes.Equal(TLS_EXTENSION_TYPE_KEY_SHARE, extension.Type) {
+			return extension.Data[4:]
+		}
+	}
+	return nil
+}
+
 // tls1.3用
 func ParsedTLSServerHelloFor1_3(b []byte) *TLSServerHelloFor1_3 {
 	serverHello, nextPosition := ParsedTLSServerHelloOnly(b)
@@ -601,6 +698,7 @@ func ParsedTLSServerHelloFor1_3(b []byte) *TLSServerHelloFor1_3 {
 	// TODO: 多分、パケット2つ結合してからでないとダメかもしれん
 	//       ただ、1パケットでも大丈夫なときがありそう
 	//       ip header の total length が 1500 超えてるとき、連結するようにすればよさそう(そういうパケットでも、Don't fragment なのはそういうものなの？)
+	//       これは確か、Monitor の話
 	for {
 		applicationData := ParsedTLSApplicationData(b)
 		if applicationData == nil || applicationData.RecordLayer.ContentType[0] != TLS_CONTENT_TYPE_APPLICATION_DATA {
@@ -622,13 +720,153 @@ func ParsedTLSServerHelloFor1_3(b []byte) *TLSServerHelloFor1_3 {
 	}
 }
 
-func parsedCipherSuites(b []byte) uint16 {
-	if bytes.Equal(b, []byte{0x00, 0x9c}) {
-		return tls.TLS_RSA_WITH_AES_128_GCM_SHA256
+// こちらも拝借させてもらってる
+// ref: https://github.com/sat0ken/go-tcpip/blob/7dd5085f8aa25747a6098cc7d8d8e336ec5fcadd/tls1_3.go#L88
+func DecryptChacha20(header []byte, chipertext []byte, tlsConn *TLSv12Connection) []byte {
+	// header := message[0:5]
+	// chipertext := message[5:]
+	// chipertext := message
+	var key, iv, nonce []byte
+
+	if tlsConn.currentHandshake {
+		key = tlsConn.KeyBlockForTLSv13.serverHandshakeKey
+		iv = tlsConn.KeyBlockForTLSv13.serverHandshakeIV
+		nonce = getNonce(tlsConn.ServerHandshakeSeq, 8)
+	} else {
+		key = tlsConn.KeyBlockForTLSv13.serverAppKey
+		iv = tlsConn.KeyBlockForTLSv13.serverAppIV
+		nonce = getNonce(tlsConn.ServerAppSeq, 8)
 	}
 
-	// log.Printf("TLS not parsed CipherSuites: %x\n", b)
-	return tls.TLS_RSA_WITH_AES_128_GCM_SHA256
+	//fmt.Printf("key is %x, iv is %x\n", key, iv)
+	aead, err := chacha20poly1305.New(key)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	xornonce := getXORNonce(nonce, iv)
+
+	//fmt.Printf("decrypt nonce is %x xornonce is %x, chipertext is %x, add is %x\n", nonce, xornonce, chipertext, header)
+	plaintext, err := aead.Open(nil, xornonce, chipertext, header)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// fmt.Printf("plaintext is : %x\n", plaintext)
+	return plaintext
+}
+
+func EncryptChacha20(message []byte, tlsConn *TLSv12Connection) []byte {
+	var key, iv, nonce []byte
+
+	// Finishedメッセージを送るとき
+	if tlsConn.currentHandshake {
+		key = tlsConn.KeyBlockForTLSv13.clientHandshakeKey
+		iv = tlsConn.KeyBlockForTLSv13.clientHandshakeIV
+		nonce = getNonce(tlsConn.ClientHandshakeSeq, 8)
+	} else {
+		// Application Dataを送る時
+		key = tlsConn.KeyBlockForTLSv13.clientAppKey
+		iv = tlsConn.KeyBlockForTLSv13.clientAppIV
+		nonce = getNonce(tlsConn.ClientAppSeq, 8)
+	}
+
+	fmt.Printf("key is %x, iv is %x\n", key, iv)
+
+	aead, err := chacha20poly1305.New(key)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// ivとnonceをxorのbit演算をする
+	// 5.3. レコードごとのノンス
+	// 2.埋め込まれたシーケンス番号は、静的なclient_write_ivまたはserver_write_iv（役割に応じて）とXORされます。
+	xornonce := getXORNonce(nonce, iv)
+	header := strtoByte("170303")
+	// 平文→暗号化したときのOverHeadを足す
+	totalLength := len(message) + 16
+
+	b := &bytes.Buffer{}
+	WriteUint16(b, uint16(totalLength))
+	header = append(header, b.Bytes()...)
+
+	fmt.Printf("encrypt now nonce is %x xornonce is %x, plaintext is %x, add is %x\n", nonce, xornonce, message, header)
+	ciphertext := aead.Seal(header, xornonce, message, header)
+
+	return ciphertext
+}
+
+type CertificateVerify struct {
+	HandshakeType           byte
+	Length                  []byte
+	SignatureHashAlgorithms []byte
+	SignatureLength         []byte
+	Signature               []byte
+}
+
+const str0x20x64 = "20202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020202020"
+
+var serverCertificateContextString = []byte(`TLS 1.3, server CertificateVerify`)
+
+// ref: https://github.com/sat0ken/go-tcpip/blob/7dd5085f8aa25747a6098cc7d8d8e336ec5fcadd/tls1_3.go#L285
+func (c *CertificateVerify) VerifyServerCertificate(pubkey *rsa.PublicKey, handshake_messages []byte) error {
+	hash_messages := WriteHash(handshake_messages)
+
+	hasher := sha256.New()
+	// 64回繰り返されるオクテット32（0x20）で構成される文字列
+	hasher.Write(strtoByte(str0x20x64))
+	// コンテキスト文字列 = "TLS 1.3, server CertificateVerify"
+	hasher.Write(serverCertificateContextString)
+	// セパレータとして機能する単一の0バイト
+	hasher.Write([]byte{0x00})
+	hasher.Write(hash_messages)
+	signed := hasher.Sum(nil)
+	fmt.Printf("hash_messages is %x\n, signed is %x\n", hash_messages, signed)
+
+	signOpts := &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash}
+	if err := rsa.VerifyPSS(pubkey, crypto.SHA256, signed, c.Signature, signOpts); err != nil {
+		// TODO: どうもエラーでる
+		return err
+	}
+	// if err := rsa.VerifyPSS(pubkey, crypto.SHA256, signed, c.Signature, nil); err != nil {
+	// 	// TODO: どうもエラーでる
+	// 	return err
+	// }
+	return nil
+}
+
+type FinishedMessage struct {
+	HandshakeType byte
+	Length        []byte
+	VerifyData    []byte
+}
+
+func (f *FinishedMessage) Bytes() []byte {
+	b := &bytes.Buffer{}
+	b.WriteByte(f.HandshakeType)
+	b.Write(f.Length)
+	b.Write(f.VerifyData)
+	return b.Bytes()
+}
+
+// TLS1.3用
+// https://tex2e.github.io/rfc-translater/html/rfc8446.html
+// シーケンス番号とwrite_ivをxorした値がnonceになる
+func getXORNonce(seqnum, writeiv []byte) []byte {
+	nonce := make([]byte, len(writeiv))
+	copy(nonce, writeiv)
+
+	for i, b := range seqnum {
+		nonce[4+i] ^= b
+	}
+	return nonce
+}
+
+func strtoByte(str string) []byte {
+	b, _ := hex.DecodeString(str)
+	return b
+}
+
+func parsedCipherSuites(b []byte) uint16 {
+	return binary.BigEndian.Uint16(b)
 }
 
 func parsedCertificatesLength(b []byte) int {
@@ -1127,7 +1365,9 @@ type TLSChangeCipherSpecAndEncryptedHandshakeMessage struct {
 func (t *TLSChangeCipherSpecAndEncryptedHandshakeMessage) Bytes() []byte {
 	buf := bytes.Buffer{}
 	buf.Write(t.ChangeCipherSpecProtocol.Bytes())
-	buf.Write(t.EncryptedHandshakeMessage.Bytes())
+	if t.EncryptedHandshakeMessage != nil {
+		buf.Write(t.EncryptedHandshakeMessage.Bytes())
+	}
 	return buf.Bytes()
 }
 

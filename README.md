@@ -344,6 +344,9 @@ $ curl -s -v --tls-max 1.2 https://192.168.10.112:10443
 
 # TLS v1.3 でリクエスト
 $ curl -s -v --tls-max 1.3 https://192.168.10.112:10443
+
+# TLS v1.3 で cipher suites を指定してリクエスト（ただし、Client Hello の Cipher Suites のリストが、その指定のみになるわけではなく、一番上（最優先）にくるというもの（パケットキャプチャで確認））
+$ curl -s -v --tls-max 1.3 --tls13-ciphers "TLS_CHACHA20_POLY1305_SHA256" https://192.168.10.112:10443
 ```
 
 #### 手軽にブロードキャスト

@@ -2,6 +2,7 @@ package debugging
 
 import (
 	"bytes"
+	"crypto/tls"
 	"log"
 
 	p "github.com/ddddddO/packemon"
@@ -30,7 +31,7 @@ func (dnw *debugNetworkInterface) SendTCP3wayAndTLShandshake(firsthopMACAddr [6]
 		return err
 	}
 
-	tlsClientHello := p.NewTLSClientHello()
+	tlsClientHello := p.NewTLSClientHello(p.TLS_VERSION_1_2, tls.TLS_RSA_WITH_AES_128_GCM_SHA256)
 	var tlsServerHello *p.TLSServerHello
 	var tlsClientKeyExchange *p.TLSClientKeyExchange
 	var tlsClientFinished []byte

@@ -89,6 +89,8 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 	// L5~L6
 	tlsv1_2Form := t.tlsv1_2Form()
 	tlsv1_2Form.SetBorder(true).SetTitle(" TLSv1.2 ").SetTitleAlign(tview.AlignLeft)
+	tlsv1_3Form := t.tlsv1_3Form()
+	tlsv1_3Form.SetBorder(true).SetTitle(" TLSv1.3 ").SetTitleAlign(tview.AlignLeft)
 
 	// L4
 	tcpForm := t.tcpForm()
@@ -114,6 +116,7 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddPage("HTTP", httpForm, true, true).
 		AddPage("DNS", dnsForm, true, true).
 		AddPage("TLSv1.2", tlsv1_2Form, true, true).
+		AddPage("TLSv1.3", tlsv1_3Form, true, true).
 		AddPage("UDP", udpForm, true, true).
 		AddPage("TCP", tcpForm, true, true).
 		AddPage("ICMP", icmpForm, true, true).
@@ -147,7 +150,7 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 	})
 	l7Protocols.SetCurrentOption(1)
 
-	l5_6s := []string{"", "TLSv1.2"}
+	l5_6s := []string{"", "TLSv1.2", "TLSv1.3"}
 	l5_6Protocols := tview.NewDropDown()
 	l5_6Protocols.SetTitle("Lδ").SetBorder(true)
 	l5_6Protocols.SetOptions(l5_6s, func(text string, index int) {
@@ -216,8 +219,8 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddItem(l7Protocols, 4, 0, 1, 1, layerRowNum, 0, false).
 
 		// 右側
-		AddItem(t.pages, 0, 1, 8, 1, 0, 0, false).
-		AddItem(interfaceTable, 8, 1, 2, 1, 0, 0, false)
+		AddItem(t.pages, 0, 1, 8, 1, 0, 0, false)
+		// AddItem(interfaceTable, 8, 1, 2, 1, 0, 0, false)
 
 	return nil
 }

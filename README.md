@@ -45,14 +45,18 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
   - [ ] ICMPv6
   - [x] TCP (WIP)
   - [x] UDP (WIP)
-  - [ ] TLSv1.2 (WIP)
+  - [x] TLSv1.2 (WIP)
     - This tool is not very useful because the number of cipher suites it supports is still small, but an environment where you can try it out can be found [here](./cmd/debugging/https-server/README.md).
       - TCP 3way handshake ~ TLS handshake ~ TLS Application data (encrypted HTTP)
     - Supported cipher suites include
       - `TLS_RSA_WITH_AES_128_GCM_SHA256`
     - You can check the server for available cipher suites with the following command
       - `nmap --script ssl-enum-ciphers -p 443 <server ip>`
-  - [ ] TLSv1.3
+  - [x] TLSv1.3 (WIP)
+    - This tool is not very useful because the number of cipher suites it supports is still small, but an environment where you can try it out can be found [here](./cmd/debugging/https-server/README.md).
+      - TCP 3way handshake ~ TLS handshake ~ TLS Application data (encrypted HTTP)
+    - Supported cipher suites include
+      - `TLS_CHACHA20_POLY1305_SHA256`
   - [x] DNS (WIP)
   - [x] HTTP (WIP)
   - [ ] xxxxx....
@@ -340,10 +344,13 @@ $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -
 #### TLS version 指定でリクエスト
 ```console
 # TLS v1.2 でリクエスト
-$ curl -s -v --tls-max 1.2 https://192.168.10.112:10443
+$ curl -k -s -v --tls-max 1.2 https://192.168.10.112:10443
 
 # TLS v1.3 でリクエスト
-$ curl -s -v --tls-max 1.3 https://192.168.10.112:10443
+$ curl -k -s -v --tls-max 1.3 https://192.168.10.112:10443
+
+# TLS v1.3 で cipher suites を指定してリクエスト（ただし、Client Hello の Cipher Suites のリストが、その指定のみになるわけではなく、一番上（最優先）にくるというもの（パケットキャプチャで確認））
+$ curl -k -s -v --tls-max 1.3 --tls13-ciphers "TLS_CHACHA20_POLY1305_SHA256" https://192.168.10.112:10443
 ```
 
 #### 手軽にブロードキャスト

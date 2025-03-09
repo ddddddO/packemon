@@ -283,9 +283,9 @@ func NewTLSClientHello(tlsVersion []byte, cipherSuites ...uint16) *TLSClientHell
 	ecdheKeys := &ECDHEKeys{}
 	if bytes.Equal(tlsVersion, TLS_VERSION_1_3) {
 		// ref: https://github.com/sat0ken/go-tcpip/blob/7dd5085f8aa25747a6098cc7d8d8e336ec5fcadd/tls1_3.go#L16
-		// clientPrivateKey := make([]byte, 32)
-		// rand.Read(clientPrivateKey)
-		clientPrivateKey := noRandomByte(32)
+		clientPrivateKey := make([]byte, 32)
+		rand.Read(clientPrivateKey)
+		// clientPrivateKey := noRandomByte(32)
 		clientPublicKey, err := curve25519.X25519(clientPrivateKey, curve25519.Basepoint)
 		if err != nil {
 			panic(err)

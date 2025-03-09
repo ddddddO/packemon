@@ -355,7 +355,7 @@ func NewTLSClientHello(tlsVersion []byte, cipherSuites ...uint16) *TLSClientHell
 			// },
 		}
 	}
-	WriteUint16(tmp, uint16(len(handshake.Extentions.Bytes()))) // TODO: ここ実際にExtentions指定してないで実装したから、指定したらバグってるかも
+	WriteUint16(tmp, uint16(len(handshake.Extentions.Bytes())))
 	handshake.ExtensionsLength = tmp.Bytes()
 
 	lengthAll := &bytes.Buffer{}

@@ -128,22 +128,9 @@ func EstablishTCPTLSv1_3AndSendPayload(ctx context.Context, nwInterface string, 
 
 					if tlsConn.IsEstablished() {
 						// データ送信
-						rawFinMessage := append(upperLayerData, TLS_CONTENT_TYPE_APPLICATION_DATA)
-						encryptedMessage := EncryptChacha20(rawFinMessage, tlsConn)
-
-						tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, encryptedMessage, prevTCP.Sequence+uint32(len(prevTCP.Data)), prevTCP.Acknowledgment)
-						ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-						tcp.CalculateChecksum(ipv4)
-
-						ipv4.Data = tcp.Bytes()
-						ipv4.CalculateTotalLength()
-						ipv4.CalculateChecksum()
-
-						ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, fEthrh.Typ, ipv4.Bytes())
-						if err := nw.Send(ethernetFrame); err != nil {
+						if err := SendEncryptedApplicationData(upperLayerData, prevTCP, srcIPAddr, dstIPAddr, dstMACAddr, srcMACAddr, fEthrh, nw, tlsConn, tcpConn); err != nil {
 							return err
 						}
-						tlsConn.ClientAppSeq++
 					}
 
 					continue
@@ -190,22 +177,9 @@ func EstablishTCPTLSv1_3AndSendPayload(ctx context.Context, nwInterface string, 
 
 					if tlsConn.IsEstablished() {
 						// データ送信
-						rawFinMessage := append(upperLayerData, TLS_CONTENT_TYPE_APPLICATION_DATA)
-						encryptedMessage := EncryptChacha20(rawFinMessage, tlsConn)
-
-						tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, encryptedMessage, prevTCP.Sequence+uint32(len(prevTCP.Data)), prevTCP.Acknowledgment)
-						ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
-						tcp.CalculateChecksum(ipv4)
-
-						ipv4.Data = tcp.Bytes()
-						ipv4.CalculateTotalLength()
-						ipv4.CalculateChecksum()
-
-						ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, fEthrh.Typ, ipv4.Bytes())
-						if err := nw.Send(ethernetFrame); err != nil {
+						if err := SendEncryptedApplicationData(upperLayerData, prevTCP, srcIPAddr, dstIPAddr, dstMACAddr, srcMACAddr, fEthrh, nw, tlsConn, tcpConn); err != nil {
 							return err
 						}
-						tlsConn.ClientAppSeq++
 					}
 
 					continue
@@ -381,4 +355,25 @@ END:
 	tlsConn.EstablishedConnection()
 
 	return tcp, nil
+}
+
+func SendEncryptedApplicationData(upperLayerData []byte, prevTCP *TCP, srcIPAddr uint32, dstIPAddr uint32, dstMACAddr HardwareAddr, srcMACAddr HardwareAddr, fEthrh *EthernetHeader, nw *NetworkInterface, tlsConn *TLSv12Connection, tcpConn *TCPConnection) error {
+	rawFinMessage := append(upperLayerData, TLS_CONTENT_TYPE_APPLICATION_DATA)
+	encryptedMessage := EncryptChacha20(rawFinMessage, tlsConn)
+
+	tcp := NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, encryptedMessage, prevTCP.Sequence+uint32(len(prevTCP.Data)), prevTCP.Acknowledgment)
+	ipv4 := NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
+	tcp.CalculateChecksum(ipv4)
+
+	ipv4.Data = tcp.Bytes()
+	ipv4.CalculateTotalLength()
+	ipv4.CalculateChecksum()
+
+	ethernetFrame := NewEthernetFrame(dstMACAddr, srcMACAddr, fEthrh.Typ, ipv4.Bytes())
+	if err := nw.Send(ethernetFrame); err != nil {
+		return err
+	}
+	tlsConn.ClientAppSeq++
+
+	return nil
 }

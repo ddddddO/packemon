@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/binary"
-	"fmt"
 	"io"
 
 	"golang.org/x/crypto/hkdf"
@@ -169,24 +168,24 @@ func (t *TLSv12Connection) KeyscheduleToMasterSecret(sharedkey []byte) {
 // こちらも
 func (t *TLSv12Connection) KeyscheduleToAppTraffic() {
 	hash_messages := WriteHash(t.handshakeMessages)
-	fmt.Printf("hashed messages is %x\n", hash_messages)
+	// fmt.Printf("hashed messages is %x\n", hash_messages)
 
-	zero := noRandomByte(32)
+	// zero := noRandomByte(32)
 
 	// {client} derive secret "tls13 c ap traffic":
 	captraffic := deriveSecret(t.KeyBlockForTLSv13.masterSecret, TLSv13_ClientapTraffic, hash_messages)
-	fmt.Printf("CLIENT_TRAFFIC_SECRET_0 %x %x\n", zero, captraffic)
+	// fmt.Printf("CLIENT_TRAFFIC_SECRET_0 %x %x\n", zero, captraffic)
 	saptraffic := deriveSecret(t.KeyBlockForTLSv13.masterSecret, TLSv13_ServerapTraffic, hash_messages)
-	fmt.Printf("SERVER_TRAFFIC_SECRET_0 %x %x\n", zero, saptraffic)
+	// fmt.Printf("SERVER_TRAFFIC_SECRET_0 %x %x\n", zero, saptraffic)
 
 	// 7.3. トラフィックキーの計算, Application用
 	t.KeyBlockForTLSv13.clientAppKey = hkdfExpandLabel(captraffic, []byte(`key`), nil, 32)
 	t.KeyBlockForTLSv13.clientAppIV = hkdfExpandLabel(captraffic, []byte(`iv`), nil, 12)
-	fmt.Printf("clientAppKey and IV is : %x, %x\n", t.KeyBlockForTLSv13.clientAppKey, t.KeyBlockForTLSv13.clientAppIV)
+	// fmt.Printf("clientAppKey and IV is : %x, %x\n", t.KeyBlockForTLSv13.clientAppKey, t.KeyBlockForTLSv13.clientAppIV)
 
 	t.KeyBlockForTLSv13.serverAppKey = hkdfExpandLabel(saptraffic, []byte(`key`), nil, 32)
 	t.KeyBlockForTLSv13.serverAppIV = hkdfExpandLabel(saptraffic, []byte(`iv`), nil, 12)
-	fmt.Printf("serverAppkey and IV is : %x, %x\n", t.KeyBlockForTLSv13.serverAppKey, t.KeyBlockForTLSv13.serverAppIV)
+	// fmt.Printf("serverAppkey and IV is : %x, %x\n", t.KeyBlockForTLSv13.serverAppKey, t.KeyBlockForTLSv13.serverAppIV)
 }
 
 func hkdfExpand(secret, hkdflabel []byte, length int) []byte {
@@ -232,7 +231,11 @@ func (t *TLSv12Connection) IsPassiveServerHello(tcp *TCP) bool {
 
 	tlsHandshakeType := []byte{tcp.Data[5]}
 	tlsContentType := []byte{tcp.Data[0]}
-	return bytes.Equal(tlsHandshakeType, []byte{0x02}) && bytes.Equal(tlsContentType, []byte{TLS_CONTENT_TYPE_HANDSHAKE})
+	ret := bytes.Equal(tlsHandshakeType, []byte{0x02}) && bytes.Equal(tlsContentType, []byte{TLS_CONTENT_TYPE_HANDSHAKE})
+	if ret {
+		t.currentState = TLSv12_STATE_PASSIVE_SERVER_HELLO
+	}
+	return t.currentState == TLSv12_STATE_PASSIVE_SERVER_HELLO
 }
 
 func (t *TLSv12Connection) IsPassiveChangeCipherSpecAndFinished(tcp *TCP) bool {

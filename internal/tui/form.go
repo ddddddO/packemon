@@ -219,8 +219,8 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddItem(l7Protocols, 4, 0, 1, 1, layerRowNum, 0, false).
 
 		// 右側
-		AddItem(t.pages, 0, 1, 8, 1, 0, 0, false)
-		// AddItem(interfaceTable, 8, 1, 2, 1, 0, 0, false)
+		AddItem(t.pages, 0, 1, 8, 1, 0, 0, false).
+		AddItem(interfaceTable, 8, 1, 2, 1, 0, 0, false)
 
 	return nil
 }

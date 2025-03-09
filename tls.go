@@ -192,8 +192,12 @@ func (p *TLSHandshakeProtocol) Bytes(isFromServer bool) []byte {
 	buf = append(buf, p.Version...)
 	buf = append(buf, p.Random...)
 	buf = append(buf, p.SessionIDLength...)
-	buf = append(buf, p.SessionID...)
-	buf = append(buf, p.lengthCipherSuites(isFromServer)...)
+	if !(p.SessionIDLength == nil || bytes.Equal(p.SessionIDLength, []byte{0x00})) {
+		buf = append(buf, p.SessionID...)
+	}
+	if clength := p.lengthCipherSuites(isFromServer); clength != nil {
+		buf = append(buf, p.lengthCipherSuites(isFromServer)...)
+	}
 	buf = append(buf, p.bytesCipherSuites()...)
 	buf = append(buf, p.CompressionMethodsLength...)
 	buf = append(buf, p.CompressionMethods...)
@@ -291,12 +295,6 @@ func NewTLSClientHello(tlsVersion []byte, cipherSuites ...uint16) *TLSClientHell
 
 		handshake.Extentions = []*TLSExtension{
 			{
-				// status_reqeust
-				Type:   []byte{0x00, 0x05},
-				Length: []byte{0x00, 0x05},
-				Data:   []byte{0x01, 0x00, 0x00, 0x00, 0x00},
-			},
-			{
 				// supported_groups
 				Type:   []byte{0x00, 0x0a},
 				Length: []byte{0x00, 0x04},
@@ -330,12 +328,6 @@ func NewTLSClientHello(tlsVersion []byte, cipherSuites ...uint16) *TLSClientHell
 				Type:   []byte{0xff, 0x01},
 				Length: []byte{0x00, 0x01},
 				Data:   []byte{0x00},
-			},
-
-			{
-				// signed_certificate_timestamp
-				Type:   []byte{0x00, 0x12},
-				Length: []byte{0x00, 0x00},
 			},
 			{
 				// supported_versions
@@ -539,11 +531,11 @@ func (c *Certificate) Validate() error {
 		}
 
 		if _, err := c.certs[i].Verify(opts); err != nil {
-			// log.Printf("\tfailed to verify server certificate: %s\n", err)
-			// return err
-
 			// TODO: 以下対応までエラーとしないようにする
 			// https://github.com/ddddddO/packemon/issues/63
+
+			// log.Printf("\tfailed to verify server certificate: %s\n", err)
+			return err
 		}
 		if i > 0 {
 			ospool.AddCert(c.certs[1])
@@ -609,8 +601,9 @@ func ParsedTLSServerHelloOnly(b []byte) (*ServerHello, int) {
 			CompressionMethods: []byte{b[nextPosition+2]},
 		},
 	}
+
 	nextPosition = nextPosition + 3
-	if bytesToInt(slength) > 42 {
+	if bytesToInt(slength) > 47 {
 		extentionsLength := b[nextPosition : nextPosition+2]
 		serverHello.HandshakeProtocol.ExtensionsLength = extentionsLength
 
@@ -704,14 +697,10 @@ func ParsedTLSServerHelloFor1_3(b []byte) *TLSServerHelloFor1_3 {
 		if applicationData == nil || applicationData.RecordLayer.ContentType[0] != TLS_CONTENT_TYPE_APPLICATION_DATA {
 			break
 		}
-
 		as = append(as, applicationData)
-
 		nextPosition = 5 + bytesToInt(applicationData.RecordLayer.Length)
 		b = b[nextPosition:]
 	}
-
-	// log.Println(fmt.Sprintf("👺Leng: %d", len(as)))
 
 	return &TLSServerHelloFor1_3{
 		ServerHello:              serverHello,
@@ -741,7 +730,7 @@ func DecryptChacha20(header []byte, chipertext []byte, tlsConn *TLSv12Connection
 	//fmt.Printf("key is %x, iv is %x\n", key, iv)
 	aead, err := chacha20poly1305.New(key)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	xornonce := getXORNonce(nonce, iv)
@@ -749,7 +738,7 @@ func DecryptChacha20(header []byte, chipertext []byte, tlsConn *TLSv12Connection
 	//fmt.Printf("decrypt nonce is %x xornonce is %x, chipertext is %x, add is %x\n", nonce, xornonce, chipertext, header)
 	plaintext, err := aead.Open(nil, xornonce, chipertext, header)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	// fmt.Printf("plaintext is : %x\n", plaintext)
 	return plaintext
@@ -770,7 +759,7 @@ func EncryptChacha20(message []byte, tlsConn *TLSv12Connection) []byte {
 		nonce = getNonce(tlsConn.ClientAppSeq, 8)
 	}
 
-	fmt.Printf("key is %x, iv is %x\n", key, iv)
+	// fmt.Printf("key is %x, iv is %x\n", key, iv)
 
 	aead, err := chacha20poly1305.New(key)
 	if err != nil {
@@ -788,7 +777,7 @@ func EncryptChacha20(message []byte, tlsConn *TLSv12Connection) []byte {
 	WriteUint16(b, uint16(totalLength))
 	header = append(header, b.Bytes()...)
 
-	fmt.Printf("encrypt now nonce is %x xornonce is %x, plaintext is %x, add is %x\n", nonce, xornonce, message, header)
+	// fmt.Printf("encrypt now nonce is %x xornonce is %x, plaintext is %x, add is %x\n", nonce, xornonce, message, header)
 	ciphertext := aead.Seal(header, xornonce, message, header)
 
 	return ciphertext
@@ -819,17 +808,12 @@ func (c *CertificateVerify) VerifyServerCertificate(pubkey *rsa.PublicKey, hands
 	hasher.Write([]byte{0x00})
 	hasher.Write(hash_messages)
 	signed := hasher.Sum(nil)
-	fmt.Printf("hash_messages is %x\n, signed is %x\n", hash_messages, signed)
+	// fmt.Printf("hash_messages is %x\n, signed is %x\n", hash_messages, signed)
 
 	signOpts := &rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash}
 	if err := rsa.VerifyPSS(pubkey, crypto.SHA256, signed, c.Signature, signOpts); err != nil {
-		// TODO: どうもエラーでる
 		return err
 	}
-	// if err := rsa.VerifyPSS(pubkey, crypto.SHA256, signed, c.Signature, nil); err != nil {
-	// 	// TODO: どうもエラーでる
-	// 	return err
-	// }
 	return nil
 }
 

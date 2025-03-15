@@ -2,6 +2,8 @@ package tui
 
 import (
 	"context"
+	"sort"
+	"strconv"
 	"sync"
 
 	"github.com/ddddddO/packemon"
@@ -40,8 +42,10 @@ type monitor struct {
 	table         *tview.Table
 	storedPackets sync.Map
 
-	grid  *tview.Grid
-	pages *tview.Pages
+	grid        *tview.Grid
+	filter      *tview.Form
+	filterValue string
+	pages       *tview.Pages
 }
 
 func NewGenerator(networkInterface *packemon.NetworkInterface) *generator {
@@ -77,8 +81,15 @@ func NewMonitor(networkInterface *packemon.NetworkInterface, columns string) *mo
 	pages := tview.NewPages()
 	table := NewPacketsHistoryTable()
 	pages.AddPage("history", table, true, true)
+
+	filter := tview.NewForm()
+	filter.Box.SetBorder(true)
+	filter.SetHorizontal(true)
+
 	grid := tview.NewGrid()
 	grid.Box = tview.NewBox().SetTitle(TITLE_MONITOR).SetBorder(true)
+	grid.AddItem(filter, 0, 0, 1, 1, 0, 0, false)
+	grid.AddItem(pages, 1, 0, 9, 1, 1, 1, true)
 
 	return &monitor{
 		networkInterface: networkInterface,
@@ -89,6 +100,7 @@ func NewMonitor(networkInterface *packemon.NetworkInterface, columns string) *mo
 		table:         table,
 		storedPackets: sync.Map{},
 		grid:          grid,
+		filter:        filter,
 		pages:         pages,
 	}
 }
@@ -108,13 +120,52 @@ func (m *monitor) Run(ctx context.Context) error {
 			m.table.GetCell(row, i).SetBackgroundColor(tcell.ColorGray)
 		}
 
-		if p, ok := m.storedPackets.Load(uint64(m.table.GetRowCount() - row - 1)); ok {
+		selectedCell := m.table.GetCell(row, 0)
+		id, err := strconv.ParseUint(selectedCell.Text, 10, 64)
+		if err != nil {
+			return
+		}
+		if p, ok := m.storedPackets.Load(id); ok {
 			m.updateView(p.(*packemon.Passive))
 		}
 	})
 
+	tmpFilterValue := ""
+	m.filter.
+		AddInputField("Filter", "", 50, func(textToCheck string, lastChar rune) bool {
+			return true
+		}, func(text string) {
+			// ここで、m.filterValue に格納すると、ボタン押さなくても後続の受信パケットでfilter文字列によるフィルターが実行されるため
+			tmpFilterValue = text
+		}).
+		AddButton("ok", func() {
+			m.filterValue = tmpFilterValue
+			// 一回クリア
+			m.table.Clear()
+
+			sortedKeys := []uint64{}
+			m.storedPackets.Range(func(key any, value any) bool {
+				sortedKeys = append(sortedKeys, key.(uint64))
+				return true
+			})
+			// TODO: id は 0~ で歯抜けることはない想定なので、sort せず最大のid保持しておいてforで、Loadでid指定して取り出すのもいいかも
+			sort.Slice(sortedKeys, func(i int, j int) bool {
+				return sortedKeys[i] < sortedKeys[j]
+			})
+
+			// filter 処理(なお、filter文字列が空なら全部表示)
+			for _, id := range sortedKeys {
+				value, ok := m.storedPackets.Load(id)
+				if !ok {
+					continue
+				}
+				passive := value.(*packemon.Passive)
+				m.doFilter(passive, id)
+			}
+		})
+
 	go m.updateTable(m.passiveCh, m.columns)
-	return m.app.SetRoot(m.pages, true).EnableMouse(true).Run()
+	return m.app.SetRoot(m.grid, true).EnableMouse(true).SetFocus(m.pages).Run()
 }
 
 func (m *monitor) addErrPage(err error) {

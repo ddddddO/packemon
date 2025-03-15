@@ -26,11 +26,13 @@ func (m *monitor) updateView(passive *packemon.Passive) {
 			}
 		}()
 
+		packetDetail := tview.NewGrid()
+
 		m.app.QueueUpdate(func() {
-			m.grid.Clear()
+			packetDetail.Clear()
 		})
 
-		m.grid.RemoveItem(m.grid) // ほんと？
+		// m.grid.RemoveItem(m.grid) // ほんと？
 
 		// +1 分は、PCAP保存領域用(savingPCAPView)
 		rows := make([]int, len(viewers)+1)
@@ -42,25 +44,31 @@ func (m *monitor) updateView(passive *packemon.Passive) {
 
 		// SetRows しなくなったので、各テーブルの rows メソッドいらないかも
 		// t.grid.SetRows(rows...).SetColumns(columns...).SetBorders(false)
-		m.grid.SetColumns(columns...).SetBorders(false)
+		packetDetail.SetColumns(columns...).SetBorders(false)
 
 		for i := range viewers {
-			m.grid.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false) // focus=true にするとスクロールしない
+			packetDetail.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false) // focus=true にするとスクロールしない
 		}
 		savingPCAPView := m.savingPCAPView(passive)
 		row := len(viewers)
-		m.grid.AddItem(savingPCAPView, row, 0, 1, 3, 0, 0, false)
+		packetDetail.AddItem(savingPCAPView, row, 0, 1, 3, 0, 0, false)
 
-		m.grid.SetInputCapture(
+		packetDetail.SetInputCapture(
 			func(event *tcell.EventKey) *tcell.EventKey {
 				if event.Key() == tcell.KeyEscape {
-					m.grid.Clear()
-					m.pages.SwitchToPage("history")
-					m.app.SetFocus(m.pages)
+					packetDetail.Clear()
+
+					m.grid.AddItem(m.filter, 0, 0, 1, 1, 0, 0, false) // TODO: tui.go のと共通化する
+					m.app.SetRoot(m.grid, true)
+					m.app.SetFocus(m.grid)
 				}
 				return event
 			})
-		m.pages.AddAndSwitchToPage("packetDetail", m.grid, true)
+
+		grid := tview.NewGrid()
+		grid.Box = tview.NewBox().SetTitle(TITLE_MONITOR).SetBorder(true)
+		grid.AddItem(packetDetail, 0, 0, 1, 1, 1, 1, true)
+		m.app.SetRoot(grid, true)
 		m.app.Draw()
 	}(passiveToViewers(passive))
 }

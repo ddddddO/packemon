@@ -82,6 +82,8 @@ Packemon's Monitor allows user to select each packet by pressing `Enter` key. Th
 - Monitor any network interfaces.
   - You can specify network interface with `--interface` flag. Default is `eth0`.
 
+- Can filter packets to be displayed.
+
 - Specified packets can be saved to pcapng file.
 
 - Packets of various protocols are supported.

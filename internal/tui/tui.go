@@ -83,17 +83,8 @@ func NewMonitor(networkInterface *packemon.NetworkInterface, columns string) *mo
 	pages.AddPage("history", table, true, true)
 
 	filter := tview.NewForm()
-	// AddInputField("Filter", "", 0, func (textToCheck string, lastChar rune) bool {
-	// 	filterText = textToCheck
-	// 	return true
-	// }, nil).
-	// AddButton("ok", func ()  {
-
-	// })
 	filter.Box.SetBorder(true)
 	filter.SetHorizontal(true)
-	// filter := tview.NewInputField()
-	// filter.Box = tview.NewBox().SetTitle("Filter").SetBorder(true)
 
 	grid := tview.NewGrid()
 	grid.Box = tview.NewBox().SetTitle(TITLE_MONITOR).SetBorder(true)

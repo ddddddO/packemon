@@ -73,46 +73,46 @@ var (
 
 // 長さとか他のフィールドに基づいて計算しないといけない値があるから、そこは固定値ではなくてリアルタイムに反映したい
 // とすると、高レイヤーの入力から埋めて進めていくようにしないといけなさそう. ユーザーが選べるようにするのがいいかも
-func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) error) error {
+func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) error) error {
 	packets, err := defaultPackets()
 	if err != nil {
 		return err
 	}
-	t.sender = newSender(packets, sendFn)
+	g.sender = newSender(packets, sendFn)
 
 	// L7
-	httpForm := t.httpForm(ctx)
+	httpForm := g.httpForm(ctx)
 	httpForm.SetBorder(true).SetTitle(" HTTP ").SetTitleAlign(tview.AlignLeft)
-	dnsForm := t.dnsForm()
+	dnsForm := g.dnsForm()
 	dnsForm.SetBorder(true).SetTitle(" DNS ").SetTitleAlign(tview.AlignLeft)
 
 	// L5~L6
-	tlsv1_2Form := t.tlsv1_2Form()
+	tlsv1_2Form := g.tlsv1_2Form()
 	tlsv1_2Form.SetBorder(true).SetTitle(" TLSv1.2 ").SetTitleAlign(tview.AlignLeft)
-	tlsv1_3Form := t.tlsv1_3Form()
+	tlsv1_3Form := g.tlsv1_3Form()
 	tlsv1_3Form.SetBorder(true).SetTitle(" TLSv1.3 ").SetTitleAlign(tview.AlignLeft)
 
 	// L4
-	tcpForm := t.tcpForm()
+	tcpForm := g.tcpForm()
 	tcpForm.SetBorder(true).SetTitle(" TCP ").SetTitleAlign(tview.AlignLeft)
-	udpForm := t.udpForm()
+	udpForm := g.udpForm()
 	udpForm.SetBorder(true).SetTitle(" UDP ").SetTitleAlign(tview.AlignLeft)
-	icmpForm := t.icmpForm()
+	icmpForm := g.icmpForm()
 	icmpForm.SetBorder(true).SetTitle(" ICMP ").SetTitleAlign(tview.AlignLeft)
 
 	// L3
-	ipv6Form := t.ipv6Form()
+	ipv6Form := g.ipv6Form()
 	ipv6Form.SetBorder(true).SetTitle(" IPv6 Header ").SetTitleAlign(tview.AlignLeft)
-	ipv4Form := t.ipv4Form()
+	ipv4Form := g.ipv4Form()
 	ipv4Form.SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
-	arpForm := t.arpForm()
+	arpForm := g.arpForm()
 	arpForm.SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft)
 
 	// L2
-	ethernetForm := t.ethernetForm()
+	ethernetForm := g.ethernetForm()
 	ethernetForm.SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft)
 
-	t.pages.
+	g.pages.
 		AddPage("HTTP", httpForm, true, true).
 		AddPage("DNS", dnsForm, true, true).
 		AddPage("TLSv1.2", tlsv1_2Form, true, true).
@@ -129,9 +129,9 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		return func(targetProtocol string, switchableProtocols []string) {
 			for _, protocol := range switchableProtocols {
 				if targetProtocol == protocol {
-					t.sender.selectedProtocolByLayer[targetLayer] = targetProtocol
-					t.pages.SwitchToPage(targetProtocol)
-					t.app.SetFocus(t.pages)
+					g.sender.selectedProtocolByLayer[targetLayer] = targetProtocol
+					g.pages.SwitchToPage(targetProtocol)
+					g.app.SetFocus(g.pages)
 				}
 			}
 		}
@@ -185,7 +185,7 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 	// Interface の情報を出力するための
 	interfaceTable := tview.NewTable().SetBorders(true)
 	{
-		intf, err := net.InterfaceByName(t.networkInterface.Intf.Name)
+		intf, err := net.InterfaceByName(g.networkInterface.Intf.Name)
 		if err != nil {
 			return err
 		}
@@ -196,9 +196,9 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 
 		interfaceTable.Box = tview.NewBox().SetBorder(true).SetTitle(" Interface ")
 		interfaceTable.SetCell(0, 0, tableCellTitle("name"))
-		interfaceTable.SetCell(0, 1, tableCellContent("%s", t.networkInterface.Intf.Name))
+		interfaceTable.SetCell(0, 1, tableCellContent("%s", g.networkInterface.Intf.Name))
 		interfaceTable.SetCell(1, 0, tableCellTitle("mac address"))
-		interfaceTable.SetCell(1, 1, tableCellContent("%s", t.networkInterface.Intf.HardwareAddr.String()))
+		interfaceTable.SetCell(1, 1, tableCellContent("%s", g.networkInterface.Intf.HardwareAddr.String()))
 		interfaceTable.SetCell(2, 0, tableCellTitle("ip address"))
 		for i, addr := range addrs {
 			interfaceTable.SetCell(2+i, 1, tableCellContent("%s", addr))
@@ -206,11 +206,11 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 	}
 
 	layerRowNum := 3
-	t.grid.
+	g.grid.
 		SetRows(layerRowNum, layerRowNum, layerRowNum, layerRowNum, layerRowNum, -2, -2).
 		SetColumns(-1, -5)
 
-	t.grid.
+	g.grid.
 		// 左側
 		AddItem(l2Protocols, 0, 0, 1, 1, layerRowNum, 0, true).
 		AddItem(l3Protocols, 1, 0, 1, 1, layerRowNum, 0, false).
@@ -219,7 +219,7 @@ func (t *tui) form(ctx context.Context, sendFn func(*packemon.EthernetFrame) err
 		AddItem(l7Protocols, 4, 0, 1, 1, layerRowNum, 0, false).
 
 		// 右側
-		AddItem(t.pages, 0, 1, 8, 1, 0, 0, false).
+		AddItem(g.pages, 0, 1, 8, 1, 0, 0, false).
 		AddItem(interfaceTable, 8, 1, 2, 1, 0, 0, false)
 
 	return nil

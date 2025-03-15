@@ -8,7 +8,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func (t *tui) tcpForm() *tview.Form {
+func (g *generator) tcpForm() *tview.Form {
 	tcpForm := tview.NewForm().
 		AddTextView("TCP", "This section generates the TCP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Source Port", DEFAULT_TCP_PORT_SOURCE, 5, func(textToCheck string, lastChar rune) bool {
@@ -17,7 +17,7 @@ func (t *tui) tcpForm() *tview.Form {
 				if err != nil {
 					return false
 				}
-				t.sender.packets.tcp.SrcPort = n
+				g.sender.packets.tcp.SrcPort = n
 				return true
 			}
 			return false
@@ -28,7 +28,7 @@ func (t *tui) tcpForm() *tview.Form {
 				if err != nil {
 					return false
 				}
-				t.sender.packets.tcp.DstPort = n
+				g.sender.packets.tcp.DstPort = n
 				return true
 			}
 			return false
@@ -44,7 +44,7 @@ func (t *tui) tcpForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.tcp.Sequence = binary.BigEndian.Uint32(b)
+			g.sender.packets.tcp.Sequence = binary.BigEndian.Uint32(b)
 
 			return true
 		}, nil).
@@ -59,17 +59,17 @@ func (t *tui) tcpForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.tcp.Flags = b
+			g.sender.packets.tcp.Flags = b
 
 			return true
 		}, nil).
 		AddButton("Send!", func() {
-			if err := t.sender.sendLayer4(context.TODO()); err != nil {
-				t.addErrPage(err)
+			if err := g.sender.sendLayer4(context.TODO()); err != nil {
+				g.addErrPage(err)
 			}
 		}).
 		AddButton("Quit", func() {
-			t.app.Stop()
+			g.app.Stop()
 		})
 
 	return tcpForm

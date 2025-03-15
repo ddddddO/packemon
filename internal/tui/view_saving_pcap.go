@@ -14,7 +14,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func (t *tui) savingPCAPView(p *packemon.Passive) *tview.Form {
+func (m *monitor) savingPCAPView(p *packemon.Passive) *tview.Form {
 	now := time.Now()
 	fpath := fmt.Sprintf("./packemon_pcap/%s.pcapng", now.Format("20060102150405"))
 	limitLength := 60
@@ -37,7 +37,7 @@ func (t *tui) savingPCAPView(p *packemon.Passive) *tview.Form {
 		// 以降でエラーあったら、↑で生成したファイル削除がいいかも
 		// ref: この辺りを参照. https://github.com/gopacket/gopacket/blob/de38b3ed5f55a68c3e7cdf34809dac42bf41d22a/pcapgo/ngwrite.go#L37
 		ngwIntf := pcapgo.NgInterface{
-			Name:                t.networkInterface.Intf.Name,
+			Name:                m.networkInterface.Intf.Name,
 			LinkType:            layers.LinkTypeEthernet,
 			OS:                  runtime.GOOS,
 			SnapLength:          0, //unlimited
@@ -71,7 +71,7 @@ func (t *tui) savingPCAPView(p *packemon.Passive) *tview.Form {
 		}, nil).
 		AddButton("Save", func() {
 			if err := save(); err != nil {
-				t.addErrPageForMonitor(err)
+				m.addErrPage(err)
 			}
 		})
 	form.SetBorder(true)

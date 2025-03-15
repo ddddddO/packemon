@@ -34,38 +34,38 @@ type HistoryRow struct {
 	destinationIPAddr *tview.TableCell
 }
 
-func (t *tui) insertToTable(r *HistoryRow, columns string) {
-	t.table.InsertRow(0)
-	t.table.SetCell(0, 0, r.id)
+func (m *monitor) insertToTable(r *HistoryRow, columns string) {
+	m.table.InsertRow(0)
+	m.table.SetCell(0, 0, r.id)
 
 	x := 1
 	for i := range columns {
 		switch columns[i] {
 		case 'd':
-			t.table.SetCell(0, x, r.destinationMAC)
+			m.table.SetCell(0, x, r.destinationMAC)
 		case 's':
-			t.table.SetCell(0, x, r.sourceMAC)
+			m.table.SetCell(0, x, r.sourceMAC)
 		case 't':
-			t.table.SetCell(0, x, r.typ)
+			m.table.SetCell(0, x, r.typ)
 		case 'p':
-			t.table.SetCell(0, x, r.protocol)
+			m.table.SetCell(0, x, r.protocol)
 		case 'D':
-			t.table.SetCell(0, x, r.destinationIPAddr)
+			m.table.SetCell(0, x, r.destinationIPAddr)
 		case 'S':
-			t.table.SetCell(0, x, r.sourceIPAddr)
+			m.table.SetCell(0, x, r.sourceIPAddr)
 		}
 		x++
 	}
 
-	t.table.ScrollToBeginning()
+	m.table.ScrollToBeginning()
 }
 
-func (t *tui) updateTable(passiveCh <-chan *packemon.Passive, columns string) {
+func (m *monitor) updateTable(passiveCh <-chan *packemon.Passive, columns string) {
 	var id uint64 = 0
 	for passive := range passiveCh {
 		time.Sleep(10 * time.Millisecond)
 
-		t.app.QueueUpdateDraw(func() {
+		m.app.QueueUpdateDraw(func() {
 			r := &HistoryRow{
 				id:             tview.NewTableCell(fmt.Sprintf("%d", id)).SetTextColor(tcell.ColorWhite),
 				destinationMAC: tview.NewTableCell(fmt.Sprintf("Dst:%x", passive.EthernetFrame.Header.Dst)).SetTextColor(tcell.Color38),
@@ -89,8 +89,8 @@ func (t *tui) updateTable(passiveCh <-chan *packemon.Passive, columns string) {
 
 			}
 
-			t.storedPackets.Store(id, passive)
-			t.insertToTable(r, columns)
+			m.storedPackets.Store(id, passive)
+			m.insertToTable(r, columns)
 			atomic.AddUint64(&id, 1)
 		})
 	}

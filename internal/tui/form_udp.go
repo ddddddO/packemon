@@ -10,7 +10,7 @@ import (
 
 var checkedCalcUDPLength = false
 
-func (t *tui) udpForm() *tview.Form {
+func (g *generator) udpForm() *tview.Form {
 	udpForm := tview.NewForm().
 		AddTextView("UDP", "This section generates the UDP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Source Port", DEFAULT_UDP_PORT_SOURCE, 5, func(textToCheck string, lastChar rune) bool {
@@ -19,7 +19,7 @@ func (t *tui) udpForm() *tview.Form {
 				if err != nil {
 					return false
 				}
-				t.sender.packets.udp.SrcPort = n
+				g.sender.packets.udp.SrcPort = n
 				return true
 			}
 			return false
@@ -30,7 +30,7 @@ func (t *tui) udpForm() *tview.Form {
 				if err != nil {
 					return false
 				}
-				t.sender.packets.udp.DstPort = n
+				g.sender.packets.udp.DstPort = n
 				return true
 			}
 			return false
@@ -53,17 +53,17 @@ func (t *tui) udpForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.udp.Length = binary.BigEndian.Uint16(b)
+			g.sender.packets.udp.Length = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
 		AddButton("Send!", func() {
-			if err := t.sender.sendLayer4(context.TODO()); err != nil {
-				t.addErrPage(err)
+			if err := g.sender.sendLayer4(context.TODO()); err != nil {
+				g.addErrPage(err)
 			}
 		}).
 		AddButton("Quit", func() {
-			t.app.Stop()
+			g.app.Stop()
 		})
 
 	return udpForm

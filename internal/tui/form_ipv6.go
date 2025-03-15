@@ -10,7 +10,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func (t *tui) ipv6Form() *tview.Form {
+func (g *generator) ipv6Form() *tview.Form {
 	ipv6Form := tview.NewForm().
 		AddTextView("IPv6 Header", "This section generates the IPv6 header.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Version(hex)", "0x06", 4, func(textToCheck string, lastChar rune) bool {
@@ -24,7 +24,7 @@ func (t *tui) ipv6Form() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.ipv6.Version = uint8(binary.BigEndian.Uint16(b))
+			g.sender.packets.ipv6.Version = uint8(binary.BigEndian.Uint16(b))
 
 			return true
 		}, nil).
@@ -32,18 +32,18 @@ func (t *tui) ipv6Form() *tview.Form {
 			switch selected {
 			case "ICMPv6":
 				// TODO: 未実装
-				t.addErrPage(fmt.Errorf("%s\n", "under development"))
+				g.addErrPage(fmt.Errorf("%s\n", "under development"))
 				// ipv6.NextHeader = packemon.IPv6_NEXT_HEADER_ICMPv6
 			case "UDP":
-				t.sender.packets.ipv6.NextHeader = packemon.IPv6_NEXT_HEADER_UDP
+				g.sender.packets.ipv6.NextHeader = packemon.IPv6_NEXT_HEADER_UDP
 			case "TCP":
-				t.sender.packets.ipv6.NextHeader = packemon.IPv6_NEXT_HEADER_TCP
+				g.sender.packets.ipv6.NextHeader = packemon.IPv6_NEXT_HEADER_TCP
 			}
 		}).
 		AddInputField("Source IP Addr", DEFAULT_IPv6_SOURCE, 39, func(textToCheck string, lastChar rune) bool {
 			ip := net.ParseIP(textToCheck)
 			if ip != nil {
-				t.sender.packets.ipv6.SrcAddr = ip.To16()
+				g.sender.packets.ipv6.SrcAddr = ip.To16()
 			}
 			return true
 
@@ -51,18 +51,18 @@ func (t *tui) ipv6Form() *tview.Form {
 		AddInputField("Destination IP Addr", DEFAULT_IPv6_DESTINATION, 39, func(textToCheck string, lastChar rune) bool {
 			ip := net.ParseIP(textToCheck)
 			if ip != nil {
-				t.sender.packets.ipv6.DstAddr = ip.To16()
+				g.sender.packets.ipv6.DstAddr = ip.To16()
 			}
 			return true
 
 		}, nil).
 		AddButton("Send!", func() {
-			if err := t.sender.sendLayer3(context.TODO()); err != nil {
-				t.addErrPage(err)
+			if err := g.sender.sendLayer3(context.TODO()); err != nil {
+				g.addErrPage(err)
 			}
 		}).
 		AddButton("Quit", func() {
-			t.app.Stop()
+			g.app.Stop()
 		})
 
 	return ipv6Form

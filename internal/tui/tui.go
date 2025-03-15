@@ -9,8 +9,26 @@ import (
 	"github.com/rivo/tview"
 )
 
-type tui struct {
+type TUI interface {
+	Run(context.Context) error
+}
+
+type generator struct {
 	networkInterface *packemon.NetworkInterface
+	sendFn           func(*packemon.EthernetFrame) error
+
+	app *tview.Application
+
+	grid   *tview.Grid
+	pages  *tview.Pages
+	list   *tview.List
+	sender *sender
+}
+
+type monitor struct {
+	networkInterface *packemon.NetworkInterface
+	passiveCh        <-chan *packemon.Passive
+	columns          string
 
 	app *tview.Application
 
@@ -19,27 +37,18 @@ type tui struct {
 
 	grid  *tview.Grid
 	pages *tview.Pages
-	list  *tview.List
-
-	sender *sender
 }
 
-func NewTUI(networkInterface *packemon.NetworkInterface, wantSend bool) *tui {
-	if wantSend {
-		return newGenerator(networkInterface)
-	}
-	return newMonitor(networkInterface)
-}
-
-func newGenerator(networkInterface *packemon.NetworkInterface) *tui {
+func NewGenerator(networkInterface *packemon.NetworkInterface, sendFn func(*packemon.EthernetFrame) error) *generator {
 	pages := tview.NewPages()
 	grid := tview.NewGrid()
 	grid.Box = tview.NewBox().SetTitle(" Packemon <Generator> ").SetBorder(true)
 	list := tview.NewList()
 	list.SetTitle("Protocols").SetBorder(true)
 
-	return &tui{
+	return &generator{
 		networkInterface: networkInterface,
+		sendFn:           sendFn, // TODO: networkInterface そのまま使う
 
 		app:   tview.NewApplication(),
 		grid:  grid,
@@ -48,15 +57,28 @@ func newGenerator(networkInterface *packemon.NetworkInterface) *tui {
 	}
 }
 
-func newMonitor(networkInterface *packemon.NetworkInterface) *tui {
+func (g *generator) Run(ctx context.Context) error {
+	if err := g.form(ctx, g.sendFn); err != nil {
+		return err
+	}
+	return g.app.SetRoot(g.grid, true).EnableMouse(true).SetFocus(g.grid).Run()
+}
+
+func (g *generator) addErrPage(err error) {
+	g.pages.AddPage("ERROR", errView(err, g.app), true, true)
+}
+
+func NewMonitor(networkInterface *packemon.NetworkInterface, passiveCh <-chan *packemon.Passive, columns string) *monitor {
 	pages := tview.NewPages()
 	table := NewPacketsHistoryTable()
 	pages.AddPage("history", table, true, true)
 	grid := tview.NewGrid()
 	grid.Box = tview.NewBox().SetTitle(" Packemon <Monitor> ").SetBorder(true)
 
-	return &tui{
+	return &monitor{
 		networkInterface: networkInterface,
+		passiveCh:        passiveCh,
+		columns:          columns,
 
 		app:           tview.NewApplication(),
 		table:         table,
@@ -66,31 +88,38 @@ func newMonitor(networkInterface *packemon.NetworkInterface) *tui {
 	}
 }
 
-func (t *tui) Generator(ctx context.Context, sendFn func(*packemon.EthernetFrame) error) error {
-	if err := t.form(ctx, sendFn); err != nil {
-		return err
-	}
-	return t.app.SetRoot(t.grid, true).EnableMouse(true).SetFocus(t.grid).Run()
-}
+func (m *monitor) Run(ctx context.Context) error {
+	go m.networkInterface.Recieve(ctx)
 
-func (t *tui) Monitor(passiveCh <-chan *packemon.Passive, columns string) error {
-	t.table.Select(0, 0).SetFixed(1, 1).SetDoneFunc(func(key tcell.Key) {
+	m.table.Select(0, 0).SetFixed(1, 1).SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEscape {
-			t.table.SetSelectable(false, false)
+			m.table.SetSelectable(false, false)
 		}
 		if key == tcell.KeyEnter {
-			t.table.SetSelectable(true, false)
+			m.table.SetSelectable(true, false)
 		}
 	}).SetSelectedStyle(tcell.Style{}.Background(tcell.ColorRed)).SetSelectedFunc(func(row int, column int) {
-		for i := 0; i < t.table.GetColumnCount(); i++ {
-			t.table.GetCell(row, i).SetBackgroundColor(tcell.ColorGray)
+		for i := 0; i < m.table.GetColumnCount(); i++ {
+			m.table.GetCell(row, i).SetBackgroundColor(tcell.ColorGray)
 		}
 
-		if p, ok := t.storedPackets.Load(uint64(t.table.GetRowCount() - row - 1)); ok {
-			t.updateView(p.(*packemon.Passive))
+		if p, ok := m.storedPackets.Load(uint64(m.table.GetRowCount() - row - 1)); ok {
+			m.updateView(p.(*packemon.Passive))
 		}
 	})
 
-	go t.updateTable(passiveCh, columns)
-	return t.app.SetRoot(t.pages, true).EnableMouse(true).Run()
+	go m.updateTable(m.passiveCh, m.columns)
+	return m.app.SetRoot(m.pages, true).EnableMouse(true).Run()
+}
+
+func (m *monitor) addErrPage(err error) {
+	e := errView(err, m.app)
+	e.SetDoneFunc(func(key tcell.Key) {
+		if key == tcell.KeyEscape || key == tcell.KeyEnter {
+			m.grid.Clear()
+			m.pages.SwitchToPage("history")
+		}
+	})
+
+	m.pages.AddPage("ERROR", e, true, true)
 }

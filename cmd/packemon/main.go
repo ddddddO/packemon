@@ -116,15 +116,11 @@ func run(ctx context.Context, columns string, nwInterface string, wantSend bool,
 		return debugPrint(ctx, netIf.PassiveCh)
 	}
 
+	var packemonTUI tui.TUI = tui.NewMonitor(netIf, netIf.PassiveCh, columns)
 	if wantSend {
-		tui.DEFAULT_NW_INTERFACE = nwInterface
-		tui := tui.NewTUI(netIf, wantSend)
-		return tui.Generator(ctx, netIf.Send)
-	} else {
-		tui := tui.NewTUI(netIf, wantSend)
-		go netIf.Recieve(ctx)
-		return tui.Monitor(netIf.PassiveCh, columns)
+		packemonTUI = tui.NewGenerator(netIf, netIf.Send)
 	}
+	return packemonTUI.Run(ctx)
 }
 
 func debugPrint(ctx context.Context, passive <-chan *packemon.Passive) error {

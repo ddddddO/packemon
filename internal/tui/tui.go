@@ -39,7 +39,7 @@ type monitor struct {
 	pages *tview.Pages
 }
 
-func NewGenerator(networkInterface *packemon.NetworkInterface, sendFn func(*packemon.EthernetFrame) error) *generator {
+func NewGenerator(networkInterface *packemon.NetworkInterface) *generator {
 	pages := tview.NewPages()
 	grid := tview.NewGrid()
 	grid.Box = tview.NewBox().SetTitle(" Packemon <Generator> ").SetBorder(true)
@@ -48,7 +48,7 @@ func NewGenerator(networkInterface *packemon.NetworkInterface, sendFn func(*pack
 
 	return &generator{
 		networkInterface: networkInterface,
-		sendFn:           sendFn, // TODO: networkInterface そのまま使う
+		sendFn:           networkInterface.Send,
 
 		app:   tview.NewApplication(),
 		grid:  grid,
@@ -68,7 +68,7 @@ func (g *generator) addErrPage(err error) {
 	g.pages.AddPage("ERROR", errView(err, g.app), true, true)
 }
 
-func NewMonitor(networkInterface *packemon.NetworkInterface, passiveCh <-chan *packemon.Passive, columns string) *monitor {
+func NewMonitor(networkInterface *packemon.NetworkInterface, columns string) *monitor {
 	pages := tview.NewPages()
 	table := NewPacketsHistoryTable()
 	pages.AddPage("history", table, true, true)
@@ -77,7 +77,7 @@ func NewMonitor(networkInterface *packemon.NetworkInterface, passiveCh <-chan *p
 
 	return &monitor{
 		networkInterface: networkInterface,
-		passiveCh:        passiveCh,
+		passiveCh:        networkInterface.PassiveCh,
 		columns:          columns,
 
 		app:           tview.NewApplication(),

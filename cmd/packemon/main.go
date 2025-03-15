@@ -116,9 +116,9 @@ func run(ctx context.Context, columns string, nwInterface string, wantSend bool,
 		return debugPrint(ctx, netIf.PassiveCh)
 	}
 
-	var packemonTUI tui.TUI = tui.NewMonitor(netIf, netIf.PassiveCh, columns)
+	var packemonTUI tui.TUI = tui.NewMonitor(netIf, columns)
 	if wantSend {
-		packemonTUI = tui.NewGenerator(netIf, netIf.Send)
+		packemonTUI = tui.NewGenerator(netIf)
 	}
 	return packemonTUI.Run(ctx)
 }

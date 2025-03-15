@@ -13,7 +13,6 @@ import (
 
 func NewPacketsHistoryTable() *tview.Table {
 	h := tview.NewTable()
-	h.SetTitle(TITLE_MONITOR)
 	h.SetTitleAlign(tview.AlignLeft)
 	h.SetBorder(true)
 	h.ScrollToBeginning()

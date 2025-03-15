@@ -9,6 +9,11 @@ import (
 	"github.com/rivo/tview"
 )
 
+const (
+	TITLE_GENERATOR = " Packemon <Generator> "
+	TITLE_MONITOR   = " Packemon <Monitor> "
+)
+
 type TUI interface {
 	Run(context.Context) error
 }
@@ -42,7 +47,7 @@ type monitor struct {
 func NewGenerator(networkInterface *packemon.NetworkInterface) *generator {
 	pages := tview.NewPages()
 	grid := tview.NewGrid()
-	grid.Box = tview.NewBox().SetTitle(" Packemon <Generator> ").SetBorder(true)
+	grid.Box = tview.NewBox().SetTitle(TITLE_GENERATOR).SetBorder(true)
 	list := tview.NewList()
 	list.SetTitle("Protocols").SetBorder(true)
 
@@ -73,7 +78,7 @@ func NewMonitor(networkInterface *packemon.NetworkInterface, columns string) *mo
 	table := NewPacketsHistoryTable()
 	pages.AddPage("history", table, true, true)
 	grid := tview.NewGrid()
-	grid.Box = tview.NewBox().SetTitle(" Packemon <Monitor> ").SetBorder(true)
+	grid.Box = tview.NewBox().SetTitle(TITLE_MONITOR).SetBorder(true)
 
 	return &monitor{
 		networkInterface: networkInterface,

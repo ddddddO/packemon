@@ -10,7 +10,7 @@ import (
 
 var do3wayHandshakeForDNS = false
 
-func (t *tui) dnsForm() *tview.Form {
+func (g *generator) dnsForm() *tview.Form {
 	dnsForm := tview.NewForm().
 		AddTextView("DNS", "This section generates the DNS.\nIt is still under development.", 60, 4, true, false).
 		AddCheckbox("Do TCP 3way handshake ?", do3wayHandshakeForDNS, func(checked bool) {
@@ -27,7 +27,7 @@ func (t *tui) dnsForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.dns.TransactionID = binary.BigEndian.Uint16(b)
+			g.sender.packets.dns.TransactionID = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -42,7 +42,7 @@ func (t *tui) dnsForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.dns.Flags = binary.BigEndian.Uint16(b)
+			g.sender.packets.dns.Flags = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -57,7 +57,7 @@ func (t *tui) dnsForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.dns.Questions = binary.BigEndian.Uint16(b)
+			g.sender.packets.dns.Questions = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -72,7 +72,7 @@ func (t *tui) dnsForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.dns.AnswerRRs = binary.BigEndian.Uint16(b)
+			g.sender.packets.dns.AnswerRRs = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -87,13 +87,13 @@ func (t *tui) dnsForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.dns.AdditionalRRs = binary.BigEndian.Uint16(b)
+			g.sender.packets.dns.AdditionalRRs = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
 		AddInputField("Queries Domain", DEFAULT_DNS_QUERIES_DOMAIN, 64, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) <= 64 {
-				t.sender.packets.dns.Domain(textToCheck)
+				g.sender.packets.dns.Domain(textToCheck)
 				return true
 			}
 			return false
@@ -109,7 +109,7 @@ func (t *tui) dnsForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.dns.Queries.Typ = binary.BigEndian.Uint16(b)
+			g.sender.packets.dns.Queries.Typ = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -124,17 +124,17 @@ func (t *tui) dnsForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.dns.Queries.Class = binary.BigEndian.Uint16(b)
+			g.sender.packets.dns.Queries.Class = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
 		AddButton("Send!", func() {
-			if err := t.sender.sendLayer7(context.TODO()); err != nil {
-				t.addErrPage(err)
+			if err := g.sender.sendLayer7(context.TODO()); err != nil {
+				g.addErrPage(err)
 			}
 		}).
 		AddButton("Quit", func() {
-			t.app.Stop()
+			g.app.Stop()
 		})
 
 	return dnsForm

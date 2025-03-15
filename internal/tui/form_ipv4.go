@@ -9,7 +9,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func (t *tui) ipv4Form() *tview.Form {
+func (g *generator) ipv4Form() *tview.Form {
 	ipv4Form := tview.NewForm().
 		AddTextView("IPv4 Header", "This section generates the IPv4 header.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Version(hex)", "0x04", 4, func(textToCheck string, lastChar rune) bool {
@@ -23,18 +23,18 @@ func (t *tui) ipv4Form() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.ipv4.Version = uint8(binary.BigEndian.Uint16(b))
+			g.sender.packets.ipv4.Version = uint8(binary.BigEndian.Uint16(b))
 
 			return true
 		}, nil).
 		AddDropDown("Protocol", []string{"ICMP", "UDP", "TCP"}, 1, func(selected string, _ int) {
 			switch selected {
 			case "ICMP":
-				t.sender.packets.ipv4.Protocol = packemon.IPv4_PROTO_ICMP
+				g.sender.packets.ipv4.Protocol = packemon.IPv4_PROTO_ICMP
 			case "UDP":
-				t.sender.packets.ipv4.Protocol = packemon.IPv4_PROTO_UDP
+				g.sender.packets.ipv4.Protocol = packemon.IPv4_PROTO_UDP
 			case "TCP":
-				t.sender.packets.ipv4.Protocol = packemon.IPv4_PROTO_TCP
+				g.sender.packets.ipv4.Protocol = packemon.IPv4_PROTO_TCP
 			}
 		}).
 		AddInputField("Source IP Addr", DEFAULT_IP_SOURCE, 15, func(textToCheck string, lastChar rune) bool {
@@ -46,7 +46,7 @@ func (t *tui) ipv4Form() *tview.Form {
 				if err != nil {
 					return false
 				}
-				t.sender.packets.ipv4.SrcAddr = binary.BigEndian.Uint32(ip)
+				g.sender.packets.ipv4.SrcAddr = binary.BigEndian.Uint32(ip)
 				return true
 			}
 
@@ -61,19 +61,19 @@ func (t *tui) ipv4Form() *tview.Form {
 				if err != nil {
 					return false
 				}
-				t.sender.packets.ipv4.DstAddr = binary.BigEndian.Uint32(ip)
+				g.sender.packets.ipv4.DstAddr = binary.BigEndian.Uint32(ip)
 				return true
 			}
 
 			return false
 		}, nil).
 		AddButton("Send!", func() {
-			if err := t.sender.sendLayer3(context.TODO()); err != nil {
-				t.addErrPage(err)
+			if err := g.sender.sendLayer3(context.TODO()); err != nil {
+				g.addErrPage(err)
 			}
 		}).
 		AddButton("Quit", func() {
-			t.app.Stop()
+			g.app.Stop()
 		})
 
 	return ipv4Form

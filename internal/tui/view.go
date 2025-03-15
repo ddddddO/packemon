@@ -16,21 +16,21 @@ type Viewer interface {
 	viewTable() *tview.Table
 }
 
-func (t *tui) updateView(passive *packemon.Passive) {
+func (m *monitor) updateView(passive *packemon.Passive) {
 	go func(viewers []Viewer) {
 		defer func() {
 			if e := recover(); e != nil {
 				trace := debug.Stack()
 				err := fmt.Errorf("Panic!!\n%v\nstack trace\n%s\n", e, string(trace))
-				t.addErrPageForMonitor(err)
+				m.addErrPage(err)
 			}
 		}()
 
-		t.app.QueueUpdate(func() {
-			t.grid.Clear()
+		m.app.QueueUpdate(func() {
+			m.grid.Clear()
 		})
 
-		t.grid.RemoveItem(t.grid) // ほんと？
+		m.grid.RemoveItem(m.grid) // ほんと？
 
 		// +1 分は、PCAP保存領域用(savingPCAPView)
 		rows := make([]int, len(viewers)+1)
@@ -42,26 +42,26 @@ func (t *tui) updateView(passive *packemon.Passive) {
 
 		// SetRows しなくなったので、各テーブルの rows メソッドいらないかも
 		// t.grid.SetRows(rows...).SetColumns(columns...).SetBorders(false)
-		t.grid.SetColumns(columns...).SetBorders(false)
+		m.grid.SetColumns(columns...).SetBorders(false)
 
 		for i := range viewers {
-			t.grid.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false) // focus=true にするとスクロールしない
+			m.grid.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false) // focus=true にするとスクロールしない
 		}
-		savingPCAPView := t.savingPCAPView(passive)
+		savingPCAPView := m.savingPCAPView(passive)
 		row := len(viewers)
-		t.grid.AddItem(savingPCAPView, row, 0, 1, 3, 0, 0, false)
+		m.grid.AddItem(savingPCAPView, row, 0, 1, 3, 0, 0, false)
 
-		t.grid.SetInputCapture(
+		m.grid.SetInputCapture(
 			func(event *tcell.EventKey) *tcell.EventKey {
 				if event.Key() == tcell.KeyEscape {
-					t.grid.Clear()
-					t.pages.SwitchToPage("history")
-					t.app.SetFocus(t.pages)
+					m.grid.Clear()
+					m.pages.SwitchToPage("history")
+					m.app.SetFocus(m.pages)
 				}
 				return event
 			})
-		t.pages.AddAndSwitchToPage("packetDetail", t.grid, true)
-		t.app.Draw()
+		m.pages.AddAndSwitchToPage("packetDetail", m.grid, true)
+		m.app.Draw()
 	}(passiveToViewers(passive))
 }
 

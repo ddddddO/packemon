@@ -9,7 +9,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func (t *tui) arpForm() *tview.Form {
+func (g *generator) arpForm() *tview.Form {
 	arpForm := tview.NewForm().
 		AddTextView("ARP", "This section generates the ARP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Hardware Type(hex)", DEFAULT_ARP_HARDWARE_TYPE, 6, func(textToCheck string, lastChar rune) bool {
@@ -23,7 +23,7 @@ func (t *tui) arpForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.arp.HardwareType = binary.BigEndian.Uint16(b)
+			g.sender.packets.arp.HardwareType = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -38,7 +38,7 @@ func (t *tui) arpForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.arp.ProtocolType = binary.BigEndian.Uint16(b)
+			g.sender.packets.arp.ProtocolType = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -53,7 +53,7 @@ func (t *tui) arpForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.arp.HardwareAddrLength = b
+			g.sender.packets.arp.HardwareAddrLength = b
 
 			return true
 		}, nil).
@@ -68,7 +68,7 @@ func (t *tui) arpForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.arp.ProtocolLength = b
+			g.sender.packets.arp.ProtocolLength = b
 
 			return true
 		}, nil).
@@ -83,7 +83,7 @@ func (t *tui) arpForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.arp.Operation = binary.BigEndian.Uint16(b)
+			g.sender.packets.arp.Operation = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).
@@ -98,7 +98,7 @@ func (t *tui) arpForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.arp.SenderHardwareAddr = packemon.HardwareAddr(b)
+			g.sender.packets.arp.SenderHardwareAddr = packemon.HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -112,7 +112,7 @@ func (t *tui) arpForm() *tview.Form {
 					return false
 				}
 
-				t.sender.packets.arp.SenderIPAddr = binary.BigEndian.Uint32(ip)
+				g.sender.packets.arp.SenderIPAddr = binary.BigEndian.Uint32(ip)
 				return true
 			}
 
@@ -129,7 +129,7 @@ func (t *tui) arpForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			t.sender.packets.arp.TargetHardwareAddr = packemon.HardwareAddr(b)
+			g.sender.packets.arp.TargetHardwareAddr = packemon.HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -143,19 +143,19 @@ func (t *tui) arpForm() *tview.Form {
 					return false
 				}
 
-				t.sender.packets.arp.TargetIPAddr = binary.BigEndian.Uint32(ip)
+				g.sender.packets.arp.TargetIPAddr = binary.BigEndian.Uint32(ip)
 				return true
 			}
 
 			return false
 		}, nil).
 		AddButton("Send!", func() {
-			if err := t.sender.sendLayer3(context.TODO()); err != nil {
-				t.addErrPage(err)
+			if err := g.sender.sendLayer3(context.TODO()); err != nil {
+				g.addErrPage(err)
 			}
 		}).
 		AddButton("Quit", func() {
-			t.app.Stop()
+			g.app.Stop()
 		})
 
 	return arpForm

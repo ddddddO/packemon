@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/ddddddO/packemon"
@@ -21,13 +22,13 @@ func (f *filter) contains(passive *packemon.Passive) bool {
 	}
 
 	if passive.EthernetFrame != nil {
-		if f.con(passive.EthernetFrame.Header.Dst.String()) {
+		if f.con(fmt.Sprintf("%x", passive.EthernetFrame.Header.Dst)) {
 			return true
 		}
-		if f.con(passive.EthernetFrame.Header.Src.String()) {
+		if f.con(fmt.Sprintf("%x", passive.EthernetFrame.Header.Src)) {
 			return true
 		}
-		if f.con(string(passive.EthernetFrame.Header.Typ)) {
+		if f.con(fmt.Sprintf("%x", passive.EthernetFrame.Header.Typ)) {
 			return true
 		}
 	}

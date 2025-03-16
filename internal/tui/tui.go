@@ -43,7 +43,7 @@ type monitor struct {
 	storedPackets sync.Map
 
 	grid        *tview.Grid
-	filterInput *tview.Form
+	filterInput *tview.Grid
 	filter      *filter
 	pages       *tview.Pages
 }
@@ -82,13 +82,12 @@ func NewMonitor(networkInterface *packemon.NetworkInterface, columns string) *mo
 	table := NewPacketsHistoryTable()
 	pages.AddPage("history", table, true, true)
 
-	filterInput := tview.NewForm()
+	filterInput := tview.NewGrid()
 	filterInput.Box.SetBorder(true)
-	filterInput.SetHorizontal(true)
 
 	grid := tview.NewGrid()
 	grid.Box = tview.NewBox().SetTitle(TITLE_MONITOR).SetBorder(true)
-	grid.AddItem(filterInput, 0, 0, 1, 1, 0, 0, false)
+	// grid.AddItem(filterInput, 0, 0, 1, 1, 0, 0, false)
 	grid.AddItem(pages, 1, 0, 9, 1, 1, 1, true)
 
 	return &monitor{
@@ -131,40 +130,58 @@ func (m *monitor) Run(ctx context.Context) error {
 		}
 	})
 
-	tmpFilterValue := ""
-	m.filterInput.
-		AddInputField("Filter", "", 50, func(textToCheck string, lastChar rune) bool {
-			return true
-		}, func(text string) {
-			// ここで、m.filter.value に格納すると、ボタン押さなくても後続の受信パケットでfilter文字列によるフィルターが実行されるため
-			tmpFilterValue = text
-		}).
-		AddButton("ok", func() {
-			m.filter.value = tmpFilterValue
-			// 一回クリア
-			m.table.Clear()
-
-			sortedIDs := []uint64{}
-			m.storedPackets.Range(func(key any, value any) bool {
-				sortedIDs = append(sortedIDs, key.(uint64))
-				return true
-			})
-			// TODO: id は 0~ で歯抜けることはない想定なので、sort せず最大のid保持しておいてforで、Loadでid指定して取り出すのもいいかも
-			slices.Sort(sortedIDs)
-
-			// filter 処理(なお、filter文字列が空なら全部表示)
-			for _, id := range sortedIDs {
-				value, ok := m.storedPackets.Load(id)
-				if !ok {
-					continue
-				}
-				passive := value.(*packemon.Passive)
-				m.filterAndInsertToTable(passive, id)
-			}
-		})
+	filterInput := tview.NewInputField().SetLabel("Filter")
+	filterInput.SetBorderPadding(1, 1, 1, 0)
+	filterInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEnter {
+			m.filter.value = filterInput.GetText()
+			m.updateFilteredTable()
+		}
+		return event
+	})
+	filterOKButton := tview.NewButton("ok").SetSelectedFunc(func() {
+		m.filter.value = filterInput.GetText()
+		m.updateFilteredTable()
+	})
+	filterClearButton := tview.NewButton("clear").SetSelectedFunc(func() {
+		filterInput.SetText("")
+		m.filter.value = ""
+		m.updateFilteredTable()
+	})
+	filterClearButton.SetStyle(tcell.Style{}.Foreground(tcell.ColorWhiteSmoke).Background(tcell.ColorGray))
+	filterLayout := tview.NewGrid().
+		AddItem(filterInput, 0, 0, 1, 4, 0, 0, true).
+		AddItem(filterOKButton, 0, 5, 1, 1, 0, 0, false).
+		AddItem(filterClearButton, 0, 6, 1, 1, 0, 0, false)
+	filterLayout.Box.SetBorder(true)
+	m.filterInput = filterLayout
+	m.grid.AddItem(m.filterInput, 0, 0, 1, 1, 0, 0, false)
 
 	go m.updateTable()
 	return m.app.SetRoot(m.grid, true).EnableMouse(true).SetFocus(m.pages).Run()
+}
+
+func (m *monitor) updateFilteredTable() {
+	// 一回クリア
+	m.table.Clear()
+
+	sortedIDs := []uint64{}
+	m.storedPackets.Range(func(key any, value any) bool {
+		sortedIDs = append(sortedIDs, key.(uint64))
+		return true
+	})
+	// TODO: id は 0~ で歯抜けることはない想定なので、sort せず最大のid保持しておいてforで、Loadでid指定して取り出すのもいいかも
+	slices.Sort(sortedIDs)
+
+	// filter 処理(なお、filter文字列が空なら全部表示)
+	for _, id := range sortedIDs {
+		value, ok := m.storedPackets.Load(id)
+		if !ok {
+			continue
+		}
+		passive := value.(*packemon.Passive)
+		m.filterAndInsertToTable(passive, id)
+	}
 }
 
 func (m *monitor) addErrPage(err error) {

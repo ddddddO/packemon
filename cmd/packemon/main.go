@@ -71,6 +71,9 @@ func run(ctx context.Context, columns string, nwInterface string, wantSend bool,
 	}
 	defer netIf.Close()
 
+	if len(nwInterface) != 0 {
+		tui.DEFAULT_NW_INTERFACE = nwInterface
+	}
 	tui.DEFAULT_MAC_SOURCE = fmt.Sprintf("0x%s", strings.ReplaceAll(netIf.Intf.HardwareAddr.String(), ":", ""))
 	tui.DEFAULT_ARP_SENDER_MAC = tui.DEFAULT_MAC_SOURCE
 

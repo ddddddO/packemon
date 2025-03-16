@@ -16,7 +16,7 @@ const (
 )
 
 var (
-	DEFAULT_NW_INTERFACE = "" // TODO: 良くない直す
+	DEFAULT_NW_INTERFACE = "eth0" // TODO: 良くない直す
 
 	DEFAULT_MAC_DESTINATION = ""
 	DEFAULT_MAC_SOURCE      = ""

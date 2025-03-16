@@ -236,7 +236,7 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 				return err
 			}
 
-			ethernetFrame := ParsedEthernetFrame(recieved)
+			ethernetFrame := ParsedEthernetFrame(recieved[:n])
 			if ethernetFrame.Header.Typ != ETHER_TYPE_IPv4 {
 				continue
 			}
@@ -395,7 +395,7 @@ func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterfac
 				return err
 			}
 
-			ethernetFrame := ParsedEthernetFrame(recieved)
+			ethernetFrame := ParsedEthernetFrame(recieved[:n])
 			if ethernetFrame.Header.Typ != ETHER_TYPE_IPv6 {
 				continue
 			}

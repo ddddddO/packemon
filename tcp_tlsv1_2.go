@@ -53,7 +53,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 				return err
 			}
 
-			ethernetFrame := ParsedEthernetFrame(recieved)
+			ethernetFrame := ParsedEthernetFrame(recieved[:n])
 			if ethernetFrame.Header.Typ != ETHER_TYPE_IPv4 {
 				continue
 			}
@@ -101,7 +101,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 						}
 						return err
 					}
-					eth := ParsedEthernetFrame(recieved)
+					eth := ParsedEthernetFrame(recieved[:n])
 					ip := ParsedIPv4(eth.Data)
 					t := ParsedTCP(ip.Data)
 
@@ -362,7 +362,7 @@ func EstablishTCPTLSv1_2AndSendPayloadForIPv6(ctx context.Context, nwInterface s
 				return err
 			}
 
-			ethernetFrame := ParsedEthernetFrame(recieved)
+			ethernetFrame := ParsedEthernetFrame(recieved[:n])
 			if ethernetFrame.Header.Typ != ETHER_TYPE_IPv6 {
 				continue
 			}
@@ -409,7 +409,7 @@ func EstablishTCPTLSv1_2AndSendPayloadForIPv6(ctx context.Context, nwInterface s
 						}
 						return err
 					}
-					eth := ParsedEthernetFrame(recieved)
+					eth := ParsedEthernetFrame(recieved[:n])
 					ip := ParsedIPv6(eth.Data)
 					t := ParsedTCP(ip.Data)
 

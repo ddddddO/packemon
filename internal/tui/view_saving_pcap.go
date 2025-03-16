@@ -49,10 +49,11 @@ func (m *monitor) savingPCAPView(p *packemon.Passive) *tview.Form {
 		}
 		defer pcapw.Flush()
 
+		length := len(p.EthernetFrame.Data) + 14 // 14は ethernet header分
 		ci := gopacket.CaptureInfo{
 			Timestamp:     now,
-			CaptureLength: 1500,
-			Length:        1500,
+			CaptureLength: length,
+			Length:        length,
 			// InterfaceIndex: intf.Index, // 必須ではなさそう. そもそもこういう事象がある: https://x.com/ddddddOpppppp/status/1893838539881631829
 		}
 		return pcapw.WritePacket(ci, p.EthernetFrame.Bytes())

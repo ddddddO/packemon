@@ -50,6 +50,7 @@ func (dnw *debugNetworkInterface) FlowBGP() error {
 			return err
 		}
 
+		// TODO: nまで渡すようにしてうまくいくように修正
 		ethernetFrame := p.ParsedEthernetFrame(recieved)
 
 		switch ethernetFrame.Header.Typ {
@@ -167,6 +168,7 @@ func (dnw *debugNetworkInterface) FlowBGP() error {
 											return err
 										}
 
+										// TODO: nまで渡すようにしてうまくいくか修正する
 										ethernetFrame := p.ParsedEthernetFrame(recieved)
 										switch ethernetFrame.Header.Typ {
 										case p.ETHER_TYPE_IPv4:

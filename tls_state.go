@@ -229,6 +229,9 @@ func (t *TLSv12Connection) IsPassiveServerHello(tcp *TCP) bool {
 		return false
 	}
 
+	if len(tcp.Data) <= 5 {
+		return false
+	}
 	tlsHandshakeType := []byte{tcp.Data[5]}
 	tlsContentType := []byte{tcp.Data[0]}
 	ret := bytes.Equal(tlsHandshakeType, []byte{0x02}) && bytes.Equal(tlsContentType, []byte{TLS_CONTENT_TYPE_HANDSHAKE})

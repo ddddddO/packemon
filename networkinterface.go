@@ -108,7 +108,7 @@ func (nw *NetworkInterface) Recieve(ctx context.Context) error {
 				return err
 			}
 
-			nw.PassiveCh <- ParsedPacket(recieved)
+			nw.PassiveCh <- ParsedPacket(recieved[:n])
 		}
 	}
 }

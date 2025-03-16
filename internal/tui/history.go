@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -60,13 +59,13 @@ func (m *monitor) newHistoryRow(passive *packemon.Passive, id uint64) *HistoryRo
 	return r
 }
 
-func (m *monitor) insertToTable(r *HistoryRow, columns string) {
+func (m *monitor) insertToTable(r *HistoryRow) {
 	m.table.InsertRow(0)
 	m.table.SetCell(0, 0, r.id)
 
 	x := 1
-	for i := range columns {
-		switch columns[i] {
+	for i := range m.columns {
+		switch m.columns[i] {
 		case 'd':
 			m.table.SetCell(0, x, r.destinationMAC)
 		case 's':
@@ -88,68 +87,24 @@ func (m *monitor) insertToTable(r *HistoryRow, columns string) {
 
 // パケット一覧の各値にfilter文字列が含まれていればそれを表示、一旦
 // TODO: ゆくゆくはportだけで絞りたいとか細かく制御したいかも
-func (m *monitor) doFilter(passive *packemon.Passive, id uint64) {
+func (m *monitor) filterAndInsertToTable(passive *packemon.Passive, id uint64) {
 	if passive == nil {
 		return
 	}
-	// filter 文字列が空ならすべて表示
-	if len(strings.TrimSpace(m.filterValue)) == 0 {
-		m.insertToTable(m.newHistoryRow(passive, id), m.columns)
-		return
-	}
 
-	if passive.EthernetFrame != nil {
-		if strings.Contains(passive.EthernetFrame.Header.Dst.String(), m.filterValue) {
-			m.insertToTable(m.newHistoryRow(passive, id), m.columns)
-			return
-		}
-		if strings.Contains(passive.EthernetFrame.Header.Src.String(), m.filterValue) {
-			m.insertToTable(m.newHistoryRow(passive, id), m.columns)
-			return
-		}
-		if strings.Contains(string(passive.EthernetFrame.Header.Typ), m.filterValue) {
-			m.insertToTable(m.newHistoryRow(passive, id), m.columns)
-			return
-		}
-	}
-
-	if passive.IPv4 != nil {
-		if strings.Contains(passive.IPv4.StrSrcIPAddr(), m.filterValue) {
-			m.insertToTable(m.newHistoryRow(passive, id), m.columns)
-			return
-		}
-
-		if strings.Contains(passive.IPv4.StrDstIPAddr(), m.filterValue) {
-			m.insertToTable(m.newHistoryRow(passive, id), m.columns)
-			return
-		}
-	}
-
-	if passive.IPv6 != nil {
-		if strings.Contains(passive.IPv6.StrSrcIPAddr(), m.filterValue) {
-			m.insertToTable(m.newHistoryRow(passive, id), m.columns)
-			return
-		}
-		if strings.Contains(passive.IPv6.StrDstIPAddr(), m.filterValue) {
-			m.insertToTable(m.newHistoryRow(passive, id), m.columns)
-			return
-		}
-	}
-
-	if strings.Contains(passive.HighLayerProto(), m.filterValue) {
-		m.insertToTable(m.newHistoryRow(passive, id), m.columns)
-		return
+	if m.filter.contains(passive) {
+		m.insertToTable(m.newHistoryRow(passive, id))
 	}
 }
 
-func (m *monitor) updateTable(passiveCh <-chan *packemon.Passive, columns string) {
+func (m *monitor) updateTable() {
 	var id uint64 = 0
-	for passive := range passiveCh {
+	for passive := range m.passiveCh {
 		time.Sleep(10 * time.Millisecond)
 
 		m.app.QueueUpdateDraw(func() {
 			m.storedPackets.Store(id, passive)
-			m.doFilter(passive, id)
+			m.filterAndInsertToTable(passive, id)
 			atomic.AddUint64(&id, 1)
 		})
 	}

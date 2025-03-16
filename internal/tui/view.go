@@ -58,7 +58,7 @@ func (m *monitor) updateView(passive *packemon.Passive) {
 				if event.Key() == tcell.KeyEscape {
 					packetDetail.Clear()
 
-					m.grid.AddItem(m.filter, 0, 0, 1, 1, 0, 0, false) // TODO: tui.go のと共通化する
+					m.grid.AddItem(m.filterInput, 0, 0, 1, 1, 0, 0, false) // TODO: tui.go のと共通化する
 					m.app.SetRoot(m.grid, true)
 					m.app.SetFocus(m.grid)
 				}

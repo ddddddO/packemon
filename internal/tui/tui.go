@@ -2,7 +2,7 @@ package tui
 
 import (
 	"context"
-	"sort"
+	"slices"
 	"strconv"
 	"sync"
 
@@ -43,8 +43,8 @@ type monitor struct {
 	storedPackets sync.Map
 
 	grid        *tview.Grid
-	filter      *tview.Form
-	filterValue string
+	filterInput *tview.Form
+	filter      *filter
 	pages       *tview.Pages
 }
 
@@ -82,13 +82,13 @@ func NewMonitor(networkInterface *packemon.NetworkInterface, columns string) *mo
 	table := NewPacketsHistoryTable()
 	pages.AddPage("history", table, true, true)
 
-	filter := tview.NewForm()
-	filter.Box.SetBorder(true)
-	filter.SetHorizontal(true)
+	filterInput := tview.NewForm()
+	filterInput.Box.SetBorder(true)
+	filterInput.SetHorizontal(true)
 
 	grid := tview.NewGrid()
 	grid.Box = tview.NewBox().SetTitle(TITLE_MONITOR).SetBorder(true)
-	grid.AddItem(filter, 0, 0, 1, 1, 0, 0, false)
+	grid.AddItem(filterInput, 0, 0, 1, 1, 0, 0, false)
 	grid.AddItem(pages, 1, 0, 9, 1, 1, 1, true)
 
 	return &monitor{
@@ -100,7 +100,8 @@ func NewMonitor(networkInterface *packemon.NetworkInterface, columns string) *mo
 		table:         table,
 		storedPackets: sync.Map{},
 		grid:          grid,
-		filter:        filter,
+		filterInput:   filterInput,
+		filter:        newFilter(),
 		pages:         pages,
 	}
 }
@@ -116,7 +117,7 @@ func (m *monitor) Run(ctx context.Context) error {
 			m.table.SetSelectable(true, false)
 		}
 	}).SetSelectedStyle(tcell.Style{}.Background(tcell.ColorRed)).SetSelectedFunc(func(row int, column int) {
-		for i := 0; i < m.table.GetColumnCount(); i++ {
+		for i := range m.table.GetColumnCount() {
 			m.table.GetCell(row, i).SetBackgroundColor(tcell.ColorGray)
 		}
 
@@ -131,40 +132,38 @@ func (m *monitor) Run(ctx context.Context) error {
 	})
 
 	tmpFilterValue := ""
-	m.filter.
+	m.filterInput.
 		AddInputField("Filter", "", 50, func(textToCheck string, lastChar rune) bool {
 			return true
 		}, func(text string) {
-			// ここで、m.filterValue に格納すると、ボタン押さなくても後続の受信パケットでfilter文字列によるフィルターが実行されるため
+			// ここで、m.filter.value に格納すると、ボタン押さなくても後続の受信パケットでfilter文字列によるフィルターが実行されるため
 			tmpFilterValue = text
 		}).
 		AddButton("ok", func() {
-			m.filterValue = tmpFilterValue
+			m.filter.value = tmpFilterValue
 			// 一回クリア
 			m.table.Clear()
 
-			sortedKeys := []uint64{}
+			sortedIDs := []uint64{}
 			m.storedPackets.Range(func(key any, value any) bool {
-				sortedKeys = append(sortedKeys, key.(uint64))
+				sortedIDs = append(sortedIDs, key.(uint64))
 				return true
 			})
 			// TODO: id は 0~ で歯抜けることはない想定なので、sort せず最大のid保持しておいてforで、Loadでid指定して取り出すのもいいかも
-			sort.Slice(sortedKeys, func(i int, j int) bool {
-				return sortedKeys[i] < sortedKeys[j]
-			})
+			slices.Sort(sortedIDs)
 
 			// filter 処理(なお、filter文字列が空なら全部表示)
-			for _, id := range sortedKeys {
+			for _, id := range sortedIDs {
 				value, ok := m.storedPackets.Load(id)
 				if !ok {
 					continue
 				}
 				passive := value.(*packemon.Passive)
-				m.doFilter(passive, id)
+				m.filterAndInsertToTable(passive, id)
 			}
 		})
 
-	go m.updateTable(m.passiveCh, m.columns)
+	go m.updateTable()
 	return m.app.SetRoot(m.grid, true).EnableMouse(true).SetFocus(m.pages).Run()
 }
 

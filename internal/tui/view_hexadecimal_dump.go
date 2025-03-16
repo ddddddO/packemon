@@ -75,19 +75,19 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 	loopForL5_6View := 1 + loopForL4View
 	switch {
 	case h.TLSClientHello != nil:
-		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.2", h.TLSClientHello.Bytes())
+		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLS", h.TLSClientHello.Bytes())
 	case h.TLSServerHello != nil:
-		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.2", h.TLSServerHello.Bytes())
+		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLS", h.TLSServerHello.Bytes())
 	case h.TLSServerHelloFor1_3 != nil:
-		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.3", h.TLSServerHelloFor1_3.Bytes())
+		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLS", h.TLSServerHelloFor1_3.Bytes())
 	case h.TLSClientKeyExchange != nil:
-		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.2", h.TLSClientKeyExchange.Bytes())
+		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLS", h.TLSClientKeyExchange.Bytes())
 	case h.TLSChangeCipherSpecAndEncryptedHandshakeMessage != nil:
-		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.2", h.TLSChangeCipherSpecAndEncryptedHandshakeMessage.Bytes())
+		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLS", h.TLSChangeCipherSpecAndEncryptedHandshakeMessage.Bytes())
 	case h.TLSApplicationData != nil:
-		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.2", h.TLSApplicationData.Bytes())
+		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLS", h.TLSApplicationData.Bytes())
 	case h.TLSEncryptedAlert != nil:
-		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLSv1.2", h.TLSEncryptedAlert.Bytes())
+		loopForL5_6View = viewHexadecimalDump(table, loopForL5_6View, "TLS", h.TLSEncryptedAlert.Bytes())
 	}
 
 	// L7

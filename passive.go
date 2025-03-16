@@ -45,10 +45,12 @@ func (p *Passive) HighLayerProto() string {
 	}
 	// TODO: ちょっとTLSのversionは出さないとかにした方がいいかも？
 	if p.TLSClientHello != nil || p.TLSServerHello != nil || p.TLSClientKeyExchange != nil || p.TLSChangeCipherSpecAndEncryptedHandshakeMessage != nil || p.TLSApplicationData != nil || p.TLSEncryptedAlert != nil {
-		proto = "TLSv1.2"
+		// proto = "TLSv1.2"
+		proto = "TLS"
 	}
 	if p.TLSServerHelloFor1_3 != nil {
-		proto = "TLSv1.3"
+		// proto = "TLSv1.3"
+		proto = "TLS"
 	}
 	if p.DNS != nil {
 		proto = "DNS"

@@ -21,7 +21,7 @@ func (*TLSv1_2_CLIENT_HELLO) columns() int {
 
 func (t *TLSv1_2_CLIENT_HELLO) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
-	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLSv1.2 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLS Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	table.SetCell(0, 0, tableCellTitle("Record Layer - Content Type"))
 	table.SetCell(0, 1, tableCellContent("%x", t.RecordLayer.ContentType))
@@ -99,7 +99,7 @@ func (*TLSv1_2_SERVER_HELLO) columns() int {
 
 func (t *TLSv1_2_SERVER_HELLO) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
-	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLSv1.2 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLS Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	table.SetCell(0, 0, tableCellTitle("Record Layer - Content Type"))
 	table.SetCell(0, 1, tableCellContent("%x", t.ServerHello.RecordLayer.ContentType))
@@ -171,7 +171,7 @@ func (*TLSv1_2_ClientKeyExchange) columns() int {
 
 func (t *TLSv1_2_ClientKeyExchange) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
-	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLSv1.2 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLS Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	table.SetCell(0, 0, tableCellTitle("Client Key eXchange"))
 	table.SetCell(0, 1, tableCellContent("%x", t.ClientKeyExchange.Bytes()))
@@ -199,7 +199,7 @@ func (*TLSv1_2_ChangeCipherSpecAndEncryptedHandshakeMessage) columns() int {
 
 func (t *TLSv1_2_ChangeCipherSpecAndEncryptedHandshakeMessage) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
-	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLSv1.2 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLS Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	table.SetCell(0, 0, tableCellTitle("Change Chiper Spec Protocol"))
 	table.SetCell(0, 1, tableCellContent("%x", t.ChangeCipherSpecProtocol.Bytes()))
@@ -224,7 +224,7 @@ func (*TLSv1_2_ApplicationData) columns() int {
 
 func (t *TLSv1_2_ApplicationData) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
-	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLSv1.2 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLS Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	table.SetCell(0, 0, tableCellTitle("Content Type"))
 	table.SetCell(0, 1, tableCellContent("%x", t.RecordLayer.ContentType))
@@ -255,7 +255,7 @@ func (*TLSv1_2_EncryptedAlert) columns() int {
 
 func (t *TLSv1_2_EncryptedAlert) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
-	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLSv1.2 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLS Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	table.SetCell(0, 0, tableCellTitle("Content Type"))
 	table.SetCell(0, 1, tableCellContent("%x", t.RecordLayer.ContentType))

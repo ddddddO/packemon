@@ -21,7 +21,7 @@ func (*TLSv1_3_SERVER_HELLO) columns() int {
 
 func (t *TLSv1_3_SERVER_HELLO) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
-	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLSv1.3 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
+	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLS Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	table.SetCell(0, 0, tableCellTitle("Record Layer - Content Type"))
 	table.SetCell(0, 1, tableCellContent("%x", t.ServerHello.RecordLayer.ContentType))

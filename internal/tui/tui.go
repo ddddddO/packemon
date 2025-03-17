@@ -155,18 +155,18 @@ func (m *monitor) Run(ctx context.Context) error {
 	filterInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEnter {
 			m.filter.value = filterInput.GetText()
-			m.updateFilteredTable()
+			m.reCreateTable()
 		}
 		return event
 	})
 	filterOKButton := tview.NewButton("ok").SetSelectedFunc(func() {
 		m.filter.value = filterInput.GetText()
-		m.updateFilteredTable()
+		m.reCreateTable()
 	})
 	filterClearButton := tview.NewButton("clear").SetSelectedFunc(func() {
 		filterInput.SetText("")
 		m.filter.value = ""
-		m.updateFilteredTable()
+		m.reCreateTable()
 	})
 	filterClearButton.SetStyle(tcell.Style{}.Foreground(tcell.ColorWhiteSmoke).Background(tcell.ColorGray))
 	filterLayout := tview.NewGrid().

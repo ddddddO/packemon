@@ -24,7 +24,7 @@ func (m *monitor) updateTable() {
 	}
 }
 
-func (m *monitor) updateFilteredTable() {
+func (m *monitor) reCreateTable() {
 	// 一回クリア
 	m.table.Clear()
 

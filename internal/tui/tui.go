@@ -181,24 +181,6 @@ func (m *monitor) Run(ctx context.Context) error {
 	return m.app.SetRoot(m.grid, true).EnableMouse(true).SetFocus(m.pages).Run()
 }
 
-func (m *monitor) updateFilteredTable() {
-	// 一回クリア
-	m.table.Clear()
-
-	// filter 処理(なお、filter文字列が空なら全部表示)
-	for id := range m.storedMaxID.get() {
-		value, ok := m.storedPackets.Load(id)
-		if !ok {
-			continue
-		}
-		passive, ok := value.(*packemon.Passive)
-		if !ok {
-			continue
-		}
-		m.filterAndInsertToTable(passive, id)
-	}
-}
-
 func (m *monitor) addErrPage(err error) {
 	e := errView(err, m.app)
 	e.SetDoneFunc(func(key tcell.Key) {

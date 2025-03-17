@@ -10,6 +10,76 @@ import (
 	"github.com/rivo/tview"
 )
 
+func (m *monitor) updateTable() {
+	var id uint64 = 0
+	for passive := range m.passiveCh {
+		time.Sleep(10 * time.Millisecond)
+
+		m.app.QueueUpdateDraw(func() {
+			m.storedPackets.Store(id, passive)
+			m.filterAndInsertToTable(passive, id)
+			m.storedMaxID.set(id)
+			atomic.AddUint64(&id, 1)
+		})
+	}
+}
+
+func (m *monitor) updateFilteredTable() {
+	// 一回クリア
+	m.table.Clear()
+
+	// filter 処理(なお、filter文字列が空なら全部表示)
+	for id := range m.storedMaxID.get() {
+		value, ok := m.storedPackets.Load(id)
+		if !ok {
+			continue
+		}
+		passive, ok := value.(*packemon.Passive)
+		if !ok {
+			continue
+		}
+		m.filterAndInsertToTable(passive, id)
+	}
+}
+
+// パケット一覧の各値にfilter文字列が含まれていればそれを表示、一旦
+// TODO: ゆくゆくはportだけで絞りたいとか細かく制御したいかも
+func (m *monitor) filterAndInsertToTable(passive *packemon.Passive, id uint64) {
+	if passive == nil {
+		return
+	}
+
+	if m.filter.contains(passive) {
+		m.insertToTable(m.newHistoryRow(passive, id))
+	}
+}
+
+func (m *monitor) insertToTable(r *HistoryRow) {
+	m.table.InsertRow(0)
+	m.table.SetCell(0, 0, r.id)
+
+	x := 1
+	for i := range m.columns {
+		switch m.columns[i] {
+		case 'd':
+			m.table.SetCell(0, x, r.destinationMAC)
+		case 's':
+			m.table.SetCell(0, x, r.sourceMAC)
+		case 't':
+			m.table.SetCell(0, x, r.typ)
+		case 'p':
+			m.table.SetCell(0, x, r.protocol)
+		case 'D':
+			m.table.SetCell(0, x, r.destinationIPAddr)
+		case 'S':
+			m.table.SetCell(0, x, r.sourceIPAddr)
+		}
+		x++
+	}
+
+	m.table.ScrollToBeginning()
+}
+
 func NewPacketsHistoryTable() *tview.Table {
 	h := tview.NewTable()
 	h.SetTitleAlign(tview.AlignLeft)
@@ -57,56 +127,4 @@ func (m *monitor) newHistoryRow(passive *packemon.Passive, id uint64) *HistoryRo
 
 	}
 	return r
-}
-
-func (m *monitor) insertToTable(r *HistoryRow) {
-	m.table.InsertRow(0)
-	m.table.SetCell(0, 0, r.id)
-
-	x := 1
-	for i := range m.columns {
-		switch m.columns[i] {
-		case 'd':
-			m.table.SetCell(0, x, r.destinationMAC)
-		case 's':
-			m.table.SetCell(0, x, r.sourceMAC)
-		case 't':
-			m.table.SetCell(0, x, r.typ)
-		case 'p':
-			m.table.SetCell(0, x, r.protocol)
-		case 'D':
-			m.table.SetCell(0, x, r.destinationIPAddr)
-		case 'S':
-			m.table.SetCell(0, x, r.sourceIPAddr)
-		}
-		x++
-	}
-
-	m.table.ScrollToBeginning()
-}
-
-// パケット一覧の各値にfilter文字列が含まれていればそれを表示、一旦
-// TODO: ゆくゆくはportだけで絞りたいとか細かく制御したいかも
-func (m *monitor) filterAndInsertToTable(passive *packemon.Passive, id uint64) {
-	if passive == nil {
-		return
-	}
-
-	if m.filter.contains(passive) {
-		m.insertToTable(m.newHistoryRow(passive, id))
-	}
-}
-
-func (m *monitor) updateTable() {
-	var id uint64 = 0
-	for passive := range m.passiveCh {
-		time.Sleep(10 * time.Millisecond)
-
-		m.app.QueueUpdateDraw(func() {
-			m.storedPackets.Store(id, passive)
-			m.filterAndInsertToTable(passive, id)
-			m.storedMaxID.set(id)
-			atomic.AddUint64(&id, 1)
-		})
-	}
 }

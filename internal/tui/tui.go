@@ -2,7 +2,6 @@ package tui
 
 import (
 	"context"
-	"slices"
 	"strconv"
 	"sync"
 
@@ -32,6 +31,25 @@ type generator struct {
 	sender *sender
 }
 
+type storedMaxID struct {
+	value uint64
+	mu    sync.RWMutex
+}
+
+func (m *storedMaxID) get() uint64 {
+	defer m.mu.RUnlock()
+	m.mu.RLock()
+	return m.value
+}
+
+func (m *storedMaxID) set(currentID uint64) {
+	defer m.mu.Unlock()
+	m.mu.Lock()
+	if currentID > m.value {
+		m.value = currentID
+	}
+}
+
 type monitor struct {
 	networkInterface *packemon.NetworkInterface
 	passiveCh        <-chan *packemon.Passive
@@ -41,6 +59,7 @@ type monitor struct {
 
 	table         *tview.Table
 	storedPackets sync.Map
+	storedMaxID   *storedMaxID
 
 	grid        *tview.Grid
 	filterInput *tview.Grid
@@ -98,6 +117,7 @@ func NewMonitor(networkInterface *packemon.NetworkInterface, columns string) *mo
 		app:           tview.NewApplication(),
 		table:         table,
 		storedPackets: sync.Map{},
+		storedMaxID:   &storedMaxID{},
 		grid:          grid,
 		filterInput:   filterInput,
 		filter:        newFilter(),
@@ -165,21 +185,16 @@ func (m *monitor) updateFilteredTable() {
 	// 一回クリア
 	m.table.Clear()
 
-	sortedIDs := []uint64{}
-	m.storedPackets.Range(func(key any, value any) bool {
-		sortedIDs = append(sortedIDs, key.(uint64))
-		return true
-	})
-	// TODO: id は 0~ で歯抜けることはない想定なので、sort せず最大のid保持しておいてforで、Loadでid指定して取り出すのもいいかも
-	slices.Sort(sortedIDs)
-
 	// filter 処理(なお、filter文字列が空なら全部表示)
-	for _, id := range sortedIDs {
+	for id := range m.storedMaxID.get() {
 		value, ok := m.storedPackets.Load(id)
 		if !ok {
 			continue
 		}
-		passive := value.(*packemon.Passive)
+		passive, ok := value.(*packemon.Passive)
+		if !ok {
+			continue
+		}
 		m.filterAndInsertToTable(passive, id)
 	}
 }

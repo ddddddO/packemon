@@ -105,6 +105,7 @@ func (m *monitor) updateTable() {
 		m.app.QueueUpdateDraw(func() {
 			m.storedPackets.Store(id, passive)
 			m.filterAndInsertToTable(passive, id)
+			m.storedMaxID.set(id)
 			atomic.AddUint64(&id, 1)
 		})
 	}

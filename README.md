@@ -281,6 +281,27 @@ The following procedure is an example of how you can expose packemon-api to the 
 ## Document
 - [ネットワークを知りたくて](https://zenn.dev/openlogi/articles/195d07bd9bc5b4)
 
+```
+⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ
+ 　　　　　　　　　　　　　○
+ 　　　　　　　　　　　о
+ 　　　　　　　　　　｡
+ 
+ 　　　　　　　　　　,､-､_　　＿_
+ 　　　　,､-―､_,､'´　　　￣　　`ヽ,
+ 　　　/　　　　　　 ・　　　 ．　　　ｌ、
+ 　　　ｌ,　　　　　　 ヾニニつ　　　　`ヽ、
+ 　　　 |　　　　　　　　　　　　　　　　　 `ヽ,
+ 　　　 ﾉ　　　　　　　　　　　　　　　　　　ノ
+ 　　 /::::　　　　　　　　　　　　　　　　　/
+ 　／:::::::　　　　　　　　　　　　　　　　..::l、
+ /::::::::::::::::::......:::::::.　　　　　　　............::::::::::`l,
+ l::::::::::::::::::::::::::::::::::::......　　　....:::::::::::::::::::::::::::::`l,
+ ヽ,:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::ﾉ
+ 　　￣￣``ヽ､_:::::::::::::::::::::::,､-―´￣`ヽ､,､-'
+ 　　　　　　　　 `ヽ―-―'´
+ ```
+
 ## Stargazers over time
 [![Stargazers over time](https://starchart.cc/ddddddO/packemon.svg?variant=adaptive)](https://starchart.cc/ddddddO/packemon)
 

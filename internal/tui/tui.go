@@ -150,7 +150,7 @@ func (m *monitor) Run(ctx context.Context) error {
 		}
 	})
 
-	filterInput := tview.NewInputField().SetLabel("Filter")
+	filterInput := tview.NewInputField().SetLabel("Filter ")
 	filterInput.SetBorderPadding(1, 1, 1, 0)
 	filterInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEnter {

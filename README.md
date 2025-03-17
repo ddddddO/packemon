@@ -265,11 +265,12 @@ The following procedure is an example of how you can expose packemon-api to the 
 </details>
 
 ## Related tools
+- [Wireshark](https://www.wireshark.org/)
+- [tcpdump](https://www.tcpdump.org/)
 - netcat(nc)
 - [Nmap](https://nmap.org/)
 - [Scapy](https://github.com/secdev/scapy)
-- [google/gopacket](https://github.com/google/gopacket)
-  - maintained 👉 [gopacket/gopacket](https://github.com/gopacket/gopacket)
+- [google/gopacket](https://github.com/google/gopacket) / [gopacket/gopacket](https://github.com/gopacket/gopacket) (maintained)
 
 ## Acknowledgment
 - [rivo/tview](https://github.com/rivo/tview)

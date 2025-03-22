@@ -20,7 +20,7 @@ The images of Packemon on REDME should be used as reference only, as they may lo
 
 This TUI tool has two major functions: packet generation and packet monitoring.
 
-|Generated DNS query <br>and Recieved response| Show DNS response detail|Filter packets|
+|Generated DNS query <br>and Recieved response| Displayed DNS response detail|Filtered packets|
 |--|--|--|
 |![](./assets/packemon_dns.png)|![](./assets/packemon_dns_response.png)|![](./assets/packemon_filter.png)|
 

@@ -2,10 +2,8 @@ module github.com/ddddddO/packemon
 
 go 1.24
 
-toolchain go1.24.0
-
 require (
-	github.com/cilium/ebpf v0.17.1
+	github.com/cilium/ebpf v0.17.3
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/gopacket/gopacket v1.3.1
@@ -13,6 +11,7 @@ require (
 	github.com/labstack/gommon v0.4.2
 	github.com/rivo/tview v0.0.0-20240426173458-c766eefb3803
 	github.com/vishvananda/netlink v1.3.0
+	golang.org/x/crypto v0.36.0
 	golang.org/x/net v0.37.0
 	golang.org/x/sys v0.31.0
 )
@@ -30,7 +29,6 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
-	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/term v0.30.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.8.0 // indirect

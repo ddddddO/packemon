@@ -1,5 +1,7 @@
 # Packémon
 
+[![Awesome](https://awesome.re/badge-flat2.svg)](https://github.com/caesar0301/awesome-pcaptools?tab=readme-ov-file#traffic-analysisinspection) [![version](https://img.shields.io/github/v/release/ddddddO/packemon?style=flat-square&logo=git&logoColor=3BAF75&labelColor=EEE&color=3BAF75")](https://github.com/ddddddO/packemon/releases)
+
 Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ) <br>
 
 <!-- ![](./assets/packemon.gif) -->

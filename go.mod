@@ -3,7 +3,7 @@ module github.com/ddddddO/packemon
 go 1.24
 
 require (
-	github.com/cilium/ebpf v0.17.3
+	github.com/cilium/ebpf v0.18.0
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/gopacket/gopacket v1.3.1

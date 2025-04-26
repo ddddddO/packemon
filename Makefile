@@ -8,3 +8,6 @@ debug:
 
 test:
 	go test -v
+
+credit:
+	gocredits . > CREDITS

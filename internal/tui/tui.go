@@ -105,9 +105,17 @@ func NewMonitor(networkInterface *packemon.NetworkInterface, columns string) *mo
 	filterInput.Box.SetBorder(true)
 
 	grid := tview.NewGrid()
+	grid.SetRows(1, 0, -10, 1)
 	grid.Box = tview.NewBox().SetTitle(TITLE_MONITOR).SetBorder(true)
-	// grid.AddItem(filterInput, 0, 0, 1, 1, 0, 0, false)
-	grid.AddItem(pages, 1, 0, 9, 1, 1, 1, true)
+	grid.AddItem(filterInput, 0, 0, -1, 1, -1, 1, false)
+	grid.AddItem(pages, 1, 0, 2, 1, 5, 1, true)
+
+	footer := tview.NewTextView().
+		SetText("Focus on packet list and press Enter to selectable mode | Press Esc to return").
+		SetTextAlign(tview.AlignLeft)
+	footer.SetBorderPadding(0, 0, 1, 1)
+
+	grid.AddItem(footer, 3, 0, 1, 1, 1, 1, false)
 
 	return &monitor{
 		networkInterface: networkInterface,
@@ -151,7 +159,7 @@ func (m *monitor) Run(ctx context.Context) error {
 	})
 
 	filterInput := tview.NewInputField().SetLabel("Filter ")
-	filterInput.SetBorderPadding(1, 1, 1, 0)
+	filterInput.SetBorderPadding(0, 0, 1, 0)
 	filterInput.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEnter {
 			m.filter.value = filterInput.GetText()
@@ -168,12 +176,14 @@ func (m *monitor) Run(ctx context.Context) error {
 		m.filter.value = ""
 		m.reCreateTable()
 	})
+
 	filterClearButton.SetStyle(tcell.Style{}.Foreground(tcell.ColorWhiteSmoke).Background(tcell.ColorGray))
 	filterLayout := tview.NewGrid().
 		AddItem(filterInput, 0, 0, 1, 4, 0, 0, true).
 		AddItem(filterOKButton, 0, 5, 1, 1, 0, 0, false).
 		AddItem(filterClearButton, 0, 6, 1, 1, 0, 0, false)
-	filterLayout.Box.SetBorder(true)
+	filterLayout.SetRows(1)
+	// filterLayout.Box.SetBorder(true)
 	m.filterInput = filterLayout
 	m.grid.AddItem(m.filterInput, 0, 0, 1, 1, 0, 0, false)
 

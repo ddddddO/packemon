@@ -83,8 +83,9 @@ func (m *monitor) insertToTable(r *HistoryRow) {
 func NewPacketsHistoryTable() *tview.Table {
 	h := tview.NewTable()
 	h.SetTitleAlign(tview.AlignLeft)
-	h.SetBorder(true)
+	h.SetBorder(false)
 	h.ScrollToBeginning()
+	h.SetBorderPadding(1, 1, 1, 1)
 	h.SetSelectedStyle(tcell.StyleDefault.Background(tcell.ColorGray))
 
 	return h

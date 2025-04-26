@@ -63,6 +63,9 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 	selectedL5_6 := s.selectedProtocolByLayer["L5/6"]
 	selectedL7 := s.selectedProtocolByLayer["L7"]
 
+	ctx, cancel := context.WithTimeout(ctx, TIMEOUT)
+	defer cancel()
+
 	switch currentLayer {
 	case "L2":
 		return s.sendFn(&packemon.EthernetFrame{
@@ -237,9 +240,6 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 						case "":
 							return fmt.Errorf("not implemented")
 						case "IPv4":
-							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
-							defer cancel()
-
 							return packemon.EstablishConnectionAndSendPayloadXxx(
 								ctx,
 								DEFAULT_NW_INTERFACE,
@@ -249,9 +249,6 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 								s.packets.dns.Bytes(),
 							)
 						case "IPv6":
-							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
-							defer cancel()
-
 							return packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
 								ctx,
 								DEFAULT_NW_INTERFACE,
@@ -321,9 +318,6 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 						case "":
 							return fmt.Errorf("not implemented")
 						case "IPv4":
-							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
-							defer cancel()
-
 							return packemon.EstablishConnectionAndSendPayloadXxx(
 								ctx,
 								DEFAULT_NW_INTERFACE,
@@ -333,9 +327,6 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 								s.packets.http.Bytes(),
 							)
 						case "IPv6":
-							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
-							defer cancel()
-
 							return packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
 								ctx,
 								DEFAULT_NW_INTERFACE,
@@ -391,9 +382,6 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 						case "":
 							return fmt.Errorf("not implemented")
 						case "IPv4":
-							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
-							defer cancel()
-
 							return packemon.EstablishTCPTLSv1_2AndSendPayload(
 								ctx,
 								DEFAULT_NW_INTERFACE,
@@ -403,9 +391,6 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 								s.packets.http.Bytes(),
 							)
 						case "IPv6":
-							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
-							defer cancel()
-
 							return packemon.EstablishTCPTLSv1_2AndSendPayloadForIPv6(
 								ctx,
 								DEFAULT_NW_INTERFACE,
@@ -433,9 +418,6 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 						case "":
 							return fmt.Errorf("not implemented")
 						case "IPv4":
-							ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
-							defer cancel()
-
 							return packemon.EstablishTCPTLSv1_3AndSendPayload(
 								ctx,
 								DEFAULT_NW_INTERFACE,
@@ -446,9 +428,6 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 							)
 						case "IPv6":
 							return fmt.Errorf("not implemtented")
-							// ctx, cancel := context.WithTimeout(context.Background(), TIMEOUT)
-							// defer cancel()
-
 							// return packemon.EstablishTCPTLSv1_2AndSendPayloadForIPv6(
 							// 	ctx,
 							// 	DEFAULT_NW_INTERFACE,

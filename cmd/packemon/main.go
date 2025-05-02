@@ -19,7 +19,33 @@ const DEFAULT_TARGET_NW_INTERFACE = "eth0"
 // d: dest mac, s: src mac, t: type, p: protocol, D: dest ip, S: src ip
 const DEFAULT_MONITOR_COLUMNS = "dstpDS"
 
+const METAMON = "\n" +
+	"⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ" + "\n" +
+	"                      ○" + "\n" +
+	"                     о" + "\n" +
+	"                    ｡" + "\n" +
+	"\n" +
+	"                   ,､-､_  ＿_" + "\n" +
+	" 　　　　,､-―､_,､'´　　　￣　　`ヽ," + "\n" +
+	" 　　　/　　　　　　 ・　　　 ．　　　ｌ、" + "\n" +
+	" 　　　ｌ,　　　　　　 ヾニニつ　　　　`ヽ、" + "\n" +
+	" 　　　 |　　　　　　　　　　　　　　　　　 `ヽ," + "\n" +
+	" 　　　 ﾉ　　　　　　　　　　　　　　　　　　ノ" + "\n" +
+	" 　　 /::::　　　　　　　　　　　　　　　　　/" + "\n" +
+	" 　／:::::::　　　　　　　　　　　　　　　　..::l、" + "\n" +
+	" /::::::::::::::::::......:::::::.　　　　　　　............::::::::::`l," + "\n" +
+	" l::::::::::::::::::::::::::::::::::::......　　　....:::::::::::::::::::::::::::::`l," + "\n" +
+	" ヽ,:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::ﾉ" + "\n" +
+	" 　　￣￣``ヽ､_:::::::::::::::::::::::,､-―´￣`ヽ､,､-'" + "\n" +
+	" 　　　　　　　　 `ヽ―-―'´"
+
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of %s\n", os.Args[0])
+		flag.PrintDefaults()
+		fmt.Fprintln(os.Stderr, METAMON)
+	}
+
 	var nwInterface string
 	flag.StringVar(&nwInterface, "interface", DEFAULT_TARGET_NW_INTERFACE, "Specify name of network interface to be sent/received. Default is 'eth0'.")
 	var columns string

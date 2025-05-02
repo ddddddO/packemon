@@ -12,6 +12,8 @@ import (
 	ec "github.com/ddddddO/packemon/egress_control"
 	"github.com/ddddddO/packemon/internal/debugging"
 	"github.com/ddddddO/packemon/internal/tui"
+	"github.com/ddddddO/packemon/internal/tui/generator"
+	"github.com/ddddddO/packemon/internal/tui/monitor"
 )
 
 const DEFAULT_TARGET_NW_INTERFACE = "eth0"
@@ -98,21 +100,21 @@ func run(ctx context.Context, columns string, nwInterface string, wantSend bool,
 	defer netIf.Close()
 
 	if len(nwInterface) != 0 {
-		tui.DEFAULT_NW_INTERFACE = nwInterface
+		generator.DEFAULT_NW_INTERFACE = nwInterface
 	}
-	tui.DEFAULT_MAC_SOURCE = fmt.Sprintf("0x%s", strings.ReplaceAll(netIf.Intf.HardwareAddr.String(), ":", ""))
-	tui.DEFAULT_ARP_SENDER_MAC = tui.DEFAULT_MAC_SOURCE
+	generator.DEFAULT_MAC_SOURCE = fmt.Sprintf("0x%s", strings.ReplaceAll(netIf.Intf.HardwareAddr.String(), ":", ""))
+	generator.DEFAULT_ARP_SENDER_MAC = generator.DEFAULT_MAC_SOURCE
 
 	ipAddr, err := netIf.Intf.Addrs()
 	if err != nil {
 		return err
 	}
 	if len(ipAddr) > 0 {
-		tui.DEFAULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
-		tui.DEFAULT_ARP_SENDER_IP = tui.DEFAULT_IP_SOURCE
+		generator.DEFAULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
+		generator.DEFAULT_ARP_SENDER_IP = generator.DEFAULT_IP_SOURCE
 	}
 	if len(ipAddr) > 1 {
-		tui.DEFAULT_IPv6_SOURCE = strings.Split(ipAddr[1].String(), "/")[0]
+		generator.DEFAULT_IPv6_SOURCE = strings.Split(ipAddr[1].String(), "/")[0]
 	}
 
 	if debug {
@@ -145,9 +147,9 @@ func run(ctx context.Context, columns string, nwInterface string, wantSend bool,
 		return debugPrint(ctx, netIf.PassiveCh)
 	}
 
-	var packemonTUI tui.TUI = tui.NewMonitor(netIf, columns)
+	var packemonTUI tui.TUI = monitor.New(netIf, columns)
 	if wantSend {
-		packemonTUI = tui.NewGenerator(netIf)
+		packemonTUI = generator.New(netIf)
 	}
 	return packemonTUI.Run(ctx)
 }

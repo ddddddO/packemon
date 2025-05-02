@@ -6,7 +6,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func errView(err error, app *tview.Application) *tview.TextView {
+func ErrView(err error, app *tview.Application) *tview.TextView {
 	textview := tview.NewTextView().
 		SetDynamicColors(true).
 		SetRegions(true).

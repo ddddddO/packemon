@@ -134,19 +134,19 @@ The rightmost image shows how the packet list is filtered.
 
 ## Installation
 
-<pre>
+### Source build
+> [!IMPORTANT] 
+> Clone this repository and require 'Dependencies' section of https://ebpf-go.dev/guides/getting-started/#ebpf-c-program
 
-<b>git clone & Go</b>
-# Recomended (Clone this repository and require 'Dependencies' section of https://ebpf-go.dev/guides/getting-started/#ebpf-c-program)
+<pre>
 $ cd egress_control/ && go generate && cd -
 $ go build -o packemon cmd/packemon/*.go
 $ ls | grep packemon
 $ mv packemon /usr/local/bin/
+</pre>
 
-<b>Go</b>
-# Deprecated (In some environments, RST packets may be sent during TCP 3-way handshake)
-$ go install github.com/ddddddO/packemon/cmd/packemon@latest
-
+### AMD64
+<pre>
 <b>deb</b>
 $ export PACKEMON_VERSION=X.X.X
 $ curl -o packemon.deb -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.deb
@@ -160,7 +160,34 @@ $ yum install https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_V
 $ export PACKEMON_VERSION=X.X.X
 $ curl -o packemon.apk -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.apk
 $ apk add --allow-untrusted packemon.apk
+</pre>
 
+### ARM64 
+> [!WARNING] 
+> Generator mode, RST packets may be sent during TCP 3-way handshake...
+
+<pre>
+<b>deb</b>
+$ export PACKEMON_VERSION=X.X.X
+$ curl -o packemon.deb -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_arm64.deb
+$ dpkg -i packemon.deb
+
+<b>rpm</b>
+$ export PACKEMON_VERSION=X.X.X
+$ yum install https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_arm64.rpm
+
+<b>apk</b>
+$ export PACKEMON_VERSION=X.X.X
+$ curl -o packemon.apk -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_arm64.apk
+$ apk add --allow-untrusted packemon.apk
+</pre>
+
+### Go install
+> [!WARNING] 
+> If the execution environment is ARM64, in Generator mode, RST packets are sent during TCP 3-way handshake.
+
+<pre>
+$ go install github.com/ddddddO/packemon/cmd/packemon@latest
 </pre>
 
 ## Usage

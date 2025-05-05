@@ -177,7 +177,8 @@ int control_egress(struct __sk_buff *skb)
     }
 
     if (bpf_ntohs(eth->h_proto) == ETH_P_IPv6) {
-        ip6h = (struct ip6hdr *)(eth + 1);
+        ip6h = (struct ipv6hdr *)(eth + 1);
+        bpf_printk("IPv6!");
 
         if (ip6h->nexthdr == IP_P_TCP) {
             bpf_printk("TCP");

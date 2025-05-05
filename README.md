@@ -167,10 +167,15 @@ $ curl -o packemon.apk -L https://github.com/ddddddO/packemon/releases/download/
 $ apk add --allow-untrusted packemon.apk
 </pre>
 
-### ARM64 
-> [!WARNING] 
-> Generator mode, RST packets may be sent during TCP 3-way handshake...
+#### Confirmed executable in the following environments
+- OS: Debian GNU/Linux 12 (bookworm) on WSL2
+  - Kernel: 5.15.167.4-microsoft-standard-WSL2
+  - Architecture: x86_64
+- OS: Ubuntu 22.04.3 LTS on WSL2
+  - Kernel: 5.15.167.4-microsoft-standard-WSL2
+  - Architecture: x86_64
 
+### ARM64
 <pre>
 <b>deb</b>
 $ export PACKEMON_VERSION=X.X.X
@@ -187,10 +192,20 @@ $ curl -o packemon.apk -L https://github.com/ddddddO/packemon/releases/download/
 $ apk add --allow-untrusted packemon.apk
 </pre>
 
-### Go install
-> [!WARNING] 
-> If the execution environment is ARM64, in Generator mode, RST packets are sent during TCP 3-way handshake.
+#### Confirmed executable in the following environments
+- OS: Debian GNU/Linux 12 (bookworm) on Google Pixel 7a
+  - Kernel: 6.1.0-34-arm64
+  - Architecture: aarch64
 
+<details><summary>cmd</summary>
+
+- OS: `cat /etc/os-release`
+  - Kernel: `uname -r`
+  - Architecture: `uname -m` 
+
+</details>
+
+### Go install
 <pre>
 $ go install github.com/ddddddO/packemon/cmd/packemon@latest
 </pre>

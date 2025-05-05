@@ -196,16 +196,26 @@ $ go install github.com/ddddddO/packemon/cmd/packemon@latest
 </pre>
 
 ## Usage
+### Generator
 
-- Generator
-  ```console
-  sudo packemon --send
-  ```
+```console
+$ sudo setcap cap_net_raw,cap_bpf,cap_sys_admin,cap_net_admin+ep /path/to/packemon
+$ packemon --send
+```
+or
+```console
+$ sudo packemon --send
+```
 
-- Monitor
-  ```console
-  sudo packemon
-  ```
+### Monitor
+```console
+$ sudo setcap cap_net_raw+ep /path/to/packemon
+$ packemon
+```
+or
+```console
+$ sudo packemon
+```
 
 ## Usecase
 ### Sending DNS query and Monitoring DNS response

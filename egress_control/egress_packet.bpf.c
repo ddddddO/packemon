@@ -104,38 +104,56 @@ int control_egress(struct __sk_buff *skb)
     // bpf_printk("data: %x", skb->data);
     // bpf_printk("data_end: %x", skb->data_end);
 
+    bpf_printk("");
+    bpf_printk("-- egress packet detail --");
+
     if (count) { 
         __sync_fetch_and_add(count, 1); 
     }
 
     eth = data;
     if ((void *)(eth + 1) > data_end) {
-        bpf_printk("a");
+        bpf_printk("insufficient packet data - ethernet header");
         return TC_ACT_OK;
     }
 
     iph = (struct iphdr *)(eth + 1);
     if ((void *)(iph + 1) > data_end) {
-        bpf_printk("b");
+        bpf_printk("insufficient packet data - ipv4 header");
         return TC_ACT_OK;
     }
 
     if (bpf_ntohs(eth->h_proto) == ETH_P_ARP) {
-        bpf_printk("Ether Type: ARP");
+        bpf_printk("Ethernet header");
+        bpf_printk("  ether type  : ARP");
+        bpf_printk("  dst mac addr:");
+        bpf_printk("    %02x:%02x:%02x (first half)", eth->h_dest[0], eth->h_dest[1], eth->h_dest[2]);
+        bpf_printk("    %02x:%02x:%02x (second half)", eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+        bpf_printk("  src mac addr:");
+        bpf_printk("    %02x:%02x:%02x (first half)", eth->h_source[0], eth->h_source[1], eth->h_source[2]);
+        bpf_printk("    %02x:%02x:%02x (second half)", eth->h_source[3], eth->h_source[4], eth->h_source[5]);
+
         if (arp_count) { 
             __sync_fetch_and_add(arp_count, 1); 
         }
-        // return TC_ACT_SHOT;
         return TC_ACT_OK;
     }
 
     if (bpf_ntohs(eth->h_proto) == ETH_P_IPv4) {
-        bpf_printk("Ether Type  : IP");
-        bpf_printk("    tot_len : %d", bpf_ntohs(iph->tot_len));
-        bpf_printk("    ttl     : %d", iph->ttl);
-        bpf_printk("    protocol: %x", iph->protocol);
-        bpf_printk("    dst     : %x", bpf_ntohl(iph->daddr));
-        bpf_printk("    src     : %x", bpf_ntohl(iph->saddr));
+        bpf_printk("Ethernet");
+        bpf_printk("  ether type: IPv4");
+        bpf_printk("  dst mac addr:");
+        bpf_printk("    %02x:%02x:%02x (first half)", eth->h_dest[0], eth->h_dest[1], eth->h_dest[2]);
+        bpf_printk("    %02x:%02x:%02x (second half)", eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+        bpf_printk("  src mac addr:");
+        bpf_printk("    %02x:%02x:%02x (first half)", eth->h_source[0], eth->h_source[1], eth->h_source[2]);
+        bpf_printk("    %02x:%02x:%02x (second half)", eth->h_source[3], eth->h_source[4], eth->h_source[5]);
+        bpf_printk("IPv4");
+        bpf_printk("  tot_len : %d", bpf_ntohs(iph->tot_len));
+        bpf_printk("  ttl     : %d", iph->ttl);
+        bpf_printk("  protocol: %x", iph->protocol);
+        bpf_printk("  src addr: %x", bpf_ntohl(iph->saddr));
+        bpf_printk("  dst addr: %x", bpf_ntohl(iph->daddr));
 
         if (iph->protocol == IP_P_ICMP) {
             bpf_printk("ICMP");
@@ -150,24 +168,21 @@ int control_egress(struct __sk_buff *skb)
 
             tcph = (struct tcphdr *)(iph + 1);
             if ((void *)(tcph + 1) > data_end) {
-                bpf_printk("c");
+                bpf_printk("insufficient packet data - tcp header");
                 return TC_ACT_OK;
             }
 
-            bpf_printk("    sport     : %x", bpf_ntohs(tcph->sport));
-            bpf_printk("    dport     : %x", bpf_ntohs(tcph->dport));
-            bpf_printk("    controlflg: %x", bpf_ntohs(tcph->controlflg));
-            bpf_printk("    controlflg: %x", tcph->controlflg);
+            bpf_printk("  src port  : %x", bpf_ntohs(tcph->sport));
+            bpf_printk("  dst port  : %x", bpf_ntohs(tcph->dport));
+            bpf_printk("  controlflg: %x", bpf_ntohs(tcph->controlflg));
 
             if (tcph->controlflg == TCP_FLG_RST_ACK) {
-                bpf_printk("TCP RST-ACK");
+                bpf_printk("  RST-ACK! (It's packet will be dropped)");
                 return TC_ACT_SHOT;
-                // return TC_ACT_OK;
             }
             if (tcph->controlflg == TCP_FLG_RST) {
-                bpf_printk("TCP RST");
+                bpf_printk("  RST! (It's packet will be dropped)");
                 return TC_ACT_SHOT;
-                // return TC_ACT_OK;
             }
 
             return TC_ACT_OK;
@@ -177,32 +192,38 @@ int control_egress(struct __sk_buff *skb)
     }
 
     if (bpf_ntohs(eth->h_proto) == ETH_P_IPv6) {
+        bpf_printk("Ethernet");
+        bpf_printk("  ether type: IPv6");
+        bpf_printk("  dst mac addr:");
+        bpf_printk("    %02x:%02x:%02x (first half)", eth->h_dest[0], eth->h_dest[1], eth->h_dest[2]);
+        bpf_printk("    %02x:%02x:%02x (second half)", eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+        bpf_printk("  src mac addr:");
+        bpf_printk("    %02x:%02x:%02x (first half)", eth->h_source[0], eth->h_source[1], eth->h_source[2]);
+        bpf_printk("    %02x:%02x:%02x (second half)", eth->h_source[3], eth->h_source[4], eth->h_source[5]);
+
         ip6h = (struct ipv6hdr *)(eth + 1);
-        bpf_printk("IPv6!");
+        bpf_printk("IPv6");
 
         if (ip6h->nexthdr == IP_P_TCP) {
             bpf_printk("TCP");
 
             tcph = (struct tcphdr *)(ip6h + 1);
             if ((void *)(tcph + 1) > data_end) {
-                bpf_printk("d");
+                bpf_printk("insufficient packet data - tcp header");
                 return TC_ACT_OK;
             }
 
-            bpf_printk("    sport     : %x", bpf_ntohs(tcph->sport));
-            bpf_printk("    dport     : %x", bpf_ntohs(tcph->dport));
-            bpf_printk("    controlflg: %x", bpf_ntohs(tcph->controlflg));
-            bpf_printk("    controlflg: %x", tcph->controlflg);
+            bpf_printk("  src port  : %x", bpf_ntohs(tcph->sport));
+            bpf_printk("  dst port  : %x", bpf_ntohs(tcph->dport));
+            bpf_printk("  controlflg: %x", bpf_ntohs(tcph->controlflg));
 
             if (tcph->controlflg == TCP_FLG_RST_ACK) {
-                bpf_printk("TCP RST-ACK");
+                bpf_printk("  RST-ACK! (It's packet will be dropped)");
                 return TC_ACT_SHOT;
-                // return TC_ACT_OK;
             }
             if (tcph->controlflg == TCP_FLG_RST) {
-                bpf_printk("TCP RST");
+                bpf_printk("  RST! (It's packet will be dropped)");
                 return TC_ACT_SHOT;
-                // return TC_ACT_OK;
             }
 
             return TC_ACT_OK;

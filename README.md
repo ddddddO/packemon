@@ -83,7 +83,7 @@ The rightmost image shows how the packet list is filtered.
 > The background note incorporating the eBPF is the POST of X around [here](https://x.com/ddddddOpppppp/status/1798715056513056881). 
 
 >[!TIP] 
-> While in Generator mode, output of `bpf_printk` of [this code](https://github.com/ddddddO/packemon/blob/main/egress_control/egress_packet.bpf.c) can be checked by executing the following command.<br>
+> While in Generator mode, output of `bpf_printk` of [eBPF program](https://github.com/ddddddO/packemon/blob/main/egress_control/egress_packet.bpf.c) can be checked by executing the following command.<br>
 > $ **sudo mount -t debugfs none /sys/kernel/debug** (only once)<br>
 > $ **sudo cat /sys/kernel/debug/tracing/trace_pipe**
 

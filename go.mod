@@ -12,7 +12,7 @@ require (
 	github.com/rivo/tview v0.0.0-20240426173458-c766eefb3803
 	github.com/vishvananda/netlink v1.3.0
 	golang.org/x/crypto v0.38.0
-	golang.org/x/net v0.39.0
+	golang.org/x/net v0.40.0
 	golang.org/x/sys v0.33.0
 )
 

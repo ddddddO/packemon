@@ -15,7 +15,6 @@ import (
 	"github.com/ddddddO/packemon/internal/tui/generator"
 	"github.com/ddddddO/packemon/internal/tui/monitor"
 	tc "github.com/ddddddO/packemon/tc_program"
-	"github.com/vishvananda/netlink"
 )
 
 const DEFAULT_TARGET_NW_INTERFACE = "eth0"
@@ -65,26 +64,27 @@ func main() {
 
 	var ingressMap, egressMap *ebpf.Map
 	if wantSend {
-		// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
-		ebpfProg, qdiscEgress, err := tc.PrepareDropingRSTPacket(nwInterface)
+		ebpfObjs, err := tc.InitializeTCProgram()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
 			// error出力するが、処理は進める
-			// os.Exit(1)
+			fmt.Fprintln(os.Stderr, err)
 		}
-		var qdiscIngress *netlink.GenericQdisc
-		if ebpfProg != nil {
-			qdiscIngress, err = tc.PrepareAnalyzingIngressPackets(nwInterface, ebpfProg.ControlIngress)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				// error出力するが、処理は進める
-				// os.Exit(1)
-			}
-			ingressMap = ebpfProg.PktIngressCount
-			egressMap = ebpfProg.PktEgressCount
+
+		// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
+		qdiscEgress, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
+		if err != nil {
+			// error出力するが、処理は進める
+			fmt.Fprintln(os.Stderr, err)
 		}
+		qdiscIngress, err := tc.PrepareAnalyzingIngressPackets(nwInterface, ebpfObjs)
+		if err != nil {
+			// error出力するが、処理は進める
+			fmt.Fprintln(os.Stderr, err)
+		}
+		ingressMap = ebpfObjs.PktIngressCount
+		egressMap = ebpfObjs.PktEgressCount
 		defer func() {
-			if err := tc.Close(ebpfProg, qdiscEgress, qdiscIngress); err != nil {
+			if err := tc.Close(ebpfObjs, qdiscEgress, qdiscIngress); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 			}
 		}()

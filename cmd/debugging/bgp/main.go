@@ -17,15 +17,20 @@ func main() {
 	var nwInterface string
 	flag.StringVar(&nwInterface, "interface", "net0", "Specify name of network interface to be sent/received. Default is 'eth0'.")
 
+	ebpfObjs, err := tc.InitializeTCProgram()
+	if err != nil {
+		// error出力するが、処理は進める
+		fmt.Fprintln(os.Stderr, err)
+	}
 	// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
-	ebpfProg, qdisc, err := tc.PrepareDropingRSTPacket(nwInterface)
+	qdisc, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		// error出力するが、処理は進める
 		// os.Exit(1)
 	}
 	defer func() {
-		if err := tc.Close(ebpfProg, qdisc, nil); err != nil {
+		if err := tc.Close(ebpfObjs, qdisc, nil); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
 	}()

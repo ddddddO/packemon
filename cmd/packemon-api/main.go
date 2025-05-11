@@ -11,7 +11,7 @@ import (
 	"os"
 
 	"github.com/ddddddO/packemon"
-	ec "github.com/ddddddO/packemon/egress_control"
+	tc "github.com/ddddddO/packemon/tc_program"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -42,14 +42,14 @@ func main() {
 
 	if !isClient {
 		// Generator で3way handshake する際に、カーネルが自動でRSTパケットを送ってたため、ドロップするため
-		ebpfProg, qdisc, err := ec.PrepareDropingRSTPacket(nwInterface)
+		ebpfProg, qdisc, err := tc.PrepareDropingRSTPacket(nwInterface)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			// error出力するが、処理は進める
 			// os.Exit(1)
 		}
 		defer func() {
-			if err := ec.Close(ebpfProg, qdisc, nil); err != nil {
+			if err := tc.Close(ebpfProg, qdisc, nil); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 			}
 		}()

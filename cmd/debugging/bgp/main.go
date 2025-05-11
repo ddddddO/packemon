@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/ddddddO/packemon"
-	ec "github.com/ddddddO/packemon/egress_control"
 	"github.com/ddddddO/packemon/internal/debugging"
+	tc "github.com/ddddddO/packemon/tc_program"
 )
 
 // 現状、cmd/packemon の方で実装すると、デフォルトルートのIPアドレスを取得する時にエラーになってしまうので、このディレクトリで試す感じ
@@ -18,14 +18,14 @@ func main() {
 	flag.StringVar(&nwInterface, "interface", "net0", "Specify name of network interface to be sent/received. Default is 'eth0'.")
 
 	// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
-	ebpfProg, qdisc, err := ec.PrepareDropingRSTPacket(nwInterface)
+	ebpfProg, qdisc, err := tc.PrepareDropingRSTPacket(nwInterface)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		// error出力するが、処理は進める
 		// os.Exit(1)
 	}
 	defer func() {
-		if err := ec.Close(ebpfProg, qdisc, nil); err != nil {
+		if err := tc.Close(ebpfProg, qdisc, nil); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
 	}()

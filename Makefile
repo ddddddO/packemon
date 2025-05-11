@@ -1,5 +1,5 @@
 # NOTE: only developer
-# /github.com/ddddddO/packemon/egress_control/ 配下で以下を実行しeBPFコード生成
+# /github.com/ddddddO/packemon/tc_program/ 配下で以下を実行しeBPFコード生成
 # go generate
 
 # いかな感じで単発で送信

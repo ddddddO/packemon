@@ -79,11 +79,11 @@ The rightmost image shows how the packet list is filtered.
 
 >[!WARNING]
 > While using Generator mode, TCP RST packets automatically sent out by the kernel are dropped. When this mode is stopped, the original state is restored. Probably😅.
-> Incidentally, dropping RST packets is done by running [the eBPF program](./egress_control/).
+> Incidentally, dropping RST packets is done by running [the eBPF program](./tc_program/).
 > The background note incorporating the eBPF is the POST of X around [here](https://x.com/ddddddOpppppp/status/1798715056513056881). 
 
 >[!TIP] 
-> While in Generator mode, output of `bpf_printk` of [eBPF program](https://github.com/ddddddO/packemon/blob/main/egress_control/egress_packet.bpf.c) can be checked by executing the following command.<br>
+> While in Generator mode, output of `bpf_printk` of [eBPF program](https://github.com/ddddddO/packemon/blob/main/tc_program/tc_program.bpf.c) can be checked by executing the following command.<br>
 > $ **sudo mount -t debugfs none /sys/kernel/debug** (only once)<br>
 > $ **sudo cat /sys/kernel/debug/tracing/trace_pipe**
 
@@ -144,7 +144,7 @@ The rightmost image shows how the packet list is filtered.
 > Clone this repository and require 'Dependencies' section of https://ebpf-go.dev/guides/getting-started/#ebpf-c-program
 
 <pre>
-$ cd egress_control/ && go generate && cd -
+$ cd tc_program/ && go generate && cd -
 $ go build -o packemon cmd/packemon/*.go
 $ ls | grep packemon
 $ mv packemon /usr/local/bin/

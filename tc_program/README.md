@@ -14,6 +14,6 @@
     # ↑の結果から↓へ指定
     $ sudo apt install linux-headers-6.1.0-21-amd64
     $ sudo ln -s /usr/include/x86_64-linux-gnu/asm /usr/include/asm
-    $ cd ~/github.com/ddddddO/packemon/egress_control
+    $ cd ~/github.com/ddddddO/packemon/tc_program
     $ go generate
     ```

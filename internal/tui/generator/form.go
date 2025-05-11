@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/ddddddO/packemon"
-	ec "github.com/ddddddO/packemon/egress_control"
 	"github.com/ddddddO/packemon/internal/tui"
+	tc "github.com/ddddddO/packemon/tc_program"
 	"github.com/rivo/tview"
 )
 
@@ -218,14 +218,14 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 						position := end + 1
 
 						interfaceTable.SetCell(position, 0, tui.TableCellTitle("TX"))
-						analyzedEgress, err := ec.GetAnalyzedPackets(g.analyzer.egress)
+						analyzedEgress, err := tc.GetAnalyzedPackets(g.analyzer.egress)
 						if err == nil {
 							interfaceTable.SetCell(position, 1, tui.TableCellContent("%d pkt", analyzedEgress.Sum))
 						}
 
 						position++
 						interfaceTable.SetCell(position, 0, tui.TableCellTitle("RX"))
-						analyzedIngress, err := ec.GetAnalyzedPackets(g.analyzer.ingress)
+						analyzedIngress, err := tc.GetAnalyzedPackets(g.analyzer.ingress)
 						if err == nil {
 							interfaceTable.SetCell(position, 1, tui.TableCellContent("%d pkt", analyzedIngress.Sum))
 						}

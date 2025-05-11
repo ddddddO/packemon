@@ -10,11 +10,11 @@ import (
 
 	"github.com/cilium/ebpf"
 	"github.com/ddddddO/packemon"
-	ec "github.com/ddddddO/packemon/egress_control"
 	"github.com/ddddddO/packemon/internal/debugging"
 	"github.com/ddddddO/packemon/internal/tui"
 	"github.com/ddddddO/packemon/internal/tui/generator"
 	"github.com/ddddddO/packemon/internal/tui/monitor"
+	tc "github.com/ddddddO/packemon/tc_program"
 	"github.com/vishvananda/netlink"
 )
 
@@ -66,7 +66,7 @@ func main() {
 	var ingressMap, egressMap *ebpf.Map
 	if wantSend {
 		// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
-		ebpfProg, qdiscEgress, err := ec.PrepareDropingRSTPacket(nwInterface)
+		ebpfProg, qdiscEgress, err := tc.PrepareDropingRSTPacket(nwInterface)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			// error出力するが、処理は進める
@@ -74,7 +74,7 @@ func main() {
 		}
 		var qdiscIngress *netlink.GenericQdisc
 		if ebpfProg != nil {
-			qdiscIngress, err = ec.PrepareAnalyzingIngressPackets(nwInterface, ebpfProg.ControlIngress)
+			qdiscIngress, err = tc.PrepareAnalyzingIngressPackets(nwInterface, ebpfProg.ControlIngress)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				// error出力するが、処理は進める
@@ -84,7 +84,7 @@ func main() {
 			egressMap = ebpfProg.PktEgressCount
 		}
 		defer func() {
-			if err := ec.Close(ebpfProg, qdiscEgress, qdiscIngress); err != nil {
+			if err := tc.Close(ebpfProg, qdiscEgress, qdiscIngress); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 			}
 		}()

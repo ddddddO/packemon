@@ -1,4 +1,4 @@
-package egress_control
+package tc_program
 
 import (
 	"fmt"
@@ -11,19 +11,19 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-func PrepareDropingRSTPacket(nwInterface string) (*egress_packetObjects, *netlink.GenericQdisc, error) {
+func PrepareDropingRSTPacket(nwInterface string) (*tc_programObjects, *netlink.GenericQdisc, error) {
 	// Remove resource limits for kernels <5.11.
 	if err := rlimit.RemoveMemlock(); err != nil {
 		return nil, nil, fmt.Errorf("removing memlock: %w", err)
 	}
 
 	// Load the compiled eBPF ELF and load it into the kernel.
-	var objs egress_packetObjects
-	if err := loadEgress_packetObjects(&objs, nil); err != nil {
+	var objs tc_programObjects
+	if err := loadTc_programObjects(&objs, nil); err != nil {
 		return nil, nil, fmt.Errorf("loading eBPF objects: %w", err)
 	}
 
-	qdisc, err := attachFilterToEgress(nwInterface, objs.egress_packetPrograms.ControlEgress)
+	qdisc, err := attachFilterToEgress(nwInterface, objs.tc_programPrograms.ControlEgress)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to attach: %w", err)
 	}
@@ -55,7 +55,7 @@ func GetAnalyzedPackets(packetCount *ebpf.Map) (*AnalyzedPackets, error) {
 	return analyzed, err
 }
 
-func Close(ebpfProg *egress_packetObjects, qdisc1 *netlink.GenericQdisc, qdisc2 *netlink.GenericQdisc) error {
+func Close(ebpfProg *tc_programObjects, qdisc1 *netlink.GenericQdisc, qdisc2 *netlink.GenericQdisc) error {
 	if ebpfProg != nil {
 		ebpfProg.Close()
 	}

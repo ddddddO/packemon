@@ -76,13 +76,6 @@ struct {
     __uint(max_entries, 1);
 } pkt_egress_count SEC(".maps");
 
-struct {
-    __uint(type, BPF_MAP_TYPE_ARRAY); 
-    __type(key, __u32);
-    __type(value, __u64);
-    __uint(max_entries, 1);
-} arp_pkt_count SEC(".maps");
-
 // __sk_buff について
 // https://medium.com/@c0ngwang/understanding-struct-sk-buff-730cf847a722
 
@@ -96,9 +89,8 @@ int control_egress(struct __sk_buff *skb)
     struct ipv6hdr *ip6h;
     struct tcphdr *tcph;
 
-    __u32 key    = 0; 
-    __u64 *egress_count = bpf_map_lookup_elem(&pkt_egress_count, &key);
-    __u64 *arp_count = bpf_map_lookup_elem(&arp_pkt_count, &key);
+    __u32 sum_count_key = 0; 
+    __u64 *egress_count = bpf_map_lookup_elem(&pkt_egress_count, &sum_count_key);
 
     // bpf_printk("proto: %x", skb->protocol);
     // bpf_printk("data: %x", skb->data);
@@ -133,9 +125,6 @@ int control_egress(struct __sk_buff *skb)
         bpf_printk("    %02x:%02x:%02x (first half)", eth->h_source[0], eth->h_source[1], eth->h_source[2]);
         bpf_printk("    %02x:%02x:%02x (second half)", eth->h_source[3], eth->h_source[4], eth->h_source[5]);
 
-        if (arp_count) { 
-            __sync_fetch_and_add(arp_count, 1); 
-        }
         return TC_ACT_OK;
     }
 
@@ -252,8 +241,8 @@ int control_ingress(struct __sk_buff *skb)
     struct ipv6hdr *ip6h;
     struct tcphdr *tcph;
 
-    __u32 key    = 0; 
-    __u64 *ingress_count = bpf_map_lookup_elem(&pkt_ingress_count, &key);
+    __u32 sum_count_key = 0;
+    __u64 *ingress_count = bpf_map_lookup_elem(&pkt_ingress_count, &sum_count_key);
 
     bpf_printk("");
     bpf_printk("-- ingress packet detail --");

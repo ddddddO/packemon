@@ -159,7 +159,9 @@ $ dpkg -i packemon.deb
 
 <b>rpm</b>
 $ export PACKEMON_VERSION=X.X.X
-$ yum install https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.rpm
+$ (Ubuntu) yum install https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.rpm
+or
+$ (Fedora) dnf install https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.rpm
 
 <b>apk</b>
 $ export PACKEMON_VERSION=X.X.X
@@ -172,6 +174,9 @@ $ apk add --allow-untrusted packemon.apk
   - Kernel: 5.15.167.4-microsoft-standard-WSL2
   - Architecture: x86_64
 - OS: Ubuntu 22.04.3 LTS on WSL2
+  - Kernel: 5.15.167.4-microsoft-standard-WSL2
+  - Architecture: x86_64
+- OS: Fedora Linux 42 on WSL2
   - Kernel: 5.15.167.4-microsoft-standard-WSL2
   - Architecture: x86_64
 

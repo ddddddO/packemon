@@ -8,12 +8,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/cilium/ebpf"
 	"github.com/ddddddO/packemon"
 	ec "github.com/ddddddO/packemon/egress_control"
 	"github.com/ddddddO/packemon/internal/debugging"
 	"github.com/ddddddO/packemon/internal/tui"
 	"github.com/ddddddO/packemon/internal/tui/generator"
 	"github.com/ddddddO/packemon/internal/tui/monitor"
+	"github.com/vishvananda/netlink"
 )
 
 const DEFAULT_TARGET_NW_INTERFACE = "eth0"
@@ -61,16 +63,28 @@ func main() {
 
 	flag.Parse()
 
+	var ingressMap, egressMap *ebpf.Map
 	if wantSend {
 		// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
-		ebpfProg, qdisc, err := ec.PrepareDropingRSTPacket(nwInterface)
+		ebpfProg, qdiscEgress, err := ec.PrepareDropingRSTPacket(nwInterface)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			// error出力するが、処理は進める
 			// os.Exit(1)
 		}
+		var qdiscIngress *netlink.GenericQdisc
+		if ebpfProg != nil {
+			qdiscIngress, err = ec.PrepareAnalyzingIngressPackets(nwInterface, ebpfProg.ControlIngress)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				// error出力するが、処理は進める
+				// os.Exit(1)
+			}
+			ingressMap = ebpfProg.PktIngressCount
+			egressMap = ebpfProg.PktEgressCount
+		}
 		defer func() {
-			if err := ec.Close(ebpfProg, qdisc); err != nil {
+			if err := ec.Close(ebpfProg, qdiscEgress, qdiscIngress); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 			}
 		}()
@@ -86,13 +100,13 @@ func main() {
 		}
 	}
 
-	if err := run(ctx, columns, nwInterface, wantSend, debug, protocol); err != nil {
+	if err := run(ctx, columns, nwInterface, wantSend, debug, protocol, ingressMap, egressMap); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
 }
 
-func run(ctx context.Context, columns string, nwInterface string, wantSend bool, debug bool, protocol string) error {
+func run(ctx context.Context, columns string, nwInterface string, wantSend bool, debug bool, protocol string, ingressMap *ebpf.Map, egressMap *ebpf.Map) error {
 	netIf, err := packemon.NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
@@ -149,7 +163,7 @@ func run(ctx context.Context, columns string, nwInterface string, wantSend bool,
 
 	var packemonTUI tui.TUI = monitor.New(netIf, columns)
 	if wantSend {
-		packemonTUI = generator.New(netIf)
+		packemonTUI = generator.New(netIf, ingressMap, egressMap)
 	}
 	return packemonTUI.Run(ctx)
 }

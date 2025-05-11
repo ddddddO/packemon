@@ -74,7 +74,7 @@ struct {
     __type(key, __u32);
     __type(value, __u64);
     __uint(max_entries, 1);
-} pkt_count SEC(".maps");
+} pkt_egress_count SEC(".maps");
 
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY); 
@@ -97,7 +97,7 @@ int control_egress(struct __sk_buff *skb)
     struct tcphdr *tcph;
 
     __u32 key    = 0; 
-    __u64 *count = bpf_map_lookup_elem(&pkt_count, &key);
+    __u64 *egress_count = bpf_map_lookup_elem(&pkt_egress_count, &key);
     __u64 *arp_count = bpf_map_lookup_elem(&arp_pkt_count, &key);
 
     // bpf_printk("proto: %x", skb->protocol);
@@ -107,8 +107,8 @@ int control_egress(struct __sk_buff *skb)
     bpf_printk("");
     bpf_printk("-- egress packet detail --");
 
-    if (count) { 
-        __sync_fetch_and_add(count, 1); 
+    if (egress_count) { 
+        __sync_fetch_and_add(egress_count, 1); 
     }
 
     eth = data;
@@ -231,6 +231,42 @@ int control_egress(struct __sk_buff *skb)
 
         return TC_ACT_OK;
     }
+
+    return TC_ACT_OK;
+}
+
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY); 
+    __type(key, __u32);
+    __type(value, __u64);
+    __uint(max_entries, 1);
+} pkt_ingress_count SEC(".maps");
+
+SEC("tc")
+int control_ingress(struct __sk_buff *skb)
+{
+    void *data_end = (void *)(__u64)skb->data_end;
+    void *data = (void *)(__u64)skb->data;
+    struct ethhdr *eth;
+    struct iphdr *iph;
+    struct ipv6hdr *ip6h;
+    struct tcphdr *tcph;
+
+    __u32 key    = 0; 
+    __u64 *ingress_count = bpf_map_lookup_elem(&pkt_ingress_count, &key);
+
+    bpf_printk("");
+    bpf_printk("-- ingress packet detail --");
+
+    if (ingress_count) { 
+        __sync_fetch_and_add(ingress_count, 1); 
+    }
+
+    // eth = data;
+    // if ((void *)(eth + 1) > data_end) {
+    //     bpf_printk("insufficient packet data - ethernet header");
+    //     return TC_ACT_OK;
+    // }
 
     return TC_ACT_OK;
 }

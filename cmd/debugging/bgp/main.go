@@ -25,7 +25,7 @@ func main() {
 		// os.Exit(1)
 	}
 	defer func() {
-		if err := ec.Close(ebpfProg, qdisc); err != nil {
+		if err := ec.Close(ebpfProg, qdisc, nil); err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
 	}()

@@ -3,13 +3,20 @@ package generator
 import (
 	"context"
 
+	"github.com/cilium/ebpf"
 	"github.com/ddddddO/packemon"
 	"github.com/ddddddO/packemon/internal/tui"
 	"github.com/rivo/tview"
 )
 
+type analyzer struct {
+	ingress *ebpf.Map
+	egress  *ebpf.Map
+}
+
 type generator struct {
 	networkInterface *packemon.NetworkInterface
+	analyzer         *analyzer
 	sendFn           func(*packemon.EthernetFrame) error
 
 	app *tview.Application
@@ -20,7 +27,7 @@ type generator struct {
 	sender *sender
 }
 
-func New(networkInterface *packemon.NetworkInterface) *generator {
+func New(networkInterface *packemon.NetworkInterface, ingressMap *ebpf.Map, egressMap *ebpf.Map) *generator {
 	pages := tview.NewPages()
 	grid := tview.NewGrid()
 	grid.Box = tview.NewBox().SetTitle(tui.TITLE_GENERATOR).SetBorder(true)
@@ -29,7 +36,11 @@ func New(networkInterface *packemon.NetworkInterface) *generator {
 
 	return &generator{
 		networkInterface: networkInterface,
-		sendFn:           networkInterface.Send,
+		analyzer: &analyzer{
+			ingress: ingressMap,
+			egress:  egressMap,
+		},
+		sendFn: networkInterface.Send,
 
 		app:   tview.NewApplication(),
 		grid:  grid,

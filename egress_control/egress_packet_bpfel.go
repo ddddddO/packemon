@@ -54,15 +54,17 @@ type egress_packetSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type egress_packetProgramSpecs struct {
-	ControlEgress *ebpf.ProgramSpec `ebpf:"control_egress"`
+	ControlEgress  *ebpf.ProgramSpec `ebpf:"control_egress"`
+	ControlIngress *ebpf.ProgramSpec `ebpf:"control_ingress"`
 }
 
 // egress_packetMapSpecs contains maps before they are loaded into the kernel.
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type egress_packetMapSpecs struct {
-	ArpPktCount *ebpf.MapSpec `ebpf:"arp_pkt_count"`
-	PktCount    *ebpf.MapSpec `ebpf:"pkt_count"`
+	ArpPktCount     *ebpf.MapSpec `ebpf:"arp_pkt_count"`
+	PktEgressCount  *ebpf.MapSpec `ebpf:"pkt_egress_count"`
+	PktIngressCount *ebpf.MapSpec `ebpf:"pkt_ingress_count"`
 }
 
 // egress_packetVariableSpecs contains global variables before they are loaded into the kernel.
@@ -91,14 +93,16 @@ func (o *egress_packetObjects) Close() error {
 //
 // It can be passed to loadEgress_packetObjects or ebpf.CollectionSpec.LoadAndAssign.
 type egress_packetMaps struct {
-	ArpPktCount *ebpf.Map `ebpf:"arp_pkt_count"`
-	PktCount    *ebpf.Map `ebpf:"pkt_count"`
+	ArpPktCount     *ebpf.Map `ebpf:"arp_pkt_count"`
+	PktEgressCount  *ebpf.Map `ebpf:"pkt_egress_count"`
+	PktIngressCount *ebpf.Map `ebpf:"pkt_ingress_count"`
 }
 
 func (m *egress_packetMaps) Close() error {
 	return _Egress_packetClose(
 		m.ArpPktCount,
-		m.PktCount,
+		m.PktEgressCount,
+		m.PktIngressCount,
 	)
 }
 
@@ -112,12 +116,14 @@ type egress_packetVariables struct {
 //
 // It can be passed to loadEgress_packetObjects or ebpf.CollectionSpec.LoadAndAssign.
 type egress_packetPrograms struct {
-	ControlEgress *ebpf.Program `ebpf:"control_egress"`
+	ControlEgress  *ebpf.Program `ebpf:"control_egress"`
+	ControlIngress *ebpf.Program `ebpf:"control_ingress"`
 }
 
 func (p *egress_packetPrograms) Close() error {
 	return _Egress_packetClose(
 		p.ControlEgress,
+		p.ControlIngress,
 	)
 }
 

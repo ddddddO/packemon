@@ -1,8 +1,9 @@
 package tc_program
 
 import (
+	"errors"
 	"fmt"
-	"net"
+	"io/fs"
 
 	"github.com/cilium/ebpf"
 	"github.com/cilium/ebpf/rlimit"
@@ -26,23 +27,49 @@ func InitializeTCProgram() (*tc_programObjects, error) {
 	return &objs, nil
 }
 
-func PrepareDropingRSTPacket(nwInterface string, objs *tc_programObjects) (*netlink.GenericQdisc, error) {
-	qdisc, err := attachFilterToEgress(nwInterface, objs.tc_programPrograms.ControlEgress)
+func AddClsactQdisc(attachTo string) (*netlink.GenericQdisc, error) {
+	iface, err := netlink.LinkByName(attachTo)
 	if err != nil {
-		return nil, fmt.Errorf("failed to attach: %w", err)
+		return nil, err
+	}
+
+	qdisc := &netlink.GenericQdisc{
+		QdiscAttrs: netlink.QdiscAttrs{
+			LinkIndex: iface.Attrs().Index,
+			Handle:    netlink.MakeHandle(0xffff, 0),
+			Parent:    netlink.HANDLE_CLSACT,
+		},
+		QdiscType: "clsact",
+	}
+
+	// ここはいい
+	// if err := netlink.QdiscDel(qdisc); err != nil && !errors.Is(err, fs.ErrNotExist) {
+	// 	return nil, fmt.Errorf("failed to QdiscDel: %w", err)
+	// }
+
+	if err := netlink.QdiscAdd(qdisc); err != nil {
+		return nil, fmt.Errorf("failed to QdiscAdd: %w", err)
 	}
 
 	return qdisc, nil
 }
 
-// TODO: loadEgress_packetObjects とかと分けた方が良さそうだけど一旦 PrepareDropingRSTPacket の実行を前提とする
-func PrepareAnalyzingIngressPackets(nwInterface string, objs *tc_programObjects) (*netlink.GenericQdisc, error) {
-	qdisc, err := attachFilterToIngress(nwInterface, objs.tc_programPrograms.ControlIngress)
+func PrepareDropingRSTPacket(nwInterface string, objs *tc_programObjects) (*netlink.BpfFilter, error) {
+	filter, err := attachFilterToEgress(nwInterface, objs.tc_programPrograms.ControlEgress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to attach: %w", err)
 	}
 
-	return qdisc, nil
+	return filter, nil
+}
+
+func PrepareAnalyzingIngressPackets(nwInterface string, objs *tc_programObjects) (*netlink.BpfFilter, error) {
+	filter, err := attachFilterToIngress(nwInterface, objs.tc_programPrograms.ControlIngress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to attach: %w", err)
+	}
+
+	return filter, nil
 }
 
 type AnalyzedPackets struct {
@@ -54,27 +81,35 @@ const (
 	SUM_COUNT_KEY = uint32(0)
 )
 
-func GetAnalyzedPackets(packetCount *ebpf.Map) (*AnalyzedPackets, error) {
-	if packetCount == nil {
-		return nil, fmt.Errorf("nil packetCount")
+func GetAnalyzedPackets(analysisMap *ebpf.Map) (*AnalyzedPackets, error) {
+	if analysisMap == nil {
+		return nil, fmt.Errorf("nil analysisMap")
 	}
 
 	analyzed := &AnalyzedPackets{}
-	err := packetCount.Lookup(SUM_COUNT_KEY, &analyzed.Sum)
+	err := analysisMap.Lookup(SUM_COUNT_KEY, &analyzed.Sum)
 	return analyzed, err
 }
 
-func Close(ebpfProg *tc_programObjects, qdiscs ...*netlink.GenericQdisc) error {
+// TODO: err即returnではなくすべての処理してからerr返すようにしたほうがいいかも
+func Close(ebpfProg *tc_programObjects, qdisc *netlink.GenericQdisc, filters ...*netlink.BpfFilter) error {
 	if ebpfProg != nil {
 		ebpfProg.Close()
 	}
 
-	for _, q := range qdiscs {
-		if q != nil {
-			// 以下で消しておかないと、再起動やtcコマンド使わない限り、RSTパケットがカーネルから送信されない状態になる
-			if err := netlink.QdiscDel(q); err != nil {
-				return fmt.Errorf("Failed to QdiscDel. Please PC reboot... Error: %s\n", err)
-			}
+	for i, f := range filters {
+		if f == nil {
+			continue
+		}
+		if err := netlink.FilterDel(f); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("Failed to FilterDel (%d). Please PC reboot... Error: %s\n", i, err)
+		}
+	}
+
+	if qdisc != nil {
+		// 以下で消しておかないと、再起動やtcコマンド使わない限り、RSTパケットがカーネルから送信されない状態になる
+		if err := netlink.QdiscDel(qdisc); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("Failed to QdiscDel. Please PC reboot... Error: %s\n", err)
 		}
 	}
 
@@ -82,80 +117,62 @@ func Close(ebpfProg *tc_programObjects, qdiscs ...*netlink.GenericQdisc) error {
 }
 
 // https://github.com/fedepaol/tc-return/blob/main/main.go
-func attachFilterToEgress(attachTo string, program *ebpf.Program) (*netlink.GenericQdisc, error) {
-	devID, err := net.InterfaceByName(attachTo)
+func attachFilterToEgress(attachTo string, program *ebpf.Program) (*netlink.BpfFilter, error) {
+	iface, err := netlink.LinkByName(attachTo)
 	if err != nil {
-		return nil, fmt.Errorf("could not get interface ID: %w", err)
-	}
-
-	qdisc := &netlink.GenericQdisc{
-		QdiscAttrs: netlink.QdiscAttrs{
-			LinkIndex: devID.Index,
-			Handle:    netlink.MakeHandle(0xffff, 0),
-			Parent:    netlink.HANDLE_CLSACT,
-		},
-		QdiscType: "clsact",
-	}
-
-	err = netlink.QdiscReplace(qdisc)
-	if err != nil {
-		return nil, fmt.Errorf("could not get replace qdisc: %w", err)
+		return nil, err
 	}
 
 	filter := &netlink.BpfFilter{
 		FilterAttrs: netlink.FilterAttrs{
-			LinkIndex: devID.Index,
+			LinkIndex: iface.Attrs().Index,
 			Parent:    netlink.HANDLE_MIN_EGRESS,
-			Handle:    1,
+			Handle:    netlink.MakeHandle(0, 1),
 			Protocol:  unix.ETH_P_ALL,
+			Priority:  1,
 		},
 		Fd:           program.FD(),
 		Name:         program.String(),
 		DirectAction: true,
 	}
 
-	if err := netlink.FilterReplace(filter); err != nil {
-		return nil, fmt.Errorf("failed to replace tc filter: %w", err)
+	if err := netlink.FilterDel(filter); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, fmt.Errorf("failed to FilterDel: %w", err)
 	}
 
-	return qdisc, nil
+	if err := netlink.FilterAdd(filter); err != nil {
+		return nil, fmt.Errorf("failed to FilterAdd: %w", err)
+	}
+
+	return filter, nil
 }
 
-func attachFilterToIngress(attachTo string, program *ebpf.Program) (*netlink.GenericQdisc, error) {
-	devID, err := net.InterfaceByName(attachTo)
+func attachFilterToIngress(attachTo string, program *ebpf.Program) (*netlink.BpfFilter, error) {
+	iface, err := netlink.LinkByName(attachTo)
 	if err != nil {
-		return nil, fmt.Errorf("could not get interface ID: %w", err)
-	}
-
-	qdisc := &netlink.GenericQdisc{
-		QdiscAttrs: netlink.QdiscAttrs{
-			LinkIndex: devID.Index,
-			Handle:    netlink.MakeHandle(0xffff, 0),
-			Parent:    netlink.HANDLE_INGRESS,
-		},
-		QdiscType: "clsact",
-	}
-
-	err = netlink.QdiscReplace(qdisc)
-	if err != nil {
-		return nil, fmt.Errorf("could not get replace qdisc: %w", err)
+		return nil, err
 	}
 
 	filter := &netlink.BpfFilter{
 		FilterAttrs: netlink.FilterAttrs{
-			LinkIndex: devID.Index,
+			LinkIndex: iface.Attrs().Index,
 			Parent:    netlink.HANDLE_MIN_INGRESS,
-			Handle:    1,
+			Handle:    netlink.MakeHandle(0, 2),
 			Protocol:  unix.ETH_P_ALL,
+			Priority:  1,
 		},
 		Fd:           program.FD(),
 		Name:         program.String(),
 		DirectAction: true,
 	}
 
-	if err := netlink.FilterReplace(filter); err != nil {
-		return nil, fmt.Errorf("failed to replace tc filter: %w", err)
+	if err := netlink.FilterDel(filter); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, fmt.Errorf("failed to FilterDel: %w", err)
 	}
 
-	return qdisc, nil
+	if err := netlink.FilterAdd(filter); err != nil {
+		return nil, fmt.Errorf("failed to FilterAdd: %w", err)
+	}
+
+	return filter, nil
 }

@@ -70,24 +70,32 @@ func main() {
 			fmt.Fprintln(os.Stderr, err)
 		}
 
-		// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
-		qdiscEgress, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
-		if err != nil {
-			// error出力するが、処理は進める
-			fmt.Fprintln(os.Stderr, err)
-		}
-		qdiscIngress, err := tc.PrepareAnalyzingIngressPackets(nwInterface, ebpfObjs)
-		if err != nil {
-			// error出力するが、処理は進める
-			fmt.Fprintln(os.Stderr, err)
-		}
-		ingressMap = ebpfObjs.PktIngressCount
-		egressMap = ebpfObjs.PktEgressCount
-		defer func() {
-			if err := tc.Close(ebpfObjs, qdiscEgress, qdiscIngress); err != nil {
+		if ebpfObjs != nil {
+			qdisc, err := tc.AddClsactQdisc(nwInterface)
+			if err != nil {
+				// error出力するが、処理は進める
 				fmt.Fprintln(os.Stderr, err)
 			}
-		}()
+
+			// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
+			filterEgress, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
+			if err != nil {
+				// error出力するが、処理は進める
+				fmt.Fprintln(os.Stderr, err)
+			}
+			filterIngress, err := tc.PrepareAnalyzingIngressPackets(nwInterface, ebpfObjs)
+			if err != nil {
+				// error出力するが、処理は進める
+				fmt.Fprintln(os.Stderr, err)
+			}
+			ingressMap = ebpfObjs.PktIngressCount
+			egressMap = ebpfObjs.PktEgressCount
+			defer func() {
+				if err := tc.Close(ebpfObjs, qdisc, filterEgress, filterIngress); err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				}
+			}()
+		}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

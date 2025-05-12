@@ -9,11 +9,6 @@ import (
 	"github.com/rivo/tview"
 )
 
-type analyzer struct {
-	ingress *ebpf.Map
-	egress  *ebpf.Map
-}
-
 type generator struct {
 	networkInterface *packemon.NetworkInterface
 	analyzer         *analyzer

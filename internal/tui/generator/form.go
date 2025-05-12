@@ -9,7 +9,6 @@ import (
 
 	"github.com/ddddddO/packemon"
 	"github.com/ddddddO/packemon/internal/tui"
-	tc "github.com/ddddddO/packemon/tc_program"
 	"github.com/rivo/tview"
 )
 
@@ -209,27 +208,31 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 			end = 2 + i
 		}
 
+		renderAnalysis := func() {
+			position := end + 1
+
+			interfaceTable.SetCell(position, 0, tui.TableCellTitle("TX"))
+			analysisEgress, err := g.analyzer.AnalysisEgress()
+			if err == nil {
+				interfaceTable.SetCell(position, 1, tui.TableCellContent("%d pkt", analysisEgress.Sum))
+			}
+
+			position++
+
+			interfaceTable.SetCell(position, 0, tui.TableCellTitle("RX"))
+			analysisIngress, err := g.analyzer.AnalysisIngress()
+			if err == nil {
+				interfaceTable.SetCell(position, 1, tui.TableCellContent("%d pkt", analysisIngress.Sum))
+			}
+		}
+		renderAnalysis()
+
 		ticker := time.NewTicker(1 * time.Second)
 		go func(ctx context.Context) {
 			for {
 				select {
 				case <-ticker.C:
-					g.app.QueueUpdateDraw(func() {
-						position := end + 1
-
-						interfaceTable.SetCell(position, 0, tui.TableCellTitle("TX"))
-						analyzedEgress, err := tc.GetAnalyzedPackets(g.analyzer.egress)
-						if err == nil {
-							interfaceTable.SetCell(position, 1, tui.TableCellContent("%d pkt", analyzedEgress.Sum))
-						}
-
-						position++
-						interfaceTable.SetCell(position, 0, tui.TableCellTitle("RX"))
-						analyzedIngress, err := tc.GetAnalyzedPackets(g.analyzer.ingress)
-						if err == nil {
-							interfaceTable.SetCell(position, 1, tui.TableCellContent("%d pkt", analyzedIngress.Sum))
-						}
-					})
+					g.app.QueueUpdateDraw(renderAnalysis)
 				case <-ctx.Done():
 					return
 				}

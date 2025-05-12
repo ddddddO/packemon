@@ -46,18 +46,27 @@ func main() {
 			// error出力するが、処理は進める
 			fmt.Fprintln(os.Stderr, err)
 		}
-		// Generator で3way handshake する際に、カーネルが自動でRSTパケットを送ってたため、ドロップするため
-		qdisc, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			// error出力するが、処理は進める
-			// os.Exit(1)
-		}
-		defer func() {
-			if err := tc.Close(ebpfObjs, qdisc, nil); err != nil {
+
+		if ebpfObjs != nil {
+			qdisc, err := tc.AddClsactQdisc(nwInterface)
+			if err != nil {
+				// error出力するが、処理は進める
 				fmt.Fprintln(os.Stderr, err)
 			}
-		}()
+
+			// Generator で3way handshake する際に、カーネルが自動でRSTパケットを送ってたため、ドロップするため
+			filterEgress, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				// error出力するが、処理は進める
+				// os.Exit(1)
+			}
+			defer func() {
+				if err := tc.Close(ebpfObjs, qdisc, filterEgress); err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				}
+			}()
+		}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

@@ -22,18 +22,27 @@ func main() {
 		// error出力するが、処理は進める
 		fmt.Fprintln(os.Stderr, err)
 	}
-	// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
-	qdisc, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		// error出力するが、処理は進める
-		// os.Exit(1)
-	}
-	defer func() {
-		if err := tc.Close(ebpfObjs, qdisc, nil); err != nil {
+
+	if ebpfObjs != nil {
+		qdisc, err := tc.AddClsactQdisc(nwInterface)
+		if err != nil {
+			// error出力するが、処理は進める
 			fmt.Fprintln(os.Stderr, err)
 		}
-	}()
+
+		// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
+		filterEgress, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			// error出力するが、処理は進める
+			// os.Exit(1)
+		}
+		defer func() {
+			if err := tc.Close(ebpfObjs, qdisc, filterEgress); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
+		}()
+	}
 
 	netIf, err := packemon.NewNetworkInterface(nwInterface)
 	if err != nil {

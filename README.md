@@ -332,7 +332,7 @@ The following procedure is an example of how you can expose packemon-api to the 
 - [Scapy](https://github.com/secdev/scapy)
 - [google/gopacket](https://github.com/google/gopacket) / [gopacket/gopacket](https://github.com/gopacket/gopacket) (maintained)
 
-## Acknowledgment
+## Acknowledgments
 - [rivo/tview](https://github.com/rivo/tview)
   - Packemon is using this TUI library.
 

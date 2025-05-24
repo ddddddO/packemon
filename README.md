@@ -154,6 +154,9 @@ $ mv packemon /usr/local/bin/
 </pre>
 
 ### Package manager
+> [!IMPORTANT] 
+> It might be that the generation of the executable file is failing. At that time, install it in another way! 
+
 For arm64, convert “amd64” to “arm64” in the following commands and execute them.
 
 <pre>
@@ -172,10 +175,10 @@ $ (Fedora) dnf install https://github.com/ddddddO/packemon/releases/download/v$P
 $ export PACKEMON_VERSION=X.X.X
 $ curl -o packemon.apk -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.apk
 $ apk add --allow-untrusted packemon.apk
-</pre>
 
-<b>Homebrew</b>
+<b>[WIP...] Homebrew</b>
 $ brew install ddddddO/tap/packemon
+</pre>
 
 #### Confirmed executable in the following environments
 - OS: Debian GNU/Linux 12 (bookworm) on WSL2

@@ -30,6 +30,9 @@ archives:
     files:
       - LICENSE
       - CREDITS
+checksum:
+  name_template: "{{ .ProjectName }}-{{ .Version }}-darwin.txt"
+
 release:
   prerelease: auto
 brews:

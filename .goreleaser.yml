@@ -20,20 +20,6 @@ builds:
       - arm64
     env:
       - CGO_ENABLED=0
-  - id: packemon-darwin
-    main: ./cmd/packemon
-    binary: packemon
-    ldflags:
-      - -s -w
-      - -X main.Version={{.Version}}
-      - -X main.Revision={{.ShortCommit}}
-    goos:
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-    # env:
-    #   - CGO_ENABLED=0
   - id: packemon-api-linux
     main: ./cmd/packemon-api
     binary: packemon-api
@@ -60,15 +46,6 @@ archives:
       - CREDITS
 release:
   prerelease: auto
-brews:
-  - repository:
-      owner: ddddddO
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    directory: Formula
-    homepage: 'https://github.com/ddddddO/packemon'
-    description: "Packet monster, or Packémon for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ). TUI tool for sending packets of arbitrary input and monitoring packets on any network interfaces (default: eth0)."
-    license: "BSD-2-Clause"
 # scoops:
 #   - repository:
 #       owner: ddddddO

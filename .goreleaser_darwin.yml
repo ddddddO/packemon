@@ -36,7 +36,7 @@ brews:
   - repository:
       owner: ddddddO
       name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN_FOR_PACKEMON }}"
     directory: Formula
     homepage: 'https://github.com/ddddddO/packemon'
     description: "Packet monster, or Packémon for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ). TUI tool for sending packets of arbitrary input and monitoring packets on any network interfaces (default: eth0)."

@@ -145,7 +145,6 @@ The rightmost image shows how the packet list is filtered.
 ### Source build
 > [!IMPORTANT] 
 > For Linux, clone this repository and require 'Dependencies' section of https://ebpf-go.dev/guides/getting-started/#ebpf-c-program
-> For macOS, require 'libpcap'.
 
 <pre>
 (For Linux)
@@ -179,7 +178,7 @@ $ export PACKEMON_VERSION=X.X.X
 $ curl -o packemon.apk -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_amd64.apk
 $ apk add --allow-untrusted packemon.apk
 
-<b>[WIP...] Homebrew</b>
+<b>Homebrew</b>
 $ brew install ddddddO/tap/packemon
 </pre>
 
@@ -207,8 +206,6 @@ $ brew install ddddddO/tap/packemon
 
 ### Go install
 For macOS, besides Homebrew, this is also easy.
-> [!IMPORTANT] 
-> For macOS, require 'libpcap'. 
 
 <pre>
 $ go install github.com/ddddddO/packemon/cmd/packemon@latest

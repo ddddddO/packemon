@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// TODO: 取れない場合がある
 func GetDefaultRouteMAC() (string, error) {
 	// TODO: せっかくだし出来ればpackamonのNewNetworkInterface, ARP 使ってmacアドレス取得したい。送信前に受信するとこを起動してARPのみ取得するようにする必要がある
 	// nwi, err := NewNetworkInterface(senderNWInterface)

@@ -8,7 +8,10 @@ Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'�
 <!-- https://github.com/user-attachments/assets/dbb0baeb-a0b8-4e18-8647-ac05020f83d5 -->
 https://github.com/user-attachments/assets/69dc501d-8ffd-484a-90e2-dffa0fab373e
 
-TUI tool for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows and macOS. I have confirmed that it works on Linux (Debian and Ubuntu on WSL2) .**<br>
+TUI tool for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows. I have confirmed that it works on Linux (Debian and Ubuntu on WSL2) and macOS.**<br>
+
+
+This TUI tool is now available on macOS because of **[cluster2600](https://github.com/cluster2600)** support. Thanks🎉!
 
 I intend to develop it patiently🌴
 

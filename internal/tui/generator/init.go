@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/ddddddO/packemon"
@@ -12,6 +13,8 @@ func init() {
 	defaultRouteMAC, err := packemon.GetDefaultRouteMAC()
 	if err == nil {
 		DEFAULT_MAC_DESTINATION = fmt.Sprintf("0x%s", strings.ReplaceAll(defaultRouteMAC, ":", ""))
+	} else {
+		fmt.Fprintf(os.Stderr, "failed to GetDefaultRouteMAC: %s\n", err)
 	}
 
 	DEFAULT_ARP_TARGET_IP = "192.168.10.110"

@@ -127,16 +127,30 @@ func run(ctx context.Context, columns string, nwInterface string, wantSend bool,
 	generator.DEFAULT_MAC_SOURCE = fmt.Sprintf("0x%s", strings.ReplaceAll(netIf.Intf.HardwareAddr.String(), ":", ""))
 	generator.DEFAULT_ARP_SENDER_MAC = generator.DEFAULT_MAC_SOURCE
 
-	ipAddr, err := netIf.Intf.Addrs()
+	ipAddrs, err := netIf.Intf.Addrs()
 	if err != nil {
 		return err
 	}
-	if len(ipAddr) > 0 {
-		generator.DEFAULT_IP_SOURCE = strings.Split(ipAddr[0].String(), "/")[0]
-		generator.DEFAULT_ARP_SENDER_IP = generator.DEFAULT_IP_SOURCE
-	}
-	if len(ipAddr) > 1 {
-		generator.DEFAULT_IPv6_SOURCE = strings.Split(ipAddr[1].String(), "/")[0]
+
+	// TODO: ちょっとここちゃんとした方が良さそう
+	for _, ipAddr := range ipAddrs {
+		// ipv6
+		if strings.Contains(ipAddr.String(), ":") {
+			if len(generator.DEFAULT_IPv6_SOURCE) == 0 {
+				// 一旦、最初に見つかったipv6アドレスを設定する
+				generator.DEFAULT_IPv6_SOURCE = strings.Split(ipAddr.String(), "/")[0]
+				continue
+			}
+			continue
+		}
+
+		// ipv4
+		if len(generator.DEFAULT_IP_SOURCE) == 0 {
+			// 一旦、最初に見つかったipv4アドレスを設定する
+			generator.DEFAULT_IP_SOURCE = strings.Split(ipAddr.String(), "/")[0]
+			generator.DEFAULT_ARP_SENDER_IP = generator.DEFAULT_IP_SOURCE
+			continue
+		}
 	}
 
 	if debug {

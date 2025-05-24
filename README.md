@@ -145,9 +145,12 @@ The rightmost image shows how the packet list is filtered.
 ### Source build
 > [!IMPORTANT] 
 > For Linux, clone this repository and require 'Dependencies' section of https://ebpf-go.dev/guides/getting-started/#ebpf-c-program
+> For macOS, require 'libpcap'.
 
 <pre>
+(For Linux)
 $ cd tc_program/ && go generate && cd -
+and,
 $ go build -o packemon cmd/packemon/*.go
 $ ls | grep packemon
 $ mv packemon /usr/local/bin/
@@ -204,6 +207,8 @@ $ brew install ddddddO/tap/packemon
 
 ### Go install
 For macOS, besides Homebrew, this is also easy.
+> [!IMPORTANT] 
+> For macOS, require 'libpcap'. 
 
 <pre>
 $ go install github.com/ddddddO/packemon/cmd/packemon@latest

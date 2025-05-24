@@ -122,3 +122,8 @@ func sumByteArr(packet []byte) (sum uint) {
 	}
 	return sum
 }
+
+// host to network. ホストマシンのメモリ上のバイトオーダー(CPUにより異なる. Intel系のCPUはリトルエンディアン)からネットワークへ送信するバイトオーダー(ビッグエンディアン)へ変換するための関数
+func hton(i uint16) uint16 {
+	return (i<<8)&0xff00 | i>>8
+}

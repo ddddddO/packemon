@@ -8,7 +8,10 @@ Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'�
 <!-- https://github.com/user-attachments/assets/dbb0baeb-a0b8-4e18-8647-ac05020f83d5 -->
 https://github.com/user-attachments/assets/69dc501d-8ffd-484a-90e2-dffa0fab373e
 
-TUI tool for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows and macOS. I have confirmed that it works on Linux (Debian and Ubuntu on WSL2) .**<br>
+TUI tool for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). **This tool is not available for Windows. I have confirmed that it works on Linux (Debian and Ubuntu on WSL2) and macOS.**<br>
+
+
+This TUI tool is now available on macOS because of **[cluster2600](https://github.com/cluster2600)** support. Thanks🎉!
 
 I intend to develop it patiently🌴
 
@@ -141,7 +144,7 @@ The rightmost image shows how the packet list is filtered.
 
 ### Source build
 > [!IMPORTANT] 
-> Clone this repository and require 'Dependencies' section of https://ebpf-go.dev/guides/getting-started/#ebpf-c-program
+> For Linux, clone this repository and require 'Dependencies' section of https://ebpf-go.dev/guides/getting-started/#ebpf-c-program
 
 <pre>
 $ cd tc_program/ && go generate && cd -
@@ -150,7 +153,9 @@ $ ls | grep packemon
 $ mv packemon /usr/local/bin/
 </pre>
 
-### AMD64
+### Package manager
+For arm64, convert “amd64” to “arm64” in the following commands and execute them.
+
 <pre>
 <b>deb</b>
 $ export PACKEMON_VERSION=X.X.X
@@ -169,6 +174,9 @@ $ curl -o packemon.apk -L https://github.com/ddddddO/packemon/releases/download/
 $ apk add --allow-untrusted packemon.apk
 </pre>
 
+<b>Homebrew</b>
+$ brew install ddddddO/tap/packemon
+
 #### Confirmed executable in the following environments
 - OS: Debian GNU/Linux 12 (bookworm) on WSL2
   - Kernel: 5.15.167.4-microsoft-standard-WSL2
@@ -179,25 +187,6 @@ $ apk add --allow-untrusted packemon.apk
 - OS: Fedora Linux 42 on WSL2
   - Kernel: 5.15.167.4-microsoft-standard-WSL2
   - Architecture: x86_64
-
-### ARM64
-<pre>
-<b>deb</b>
-$ export PACKEMON_VERSION=X.X.X
-$ curl -o packemon.deb -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_arm64.deb
-$ dpkg -i packemon.deb
-
-<b>rpm</b>
-$ export PACKEMON_VERSION=X.X.X
-$ yum install https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_arm64.rpm
-
-<b>apk</b>
-$ export PACKEMON_VERSION=X.X.X
-$ curl -o packemon.apk -L https://github.com/ddddddO/packemon/releases/download/v$PACKEMON_VERSION/packemon_$PACKEMON_VERSION-1_arm64.apk
-$ apk add --allow-untrusted packemon.apk
-</pre>
-
-#### Confirmed executable in the following environments
 - OS: Debian GNU/Linux 12 (bookworm) on Google Pixel 7a
   - Kernel: 6.1.0-34-arm64
   - Architecture: aarch64
@@ -211,6 +200,8 @@ $ apk add --allow-untrusted packemon.apk
 </details>
 
 ### Go install
+For macOS, besides Homebrew, this is also easy.
+
 <pre>
 $ go install github.com/ddddddO/packemon/cmd/packemon@latest
 </pre>

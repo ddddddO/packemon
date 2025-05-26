@@ -13,6 +13,34 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func NewInterfaceDevices() (InterfaceDevices, error) {
+	ids := []*InterfaceDevice{}
+
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+	for _, intf := range interfaces {
+		ipAddrs, err := intf.Addrs()
+		if err != nil {
+			return nil, err
+		}
+		addrs := make([]string, len(ipAddrs))
+		for i, addr := range ipAddrs {
+			addrs[i] = strings.Split(addr.String(), "/")[0]
+		}
+
+		id := &InterfaceDevice{
+			InterfaceName: intf.Name,
+			MacAddr:       intf.HardwareAddr.String(),
+			IPAddrs:       addrs,
+		}
+		ids = append(ids, id)
+	}
+
+	return ids, nil
+}
+
 type NetworkInterface struct {
 	Intf       *net.Interface
 	Socket     int // file discripter

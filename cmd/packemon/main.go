@@ -49,8 +49,11 @@ func main() {
 		fmt.Fprintln(os.Stderr, METAMON)
 	}
 
+	// TODO: そろそろサブコマンド化したい
 	var nwInterface string
 	flag.StringVar(&nwInterface, "interface", DEFAULT_TARGET_NW_INTERFACE, "Specify name of network interface to be sent/received. Default is 'eth0'.")
+	var wantInterfaces bool
+	flag.BoolVar(&wantInterfaces, "interfaces", false, "Check the list of interfaces.")
 	var columns string
 	flag.StringVar(&columns, "columns", DEFAULT_MONITOR_COLUMNS, fmt.Sprintf("Specify columns to be displayed in monitor mode. Default is '%s' .", DEFAULT_MONITOR_COLUMNS))
 	var wantSend bool
@@ -61,6 +64,13 @@ func main() {
 	flag.StringVar(&protocol, "proto", "", "Specify either 'arp', 'icmp', 'tcp', 'dns' or 'http'.")
 
 	flag.Parse()
+
+	if wantInterfaces {
+		if err := showInterfaces(); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		return
+	}
 
 	var ingressMap, egressMap *ebpf.Map
 	if wantSend {
@@ -112,6 +122,32 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
+}
+
+// TODO: テーブル形式で出力してくれるライブラリ使ってもいいかも
+func showInterfaces() error {
+	interfaceDevices, err := packemon.NewInterfaceDevices()
+	if err != nil {
+		return fmt.Errorf("failed to NewInterfaceDevices: %w", err)
+	}
+
+	splitter := func() {
+		fmt.Println("--------------------------------------")
+	}
+	for _, interfaceDevice := range interfaceDevices {
+		splitter()
+		fmt.Printf("Interface name : %s\n", interfaceDevice.InterfaceName)
+		fmt.Printf("Device name    : %s\n", interfaceDevice.DeviceName)
+		fmt.Printf("Description    : %s\n", interfaceDevice.Description)
+		fmt.Printf("MAC address    : %s\n", interfaceDevice.MacAddr)
+
+		fmt.Printf("IP address     : \n")
+		for _, ipAddr := range interfaceDevice.IPAddrs {
+			fmt.Printf("\t%s\n", ipAddr)
+		}
+	}
+
+	return nil
 }
 
 func run(ctx context.Context, columns string, nwInterface string, wantSend bool, debug bool, protocol string, ingressMap *ebpf.Map, egressMap *ebpf.Map) error {

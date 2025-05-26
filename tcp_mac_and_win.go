@@ -1,5 +1,5 @@
-//go:build darwin
-// +build darwin
+//go:build darwin || windows
+// +build darwin windows
 
 // TODO: linux の方のコードとなるべく共通化
 package packemon

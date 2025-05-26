@@ -5,6 +5,17 @@ import (
 	"encoding/binary"
 )
 
+// net.Interfaces と pcap.FindAllDevs で取れる情報. Windows だとNameが違う
+type InterfaceDevice struct {
+	InterfaceName string
+	DeviceName    string
+	Description   string
+	MacAddr       string
+	IPAddrs       []string
+}
+
+type InterfaceDevices []*InterfaceDevice
+
 func NewNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 	return newNetworkInterface(nwInterface)
 }

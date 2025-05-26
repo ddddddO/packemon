@@ -1,5 +1,5 @@
-//go:build darwin
-// +build darwin
+//go:build darwin || windows
+// +build darwin windows
 
 package packemon
 
@@ -9,12 +9,83 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"runtime"
 	"strings"
 
 	"github.com/gopacket/gopacket"
 	"github.com/gopacket/gopacket/layers"
 	"github.com/gopacket/gopacket/pcap"
 )
+
+// darwinとwindowsはpcapパッケージを使うので、それぞれlibpcap/Npcapが必要
+// linux はpcapパッケージに依存しないでいいから、NewInterfaceDevices関数は別々で定義している
+func NewInterfaceDevices() (InterfaceDevices, error) {
+	ids := []*InterfaceDevice{}
+
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+	for _, intf := range interfaces {
+		ipAddrs, err := intf.Addrs()
+		if err != nil {
+			return nil, err
+		}
+		addrs := make([]string, len(ipAddrs))
+		for i, addr := range ipAddrs {
+			addrs[i] = strings.Split(addr.String(), "/")[0]
+		}
+
+		id := &InterfaceDevice{
+			InterfaceName: intf.Name,
+			MacAddr:       intf.HardwareAddr.String(),
+			IPAddrs:       addrs,
+		}
+		ids = append(ids, id)
+	}
+
+	devices, err := pcap.FindAllDevs()
+	if err != nil {
+		return nil, err
+	}
+	for _, dev := range devices {
+		// IPアドレスでマッチかける
+		for _, id := range ids {
+			isMatched := false
+			for _, ipOfInterface := range id.IPAddrs {
+				for _, ipOfDevice := range dev.Addresses {
+					if ipOfInterface == ipOfDevice.IP.String() {
+						isMatched = true
+						break
+					}
+				}
+				if isMatched {
+					break
+				}
+			}
+			if isMatched {
+				id.DeviceName = dev.Name
+				id.Description = dev.Description
+				break
+			}
+		}
+	}
+
+	return ids, nil
+}
+
+func (ids InterfaceDevices) getInterfaceDeviceByName(name string) *InterfaceDevice {
+	for _, id := range ids {
+		if id.InterfaceName == name {
+			return id
+		}
+		if id.DeviceName == name {
+			return id
+		}
+	}
+
+	return nil
+}
 
 type NetworkInterface struct {
 	Intf     *net.Interface
@@ -27,7 +98,29 @@ type NetworkInterface struct {
 }
 
 func newNetworkInterface(nwInterface string) (*NetworkInterface, error) {
-	intf, err := getInterface(nwInterface)
+	interfaceDevices, err := NewInterfaceDevices()
+	if err != nil {
+		return nil, err
+	}
+
+	intfDev := interfaceDevices.getInterfaceDeviceByName(nwInterface)
+	if intfDev == nil {
+		return nil, fmt.Errorf("not found interface")
+	}
+
+	deviceName := intfDev.InterfaceName
+	if runtime.GOOS == "windows" {
+		deviceName = intfDev.DeviceName
+	}
+
+	handle, err := pcap.OpenLive(deviceName, 65536, true, pcap.BlockForever)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open pcap handle: %v", err)
+	}
+
+	// TODO: 以降からちょっと冗長な感じ
+
+	intf, err := getInterface(intfDev.InterfaceName)
 	if err != nil {
 		return nil, err
 	}
@@ -54,11 +147,6 @@ func newNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 
 	if ipAddr == 0 && ipv6Addr == nil {
 		return nil, errors.New("no IP address found for interface")
-	}
-
-	handle, err := pcap.OpenLive(intf.Name, 65536, true, pcap.BlockForever)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open pcap handle: %v", err)
 	}
 
 	nwif := &NetworkInterface{

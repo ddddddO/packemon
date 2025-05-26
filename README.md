@@ -6,7 +6,8 @@ Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'�
 
 <!-- ![](./assets/packemon.gif) -->
 <!-- https://github.com/user-attachments/assets/dbb0baeb-a0b8-4e18-8647-ac05020f83d5 -->
-https://github.com/user-attachments/assets/69dc501d-8ffd-484a-90e2-dffa0fab373e
+<!-- https://github.com/user-attachments/assets/69dc501d-8ffd-484a-90e2-dffa0fab373e -->
+https://github.com/user-attachments/assets/08f96575-7aca-47e7-bdeb-6705ce2bbaba
 
 TUI tool for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). The list of interfaces to be specified is output when `packemon --interfaces` is run.<br>
 **This tool works on Windows, macOS, and Linux.**<br>

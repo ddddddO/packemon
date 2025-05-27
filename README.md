@@ -145,10 +145,14 @@ The rightmost image shows how the packet list is filtered.
 
 ### Source build
 > [!IMPORTANT] 
-> For Linux, clone this repository and require 'Dependencies' section of https://ebpf-go.dev/guides/getting-started/#ebpf-c-program</br>
-> For Windows, require [Npcap](https://npcap.com/).
+> For Linux, require 'Dependencies' section of https://ebpf-go.dev/guides/getting-started/#ebpf-c-program</br>
+> For Windows, require [Npcap](https://npcap.com/). Check the following</br>
+>   - `Support raw 802.11 traffic (and monitor mode) for wireless adapters`
+>   - `Install Npcap in WinPcap API-compatible Mode`
 
 <pre>
+$ git clone git@github.com:ddddddO/packemon.git
+$ cd packemon
 (For Linux)
 $ cd tc_program/ && go generate && cd -
 (For Linux or macOS)
@@ -200,8 +204,8 @@ $ brew install ddddddO/tap/packemon
   - Kernel: 6.1.0-34-arm64
   - Architecture: aarch64
 - OS: macOS
-- OS: Windows 11 Pro (via PowerShell)
-  - Confirm MAC address of default gateway
+- OS: Windows 11 Pro
+  - Confirm MAC address of default gateway (via PowerShell)
     ```console
     PS > $defaultGateway = (Get-NetRoute -DestinationPrefix "0.0.0.0/0" | Sort-Object -Property InterfaceMetric | Select-Object -First 1).NextHop
     PS > echo $defaultGateway
@@ -221,7 +225,9 @@ $ brew install ddddddO/tap/packemon
 For macOS, besides Homebrew, this is also easy.
 
 > [!IMPORTANT] 
-> For Windows, require [Npcap](https://npcap.com/).
+> For Windows, require [Npcap](https://npcap.com/). Check the following</br>
+>   - `Support raw 802.11 traffic (and monitor mode) for wireless adapters`
+>   - `Install Npcap in WinPcap API-compatible Mode`
 
 <pre>
 $ go install github.com/ddddddO/packemon/cmd/packemon@latest

@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+	"strings"
 
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
@@ -12,14 +13,35 @@ var underIPv6 = false
 func (g *generator) ethernetForm() *tview.Form {
 	ethernetForm := tview.NewForm().
 		AddTextView("Ethernet Header", "This section generates the Ethernet header.\nIt is still under development.", 60, 4, true, false).
-		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 14, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 14 {
+		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 20, func(textToCheck string, lastChar rune) bool {
+			// Support both hex format (0x prefix, 14 chars) and colon-separated format (17 chars)
+			l := len(textToCheck)
+			if l == 0 {
 				return true
-			} else if len(textToCheck) > 14 {
+			}
+			
+			// Allow input up to 20 characters to support both formats
+			if l > 20 {
 				return false
 			}
 
-			b, err := packemon.StrHexToBytes(textToCheck)
+			// Try to parse the MAC address
+			var b []byte
+			var err error
+			
+			// Check if it's in colon-separated format
+			if strings.Contains(textToCheck, ":") {
+				// Convert colon-separated to hex format
+				cleaned := strings.ReplaceAll(textToCheck, ":", "")
+				if len(cleaned) > 12 {
+					return false
+				}
+				b, err = packemon.StrHexToBytes("0x" + cleaned)
+			} else {
+				// Assume it's in hex format
+				b, err = packemon.StrHexToBytes(textToCheck)
+			}
+			
 			if err != nil {
 				return false
 			}
@@ -27,14 +49,35 @@ func (g *generator) ethernetForm() *tview.Form {
 
 			return true
 		}, nil).
-		AddInputField("Source Mac Addr(hex)", DEFAULT_MAC_SOURCE, 14, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 14 {
+		AddInputField("Source Mac Addr(hex)", DEFAULT_MAC_SOURCE, 20, func(textToCheck string, lastChar rune) bool {
+			// Support both hex format (0x prefix, 14 chars) and colon-separated format (17 chars)
+			l := len(textToCheck)
+			if l == 0 {
 				return true
-			} else if len(textToCheck) > 14 {
+			}
+			
+			// Allow input up to 20 characters to support both formats
+			if l > 20 {
 				return false
 			}
 
-			b, err := packemon.StrHexToBytes(textToCheck)
+			// Try to parse the MAC address
+			var b []byte
+			var err error
+			
+			// Check if it's in colon-separated format
+			if strings.Contains(textToCheck, ":") {
+				// Convert colon-separated to hex format
+				cleaned := strings.ReplaceAll(textToCheck, ":", "")
+				if len(cleaned) > 12 {
+					return false
+				}
+				b, err = packemon.StrHexToBytes("0x" + cleaned)
+			} else {
+				// Assume it's in hex format
+				b, err = packemon.StrHexToBytes(textToCheck)
+			}
+			
 			if err != nil {
 				return false
 			}

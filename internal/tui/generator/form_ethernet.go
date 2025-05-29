@@ -95,6 +95,7 @@ func (g *generator) ethernetForm() *tview.Form {
 		SetText("")
 	
 	srcMACStatus := tview.NewTextView().
+		SetSize(1, 20).
 		SetDynamicColors(true).
 		SetText("")
 

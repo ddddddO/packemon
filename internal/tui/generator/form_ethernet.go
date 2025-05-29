@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/ddddddO/packemon"
-	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -157,10 +156,6 @@ func (g *generator) ethernetForm() *tview.Form {
 		AddButton("Quit", func() {
 			g.app.Stop()
 		})
-
-	// Set field colors to indicate validation state
-	ethernetForm.SetFieldBackgroundColor(tcell.ColorBlack)
-	ethernetForm.SetFieldTextColor(tcell.ColorWhite)
 
 	return ethernetForm
 }

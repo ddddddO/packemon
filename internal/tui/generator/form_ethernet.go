@@ -90,6 +90,7 @@ func validateAndParseMACAddress(input string) MACValidationResult {
 func (g *generator) ethernetForm() *tview.Form {
 	// Status labels for MAC address validation feedback
 	dstMACStatus := tview.NewTextView().
+		SetSize(1, 20).
 		SetDynamicColors(true).
 		SetText("")
 	

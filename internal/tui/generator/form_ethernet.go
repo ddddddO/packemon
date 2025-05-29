@@ -10,69 +10,62 @@ import (
 
 var underIPv6 = false
 
+// validateAndParseMACAddress validates and parses MAC address input
+// Supports both hex format (0x prefix) and colon-separated format
+func validateAndParseMACAddress(input string) (packemon.HardwareAddr, bool) {
+	l := len(input)
+	
+	if l > 20 {
+		return nil, false
+	}
+
+	// Only try to parse when we have enough characters for a potential MAC address
+	// Minimum: "0x" + 12 hex chars = 14, or XX:XX:XX:XX:XX:XX = 17
+	if l >= 14 || (strings.Contains(input, ":") && l >= 17) {
+		var b []byte
+		var err error
+		
+		if strings.Contains(input, ":") {
+			cleaned := strings.ReplaceAll(input, ":", "")
+			if len(cleaned) > 12 {
+				return nil, false
+			}
+			b, err = packemon.StrHexToBytes("0x" + cleaned)
+		} else {
+			b, err = packemon.StrHexToBytes(input)
+		}
+		
+		if err == nil {
+			return packemon.HardwareAddr(b), true
+		}
+	}
+
+	return nil, true // Return true to allow continued typing
+}
+
 func (g *generator) ethernetForm() *tview.Form {
 	ethernetForm := tview.NewForm().
 		AddTextView("Ethernet Header", "This section generates the Ethernet header.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 20, func(textToCheck string, lastChar rune) bool {
 			// Support both hex format (0x prefix, 14 chars) and colon-separated format (17 chars)
-			l := len(textToCheck)
-			
-			if l > 20 {
+			addr, valid := validateAndParseMACAddress(textToCheck)
+			if !valid {
 				return false
 			}
-
-			// Only try to parse when we have enough characters for a potential MAC address
-			// Minimum: "0x" + 12 hex chars = 14, or XX:XX:XX:XX:XX:XX = 17
-			if l >= 14 || (strings.Contains(textToCheck, ":") && l >= 17) {
-				var b []byte
-				var err error
-				
-				if strings.Contains(textToCheck, ":") {
-					cleaned := strings.ReplaceAll(textToCheck, ":", "")
-					if len(cleaned) > 12 {
-						return false
-					}
-					b, err = packemon.StrHexToBytes("0x" + cleaned)
-				} else {
-					b, err = packemon.StrHexToBytes(textToCheck)
-				}
-				
-				if err == nil {
-					g.sender.packets.ethernet.Dst = packemon.HardwareAddr(b)
-				}
+			if addr != nil {
+				g.sender.packets.ethernet.Dst = addr
 			}
-
 			return true
 		}, nil).
 		AddInputField("Source Mac Addr(hex)", DEFAULT_MAC_SOURCE, 20, func(textToCheck string, lastChar rune) bool {
 			// Support both hex format (0x prefix, 14 chars) and colon-separated format (17 chars)
-			l := len(textToCheck)
-			
-			if l > 20 {
+			addr, valid := validateAndParseMACAddress(textToCheck)
+			if !valid {
 				return false
 			}
-
-			// Only try to parse when we have enough characters for a potential MAC address
-			// Minimum: "0x" + 12 hex chars = 14, or XX:XX:XX:XX:XX:XX = 17
-			if l >= 14 || (strings.Contains(textToCheck, ":") && l >= 17) {
-				var b []byte
-				var err error
-				
-				if strings.Contains(textToCheck, ":") {
-					cleaned := strings.ReplaceAll(textToCheck, ":", "")
-					if len(cleaned) > 12 {
-						return false
-					}
-					b, err = packemon.StrHexToBytes("0x" + cleaned)
-				} else {
-					b, err = packemon.StrHexToBytes(textToCheck)
-				}
-				
-				if err == nil {
-					g.sender.packets.ethernet.Src = packemon.HardwareAddr(b)
-				}
+			if addr != nil {
+				g.sender.packets.ethernet.Src = addr
 			}
-
 			return true
 		}, nil).
 		// TODO: 自由にフレーム作れるとするなら、ここもhexで受け付けるようにして、IP or ARPヘッダフォームへの切り替えも自由にできた方がいいかも

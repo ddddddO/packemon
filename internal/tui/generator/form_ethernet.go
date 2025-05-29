@@ -16,9 +16,6 @@ func (g *generator) ethernetForm() *tview.Form {
 		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 20, func(textToCheck string, lastChar rune) bool {
 			// Support both hex format (0x prefix, 14 chars) and colon-separated format (17 chars)
 			l := len(textToCheck)
-			if l == 0 {
-				return true
-			}
 			
 			if l > 20 {
 				return false
@@ -50,9 +47,6 @@ func (g *generator) ethernetForm() *tview.Form {
 		AddInputField("Source Mac Addr(hex)", DEFAULT_MAC_SOURCE, 20, func(textToCheck string, lastChar rune) bool {
 			// Support both hex format (0x prefix, 14 chars) and colon-separated format (17 chars)
 			l := len(textToCheck)
-			if l == 0 {
-				return true
-			}
 			
 			if l > 20 {
 				return false

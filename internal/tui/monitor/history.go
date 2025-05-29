@@ -79,7 +79,8 @@ func (m *monitor) insertToTable(r *HistoryRow) {
 
 	// カーソル下に移動してるのにパケットキャッチするたびにトップに移動するのはしんどいのでコメントアウト
 	// していたが、それも微妙かも？
-	m.table.ScrollToBeginning()
+	// と思ったけどやっぱりコメントアウト
+	// m.table.ScrollToBeginning()
 }
 
 func NewPacketsHistoryTable() *tview.Table {

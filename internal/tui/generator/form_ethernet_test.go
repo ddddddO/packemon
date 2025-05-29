@@ -29,7 +29,7 @@ func TestValidateAndParseMACAddress(t *testing.T) {
 			wantValid:   true,
 			wantError:   "",
 		},
-		
+
 		// Valid colon-separated format tests
 		{
 			name:        "valid colon format lowercase",
@@ -52,7 +52,7 @@ func TestValidateAndParseMACAddress(t *testing.T) {
 			wantValid:   true,
 			wantError:   "",
 		},
-		
+
 		// Valid dash-separated format tests
 		{
 			name:        "valid dash format lowercase",
@@ -75,7 +75,7 @@ func TestValidateAndParseMACAddress(t *testing.T) {
 			wantValid:   true,
 			wantError:   "",
 		},
-		
+
 		// Partial input tests (should be valid but no address)
 		{
 			name:        "partial hex input",
@@ -112,7 +112,7 @@ func TestValidateAndParseMACAddress(t *testing.T) {
 			wantValid:   true,
 			wantError:   "",
 		},
-		
+
 		// Invalid format tests
 		{
 			name:        "too long hex format",
@@ -168,15 +168,15 @@ func TestValidateAndParseMACAddress(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validateAndParseMACAddress(tt.input)
-			
+
 			if result.Valid != tt.wantValid {
 				t.Errorf("validateAndParseMACAddress(%q) valid = %v, want %v", tt.input, result.Valid, tt.wantValid)
 			}
-			
+
 			if result.HasAddress != tt.wantHasAddr {
 				t.Errorf("validateAndParseMACAddress(%q) HasAddress = %v, want %v", tt.input, result.HasAddress, tt.wantHasAddr)
 			}
-			
+
 			// Verify the parsed address has correct length when HasAddress is true
 			if result.HasAddress {
 				// Address should be valid with 6 bytes
@@ -185,7 +185,7 @@ func TestValidateAndParseMACAddress(t *testing.T) {
 					t.Errorf("validateAndParseMACAddress(%q) returned empty address when HasAddress is true", tt.input)
 				}
 			}
-			
+
 			// Check error message
 			if result.Error != tt.wantError {
 				t.Errorf("validateAndParseMACAddress(%q) error = %q, want %q", tt.input, result.Error, tt.wantError)
@@ -241,15 +241,15 @@ func TestValidateAndParseMACAddressValues(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validateAndParseMACAddress(tt.input)
-			
+
 			if !result.Valid {
 				t.Fatalf("validateAndParseMACAddress(%q) validation failed", tt.input)
 			}
-			
+
 			if !result.HasAddress {
 				t.Fatalf("validateAndParseMACAddress(%q) HasAddress = false, want true", tt.input)
 			}
-			
+
 			// Compare the addresses
 			if result.Address != tt.wantAddr {
 				t.Errorf("validateAndParseMACAddress(%q) address = %v, want %v", tt.input, result.Address, tt.wantAddr)
@@ -295,9 +295,9 @@ func TestValidateAndParseMACAddressErrorMessages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validateAndParseMACAddress(tt.input)
-			
+
 			if result.Error != tt.wantError {
-				t.Errorf("validateAndParseMACAddress(%q) error = %q, want %q", 
+				t.Errorf("validateAndParseMACAddress(%q) error = %q, want %q",
 					tt.input, result.Error, tt.wantError)
 			}
 		})

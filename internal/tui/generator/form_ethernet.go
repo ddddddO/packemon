@@ -13,17 +13,17 @@ var underIPv6 = false
 
 // MACValidationResult contains the result of MAC address validation
 type MACValidationResult struct {
-	Address   packemon.HardwareAddr
-	HasAddress bool  // indicates whether Address contains a valid parsed address
-	Valid     bool
-	Error     string
+	Address    packemon.HardwareAddr
+	HasAddress bool // indicates whether Address contains a valid parsed address
+	Valid      bool
+	Error      string
 }
 
 // validateAndParseMACAddress validates and parses MAC address input
 // Supports hex format (0x prefix), colon-separated, and dash-separated formats
 func validateAndParseMACAddress(input string) MACValidationResult {
 	l := len(input)
-	
+
 	if l > 20 {
 		return MACValidationResult{
 			Valid: false,
@@ -36,19 +36,19 @@ func validateAndParseMACAddress(input string) MACValidationResult {
 	if l >= 14 || ((strings.Contains(input, ":") || strings.Contains(input, "-")) && l >= 17) {
 		var b []byte
 		var err error
-		
+
 		if strings.Contains(input, ":") || strings.Contains(input, "-") {
 			// Remove colons or dashes
 			cleaned := strings.ReplaceAll(input, ":", "")
 			cleaned = strings.ReplaceAll(cleaned, "-", "")
-			
+
 			if len(cleaned) > 12 {
 				return MACValidationResult{
 					Valid: false,
 					Error: "Invalid MAC address format",
 				}
 			}
-			
+
 			// Validate hex characters
 			for _, c := range cleaned {
 				if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
@@ -58,22 +58,22 @@ func validateAndParseMACAddress(input string) MACValidationResult {
 					}
 				}
 			}
-			
+
 			b, err = packemon.StrHexToBytes("0x" + cleaned)
 		} else {
 			b, err = packemon.StrHexToBytes(input)
 		}
-		
+
 		if err != nil {
 			return MACValidationResult{
 				Valid: true, // Allow continued typing
 				Error: "Invalid hex format",
 			}
 		}
-		
+
 		var addr packemon.HardwareAddr
 		copy(addr[:], b)
-		
+
 		return MACValidationResult{
 			Address:    addr,
 			HasAddress: true,
@@ -92,7 +92,7 @@ func (g *generator) ethernetForm() *tview.Form {
 		SetSize(1, 20).
 		SetDynamicColors(true).
 		SetText("")
-	
+
 	srcMACStatus := tview.NewTextView().
 		SetSize(1, 20).
 		SetDynamicColors(true).
@@ -103,7 +103,7 @@ func (g *generator) ethernetForm() *tview.Form {
 		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 20, func(textToCheck string, lastChar rune) bool {
 			// Support hex (0x), colon-separated, and dash-separated formats
 			result := validateAndParseMACAddress(textToCheck)
-			
+
 			// Update status message
 			if result.Error != "" {
 				dstMACStatus.SetText(fmt.Sprintf("[red]%s[white]", result.Error))
@@ -113,14 +113,14 @@ func (g *generator) ethernetForm() *tview.Form {
 			} else {
 				dstMACStatus.SetText("")
 			}
-			
+
 			return result.Valid
 		}, nil).
 		AddFormItem(dstMACStatus).
 		AddInputField("Source Mac Addr(hex)", DEFAULT_MAC_SOURCE, 20, func(textToCheck string, lastChar rune) bool {
 			// Support hex (0x), colon-separated, and dash-separated formats
 			result := validateAndParseMACAddress(textToCheck)
-			
+
 			// Update status message
 			if result.Error != "" {
 				srcMACStatus.SetText(fmt.Sprintf("[red]%s[white]", result.Error))
@@ -130,7 +130,7 @@ func (g *generator) ethernetForm() *tview.Form {
 			} else {
 				srcMACStatus.SetText("")
 			}
-			
+
 			return result.Valid
 		}, nil).
 		AddFormItem(srcMACStatus).

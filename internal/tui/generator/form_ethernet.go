@@ -14,9 +14,10 @@ var underIPv6 = false
 
 // MACValidationResult contains the result of MAC address validation
 type MACValidationResult struct {
-	Address packemon.HardwareAddr
-	Valid   bool
-	Error   string
+	Address   packemon.HardwareAddr
+	HasAddress bool  // indicates whether Address contains a valid parsed address
+	Valid     bool
+	Error     string
 }
 
 // validateAndParseMACAddress validates and parses MAC address input
@@ -71,9 +72,13 @@ func validateAndParseMACAddress(input string) MACValidationResult {
 			}
 		}
 		
+		var addr packemon.HardwareAddr
+		copy(addr[:], b)
+		
 		return MACValidationResult{
-			Address: packemon.HardwareAddr(b),
-			Valid:   true,
+			Address:    addr,
+			HasAddress: true,
+			Valid:      true,
 		}
 	}
 
@@ -101,7 +106,7 @@ func (g *generator) ethernetForm() *tview.Form {
 			// Update status message
 			if result.Error != "" {
 				dstMACStatus.SetText(fmt.Sprintf("[red]%s[white]", result.Error))
-			} else if result.Address != nil {
+			} else if result.HasAddress {
 				dstMACStatus.SetText("[green]Valid MAC address[white]")
 				g.sender.packets.ethernet.Dst = result.Address
 			} else {
@@ -118,7 +123,7 @@ func (g *generator) ethernetForm() *tview.Form {
 			// Update status message
 			if result.Error != "" {
 				srcMACStatus.SetText(fmt.Sprintf("[red]%s[white]", result.Error))
-			} else if result.Address != nil {
+			} else if result.HasAddress {
 				srcMACStatus.SetText("[green]Valid MAC address[white]")
 				g.sender.packets.ethernet.Src = result.Address
 			} else {

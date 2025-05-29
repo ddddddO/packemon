@@ -10,158 +10,158 @@ func TestValidateAndParseMACAddress(t *testing.T) {
 	tests := []struct {
 		name        string
 		input       string
-		wantAddr    bool   // whether we expect a non-nil address
+		wantHasAddr bool   // whether we expect HasAddress to be true
 		wantValid   bool   // whether the validation should pass
 		wantError   string // expected error message
 	}{
 		// Valid hex format tests
 		{
-			name:      "valid hex format with 0x prefix",
-			input:     "0x3c585d55770e",
-			wantAddr:  true,
-			wantValid: true,
-			wantError: "",
+			name:        "valid hex format with 0x prefix",
+			input:       "0x3c585d55770e",
+			wantHasAddr: true,
+			wantValid:   true,
+			wantError:   "",
 		},
 		{
-			name:      "valid hex format uppercase",
-			input:     "0x3C585D55770E",
-			wantAddr:  true,
-			wantValid: true,
-			wantError: "",
+			name:        "valid hex format uppercase",
+			input:       "0x3C585D55770E",
+			wantHasAddr: true,
+			wantValid:   true,
+			wantError:   "",
 		},
 		
 		// Valid colon-separated format tests
 		{
-			name:      "valid colon format lowercase",
-			input:     "3c:58:5d:55:77:0e",
-			wantAddr:  true,
-			wantValid: true,
-			wantError: "",
+			name:        "valid colon format lowercase",
+			input:       "3c:58:5d:55:77:0e",
+			wantHasAddr: true,
+			wantValid:   true,
+			wantError:   "",
 		},
 		{
-			name:      "valid colon format uppercase",
-			input:     "3C:58:5D:55:77:0E",
-			wantAddr:  true,
-			wantValid: true,
-			wantError: "",
+			name:        "valid colon format uppercase",
+			input:       "3C:58:5D:55:77:0E",
+			wantHasAddr: true,
+			wantValid:   true,
+			wantError:   "",
 		},
 		{
-			name:      "valid colon format mixed case",
-			input:     "3c:58:5D:55:77:0e",
-			wantAddr:  true,
-			wantValid: true,
-			wantError: "",
+			name:        "valid colon format mixed case",
+			input:       "3c:58:5D:55:77:0e",
+			wantHasAddr: true,
+			wantValid:   true,
+			wantError:   "",
 		},
 		
 		// Valid dash-separated format tests
 		{
-			name:      "valid dash format lowercase",
-			input:     "3c-58-5d-55-77-0e",
-			wantAddr:  true,
-			wantValid: true,
-			wantError: "",
+			name:        "valid dash format lowercase",
+			input:       "3c-58-5d-55-77-0e",
+			wantHasAddr: true,
+			wantValid:   true,
+			wantError:   "",
 		},
 		{
-			name:      "valid dash format uppercase",
-			input:     "3C-58-5D-55-77-0E",
-			wantAddr:  true,
-			wantValid: true,
-			wantError: "",
+			name:        "valid dash format uppercase",
+			input:       "3C-58-5D-55-77-0E",
+			wantHasAddr: true,
+			wantValid:   true,
+			wantError:   "",
 		},
 		{
-			name:      "valid dash format mixed case",
-			input:     "3c-58-5D-55-77-0e",
-			wantAddr:  true,
-			wantValid: true,
-			wantError: "",
+			name:        "valid dash format mixed case",
+			input:       "3c-58-5D-55-77-0e",
+			wantHasAddr: true,
+			wantValid:   true,
+			wantError:   "",
 		},
 		
 		// Partial input tests (should be valid but no address)
 		{
-			name:      "partial hex input",
-			input:     "0x3c58",
-			wantAddr:  false,
-			wantValid: true,
-			wantError: "",
+			name:        "partial hex input",
+			input:       "0x3c58",
+			wantHasAddr: false,
+			wantValid:   true,
+			wantError:   "",
 		},
 		{
-			name:      "partial colon input",
-			input:     "3c:58:5d",
-			wantAddr:  false,
-			wantValid: true,
-			wantError: "",
+			name:        "partial colon input",
+			input:       "3c:58:5d",
+			wantHasAddr: false,
+			wantValid:   true,
+			wantError:   "",
 		},
 		{
-			name:      "partial dash input",
-			input:     "3c-58-5d",
-			wantAddr:  false,
-			wantValid: true,
-			wantError: "",
+			name:        "partial dash input",
+			input:       "3c-58-5d",
+			wantHasAddr: false,
+			wantValid:   true,
+			wantError:   "",
 		},
 		{
-			name:      "empty input",
-			input:     "",
-			wantAddr:  false,
-			wantValid: true,
-			wantError: "",
+			name:        "empty input",
+			input:       "",
+			wantHasAddr: false,
+			wantValid:   true,
+			wantError:   "",
 		},
 		{
-			name:      "single character",
-			input:     "3",
-			wantAddr:  false,
-			wantValid: true,
-			wantError: "",
+			name:        "single character",
+			input:       "3",
+			wantHasAddr: false,
+			wantValid:   true,
+			wantError:   "",
 		},
 		
 		// Invalid format tests
 		{
-			name:      "too long hex format",
-			input:     "0x3c585d55770e123456",
-			wantAddr:  false,
-			wantValid: false,
-			wantError: "MAC address too long (max 20 characters)",
+			name:        "too long hex format",
+			input:       "0x3c585d55770e123456",
+			wantHasAddr: false,
+			wantValid:   false,
+			wantError:   "MAC address too long (max 20 characters)",
 		},
 		{
-			name:      "too long colon format",
-			input:     "3c:58:5d:55:77:0e:12:34",
-			wantAddr:  false,
-			wantValid: false,
-			wantError: "Invalid MAC address format",
+			name:        "too long colon format",
+			input:       "3c:58:5d:55:77:0e:12:34",
+			wantHasAddr: false,
+			wantValid:   false,
+			wantError:   "Invalid MAC address format",
 		},
 		{
-			name:      "too long dash format",
-			input:     "3c-58-5d-55-77-0e-12-34",
-			wantAddr:  false,
-			wantValid: false,
-			wantError: "Invalid MAC address format",
+			name:        "too long dash format",
+			input:       "3c-58-5d-55-77-0e-12-34",
+			wantHasAddr: false,
+			wantValid:   false,
+			wantError:   "Invalid MAC address format",
 		},
 		{
-			name:      "invalid hex characters in colon format",
-			input:     "3c:58:5d:55:77:0g",
-			wantAddr:  false,
-			wantValid: true, // Should allow typing
-			wantError: "Invalid character: g",
+			name:        "invalid hex characters in colon format",
+			input:       "3c:58:5d:55:77:0g",
+			wantHasAddr: false,
+			wantValid:   true, // Should allow typing
+			wantError:   "Invalid character: g",
 		},
 		{
-			name:      "invalid hex characters in dash format",
-			input:     "3c-58-5d-55-77-0z",
-			wantAddr:  false,
-			wantValid: true, // Should allow typing
-			wantError: "Invalid character: z",
+			name:        "invalid hex characters in dash format",
+			input:       "3c-58-5d-55-77-0z",
+			wantHasAddr: false,
+			wantValid:   true, // Should allow typing
+			wantError:   "Invalid character: z",
 		},
 		{
-			name:      "malformed colon format",
-			input:     "3c:58:5d:55:77:0e:",
-			wantAddr:  false,
-			wantValid: true, // Should allow typing
-			wantError: "",
+			name:        "malformed colon format",
+			input:       "3c:58:5d:55:77:0e:",
+			wantHasAddr: false,
+			wantValid:   true, // Should allow typing
+			wantError:   "",
 		},
 		{
-			name:      "too many characters",
-			input:     "012345678901234567890", // 21 characters
-			wantAddr:  false,
-			wantValid: false,
-			wantError: "MAC address too long (max 20 characters)",
+			name:        "too many characters",
+			input:       "012345678901234567890", // 21 characters
+			wantHasAddr: false,
+			wantValid:   false,
+			wantError:   "MAC address too long (max 20 characters)",
 		},
 	}
 
@@ -173,17 +173,17 @@ func TestValidateAndParseMACAddress(t *testing.T) {
 				t.Errorf("validateAndParseMACAddress(%q) valid = %v, want %v", tt.input, result.Valid, tt.wantValid)
 			}
 			
-			if tt.wantAddr && result.Address == nil {
-				t.Errorf("validateAndParseMACAddress(%q) returned nil address, want non-nil", tt.input)
+			if result.HasAddress != tt.wantHasAddr {
+				t.Errorf("validateAndParseMACAddress(%q) HasAddress = %v, want %v", tt.input, result.HasAddress, tt.wantHasAddr)
 			}
 			
-			if !tt.wantAddr && result.Address != nil {
-				t.Errorf("validateAndParseMACAddress(%q) returned non-nil address %v, want nil", tt.input, result.Address)
-			}
-			
-			// Verify the parsed address has correct length when non-nil
-			if result.Address != nil && len(result.Address) != 6 {
-				t.Errorf("validateAndParseMACAddress(%q) returned address with length %d, want 6", tt.input, len(result.Address))
+			// Verify the parsed address has correct length when HasAddress is true
+			if result.HasAddress {
+				// Address should be valid with 6 bytes
+				var emptyAddr packemon.HardwareAddr
+				if result.Address == emptyAddr {
+					t.Errorf("validateAndParseMACAddress(%q) returned empty address when HasAddress is true", tt.input)
+				}
 			}
 			
 			// Check error message
@@ -246,16 +246,13 @@ func TestValidateAndParseMACAddressValues(t *testing.T) {
 				t.Fatalf("validateAndParseMACAddress(%q) validation failed", tt.input)
 			}
 			
-			if result.Address == nil {
-				t.Fatalf("validateAndParseMACAddress(%q) returned nil address", tt.input)
+			if !result.HasAddress {
+				t.Fatalf("validateAndParseMACAddress(%q) HasAddress = false, want true", tt.input)
 			}
 			
-			// Compare byte by byte
-			for i := 0; i < len(tt.wantAddr); i++ {
-				if result.Address[i] != tt.wantAddr[i] {
-					t.Errorf("validateAndParseMACAddress(%q) byte %d = %02x, want %02x", 
-						tt.input, i, result.Address[i], tt.wantAddr[i])
-				}
+			// Compare the addresses
+			if result.Address != tt.wantAddr {
+				t.Errorf("validateAndParseMACAddress(%q) address = %v, want %v", tt.input, result.Address, tt.wantAddr)
 			}
 		})
 	}

@@ -20,32 +20,30 @@ func (g *generator) ethernetForm() *tview.Form {
 				return true
 			}
 			
-			// Allow input up to 20 characters to support both formats
 			if l > 20 {
 				return false
 			}
 
-			// Try to parse the MAC address
-			var b []byte
-			var err error
-			
-			// Check if it's in colon-separated format
-			if strings.Contains(textToCheck, ":") {
-				// Convert colon-separated to hex format
-				cleaned := strings.ReplaceAll(textToCheck, ":", "")
-				if len(cleaned) > 12 {
-					return false
+			// Only try to parse when we have enough characters for a potential MAC address
+			// Minimum: "0x" + 12 hex chars = 14, or XX:XX:XX:XX:XX:XX = 17
+			if l >= 14 || (strings.Contains(textToCheck, ":") && l >= 17) {
+				var b []byte
+				var err error
+				
+				if strings.Contains(textToCheck, ":") {
+					cleaned := strings.ReplaceAll(textToCheck, ":", "")
+					if len(cleaned) > 12 {
+						return false
+					}
+					b, err = packemon.StrHexToBytes("0x" + cleaned)
+				} else {
+					b, err = packemon.StrHexToBytes(textToCheck)
 				}
-				b, err = packemon.StrHexToBytes("0x" + cleaned)
-			} else {
-				// Assume it's in hex format
-				b, err = packemon.StrHexToBytes(textToCheck)
+				
+				if err == nil {
+					g.sender.packets.ethernet.Dst = packemon.HardwareAddr(b)
+				}
 			}
-			
-			if err != nil {
-				return false
-			}
-			g.sender.packets.ethernet.Dst = packemon.HardwareAddr(b)
 
 			return true
 		}, nil).
@@ -56,32 +54,30 @@ func (g *generator) ethernetForm() *tview.Form {
 				return true
 			}
 			
-			// Allow input up to 20 characters to support both formats
 			if l > 20 {
 				return false
 			}
 
-			// Try to parse the MAC address
-			var b []byte
-			var err error
-			
-			// Check if it's in colon-separated format
-			if strings.Contains(textToCheck, ":") {
-				// Convert colon-separated to hex format
-				cleaned := strings.ReplaceAll(textToCheck, ":", "")
-				if len(cleaned) > 12 {
-					return false
+			// Only try to parse when we have enough characters for a potential MAC address
+			// Minimum: "0x" + 12 hex chars = 14, or XX:XX:XX:XX:XX:XX = 17
+			if l >= 14 || (strings.Contains(textToCheck, ":") && l >= 17) {
+				var b []byte
+				var err error
+				
+				if strings.Contains(textToCheck, ":") {
+					cleaned := strings.ReplaceAll(textToCheck, ":", "")
+					if len(cleaned) > 12 {
+						return false
+					}
+					b, err = packemon.StrHexToBytes("0x" + cleaned)
+				} else {
+					b, err = packemon.StrHexToBytes(textToCheck)
 				}
-				b, err = packemon.StrHexToBytes("0x" + cleaned)
-			} else {
-				// Assume it's in hex format
-				b, err = packemon.StrHexToBytes(textToCheck)
+				
+				if err == nil {
+					g.sender.packets.ethernet.Src = packemon.HardwareAddr(b)
+				}
 			}
-			
-			if err != nil {
-				return false
-			}
-			g.sender.packets.ethernet.Src = packemon.HardwareAddr(b)
 
 			return true
 		}, nil).

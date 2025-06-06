@@ -20,20 +20,6 @@ builds:
       - arm64
     env:
       - CGO_ENABLED=0
-  - id: packemon-api-linux
-    main: ./cmd/packemon-api
-    binary: packemon-api
-    ldflags:
-      - -s -w
-      - -X main.Version={{.Version}}
-      - -X main.Revision={{.ShortCommit}}
-    goos:
-      - linux
-    goarch:
-      - amd64
-      - arm64
-    env:
-      - CGO_ENABLED=0
 archives:
   - name_template: >-
       {{ .ProjectName }}_
@@ -60,7 +46,6 @@ nfpms:
     file_name_template: "{{ .ProjectName }}_{{ .Version }}-1_{{ .Arch }}"
     builds:
       - packemon-linux
-      - packemon-api-linux
     homepage: https://github.com/ddddddO/packemon
     maintainer: ddddddO <lbfdeatq@gmail.com>
     description: "Packet monster, or Packémon for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ). TUI tool for sending packets of arbitrary input and monitoring packets on any network interfaces (default: eth0)."

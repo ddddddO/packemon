@@ -3,7 +3,7 @@ module github.com/ddddddO/packemon
 go 1.24
 
 require (
-	github.com/cilium/ebpf v0.18.0
+	github.com/cilium/ebpf v0.19.0
 	github.com/gdamore/tcell/v2 v2.8.1
 	github.com/gopacket/gopacket v1.3.1
 	github.com/rivo/tview v0.0.0-20240426173458-c766eefb3803

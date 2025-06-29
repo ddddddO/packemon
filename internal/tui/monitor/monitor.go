@@ -21,6 +21,7 @@ type monitor struct {
 	table         *tview.Table
 	storedPackets sync.Map
 	storedMaxID   *storedMaxID
+	limit         int
 
 	grid        *tview.Grid
 	filterInput *tview.Grid
@@ -47,7 +48,7 @@ func (m *storedMaxID) set(currentID uint64) {
 	}
 }
 
-func New(networkInterface *packemon.NetworkInterface, columns string) *monitor {
+func New(networkInterface *packemon.NetworkInterface, columns string, limit int) *monitor {
 	pages := tview.NewPages()
 	table := NewPacketsHistoryTable()
 	pages.AddPage("history", table, true, true)
@@ -77,6 +78,7 @@ func New(networkInterface *packemon.NetworkInterface, columns string) *monitor {
 		table:         table,
 		storedPackets: sync.Map{},
 		storedMaxID:   &storedMaxID{},
+		limit:         limit,
 		grid:          grid,
 		filterInput:   filterInput,
 		filter:        newFilter(),

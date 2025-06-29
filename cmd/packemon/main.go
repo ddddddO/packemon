@@ -21,6 +21,7 @@ const DEFAULT_TARGET_NW_INTERFACE = "eth0"
 
 // d: dest mac, s: src mac, t: type, p: protocol, D: dest ip, S: src ip
 const DEFAULT_MONITOR_COLUMNS = "dstpDS"
+const DEFAULT_MONITOR_LIMIT = 1000
 
 const METAMON = "\n" +
 	"⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ" + "\n" +
@@ -56,6 +57,8 @@ func main() {
 	flag.BoolVar(&wantInterfaces, "interfaces", false, "Check the list of interfaces.")
 	var columns string
 	flag.StringVar(&columns, "columns", DEFAULT_MONITOR_COLUMNS, fmt.Sprintf("Specify columns to be displayed in monitor mode. Default is '%s' .", DEFAULT_MONITOR_COLUMNS))
+	var limit int
+	flag.IntVar(&limit, "limit", DEFAULT_MONITOR_LIMIT, fmt.Sprintf("Limits the list of packets that can be displayed on monitor mode. Default is '%d'; if less than 0 is specified, no limit.", DEFAULT_MONITOR_LIMIT))
 	var wantSend bool
 	flag.BoolVar(&wantSend, "send", false, "Generator mode. Default is 'Monitor mode'.")
 	var debug bool
@@ -118,7 +121,7 @@ func main() {
 		}
 	}
 
-	if err := run(ctx, columns, nwInterface, wantSend, debug, protocol, ingressMap, egressMap); err != nil {
+	if err := run(ctx, columns, limit, nwInterface, wantSend, debug, protocol, ingressMap, egressMap); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return
 	}
@@ -150,7 +153,7 @@ func showInterfaces() error {
 	return nil
 }
 
-func run(ctx context.Context, columns string, nwInterface string, wantSend bool, debug bool, protocol string, ingressMap *ebpf.Map, egressMap *ebpf.Map) error {
+func run(ctx context.Context, columns string, limit int, nwInterface string, wantSend bool, debug bool, protocol string, ingressMap *ebpf.Map, egressMap *ebpf.Map) error {
 	netIf, err := packemon.NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
@@ -219,7 +222,7 @@ func run(ctx context.Context, columns string, nwInterface string, wantSend bool,
 		return debugPrint(ctx, netIf.PassiveCh)
 	}
 
-	var packemonTUI tui.TUI = monitor.New(netIf, columns)
+	var packemonTUI tui.TUI = monitor.New(netIf, columns, limit)
 	if wantSend {
 		packemonTUI = generator.New(netIf, ingressMap, egressMap)
 	}

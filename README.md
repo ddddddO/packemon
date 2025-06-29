@@ -234,6 +234,46 @@ $ go install github.com/ddddddO/packemon/cmd/packemon@latest
 </pre>
 
 ## Usage
+
+```console
+$ packemon --help
+Usage of packemon
+  -columns string
+        Specify columns to be displayed in monitor mode. Default is 'dstpDS' . (default "dstpDS")
+  -debug
+        Debugging mode.
+  -interface string
+        Specify name of network interface to be sent/received. Default is 'eth0'. (default "eth0")
+  -interfaces
+        Check the list of interfaces.
+  -limit int
+        Limits the list of packets that can be displayed on monitor mode. Default is '1000'; if less than 0 is specified, no limit. (default 1000)
+  -proto string
+        Specify either 'arp', 'icmp', 'tcp', 'dns' or 'http'.
+  -send
+        Generator mode. Default is 'Monitor mode'.
+
+⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ
+                      ○
+                     о
+                    ｡
+
+                   ,､-､_  ＿_
+ 　　　　,､-―､_,､'´　　　￣　　`ヽ,
+ 　　　/　　　　　　 ・　　　 ．　　　ｌ、
+ 　　　ｌ,　　　　　　 ヾニニつ　　　　`ヽ、
+ 　　　 |　　　　　　　　　　　　　　　　　 `ヽ,
+ 　　　 ﾉ　　　　　　　　　　　　　　　　　　ノ
+ 　　 /::::　　　　　　　　　　　　　　　　　/
+ 　／:::::::　　　　　　　　　　　　　　　　..::l、
+ /::::::::::::::::::......:::::::.　　　　　　　............::::::::::`l,
+ l::::::::::::::::::::::::::::::::::::......　　　....:::::::::::::::::::::::::::::`l,
+ ヽ,:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::ﾉ
+ 　　￣￣``ヽ､_:::::::::::::::::::::::,､-―´￣`ヽ､,､-'
+ 　　　　　　　　 `ヽ―-―'´
+$
+```
+
 ### Generator
 
 ```console
@@ -318,27 +358,6 @@ $ sudo packemon
 
 ## Document
 - [ネットワークを知りたくて](https://zenn.dev/openlogi/articles/195d07bd9bc5b4)
-
-```
-⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ
- 　　　　　　　　　　　　　○
- 　　　　　　　　　　　о
- 　　　　　　　　　　｡
- 
- 　　　　　　　　　　,､-､_　　＿_
- 　　　　,､-―､_,､'´　　　￣　　`ヽ,
- 　　　/　　　　　　 ・　　　 ．　　　ｌ、
- 　　　ｌ,　　　　　　 ヾニニつ　　　　`ヽ、
- 　　　 |　　　　　　　　　　　　　　　　　 `ヽ,
- 　　　 ﾉ　　　　　　　　　　　　　　　　　　ノ
- 　　 /::::　　　　　　　　　　　　　　　　　/
- 　／:::::::　　　　　　　　　　　　　　　　..::l、
- /::::::::::::::::::......:::::::.　　　　　　　............::::::::::`l,
- l::::::::::::::::::::::::::::::::::::......　　　....:::::::::::::::::::::::::::::`l,
- ヽ,:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::ﾉ
- 　　￣￣``ヽ､_:::::::::::::::::::::::,､-―´￣`ヽ､,､-'
- 　　　　　　　　 `ヽ―-―'´
- ```
 
 ## Stargazers over time
 [![Stargazers over time](https://starchart.cc/ddddddO/packemon.svg?variant=adaptive)](https://starchart.cc/ddddddO/packemon)

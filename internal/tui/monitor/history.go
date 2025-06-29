@@ -17,9 +17,27 @@ func (m *monitor) updateTable() {
 
 		m.app.QueueUpdateDraw(func() {
 			m.storedPackets.Store(id, passive)
-			m.filterAndInsertToTable(passive, id)
 			m.storedMaxID.set(id)
-			atomic.AddUint64(&id, 1)
+			m.filterAndInsertToTable(passive, id)
+			defer func() {
+				atomic.AddUint64(&id, 1)
+			}()
+
+			if m.limit <= 0 {
+				return
+			}
+
+			// TODO: 若干ちぐはぐなことになってる
+			// 制限超えた都度キャッシュから削除するものの、レコード数が制限数の倍数に到達しないとテーブルを更新(サイズ削減)しないから、テーブル上見えてるけどキャッシュから消えてるから選択しても表示されない、みたいなことが起きる
+			removingID := int(id) - m.limit
+			if removingID >= 0 {
+				m.storedPackets.Delete(removingID)
+
+				if id != 0 && int(id)%m.limit == 0 {
+					m.reCreateTable()
+					return
+				}
+			}
 		})
 	}
 }
@@ -29,8 +47,13 @@ func (m *monitor) reCreateTable() {
 	m.table.Clear()
 
 	// filter 処理(なお、filter文字列が空なら全部表示)
-	for id := range m.storedMaxID.get() {
-		value, ok := m.storedPackets.Load(id)
+	storedMaxID := int(m.storedMaxID.get())
+	begin := 0
+	if m.limit > 0 && storedMaxID-m.limit > 0 {
+		begin = storedMaxID - m.limit
+	}
+	for id := begin; id <= storedMaxID; id++ {
+		value, ok := m.storedPackets.Load(uint64(id))
 		if !ok {
 			continue
 		}
@@ -38,7 +61,7 @@ func (m *monitor) reCreateTable() {
 		if !ok {
 			continue
 		}
-		m.filterAndInsertToTable(passive, id)
+		m.filterAndInsertToTable(passive, uint64(id))
 	}
 }
 

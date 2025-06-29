@@ -29,11 +29,11 @@ func (m *monitor) updateTable() {
 
 			// TODO: 若干ちぐはぐなことになってる
 			// 制限超えた都度キャッシュから削除するものの、レコード数が制限数の倍数に到達しないとテーブルを更新(サイズ削減)しないから、テーブル上見えてるけどキャッシュから消えてるから選択しても表示されない、みたいなことが起きる
-			removingID := int(id) - m.limit
+			removingID := id - uint64(m.limit)
 			if removingID >= 0 {
 				m.storedPackets.Delete(removingID)
 
-				if id != 0 && int(id)%m.limit == 0 {
+				if id != 0 && id%uint64(m.limit) == 0 {
 					m.reCreateTable()
 					return
 				}

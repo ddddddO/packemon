@@ -9,7 +9,7 @@ Packet monster, or `Packémon` for short! (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'�
 <!-- https://github.com/user-attachments/assets/69dc501d-8ffd-484a-90e2-dffa0fab373e -->
 https://github.com/user-attachments/assets/08f96575-7aca-47e7-bdeb-6705ce2bbaba
 
-TUI tool for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). The list of interfaces to be specified is output when `packemon --interfaces` is run.<br>
+TUI tool for generating packets of arbitrary input and monitoring packets on any network interfaces (default: `eth0`). The list of interfaces to be specified is output when `packemon interfaces` is run.<br>
 **This tool works on Windows, macOS, and Linux.**<br>
 
 This TUI tool is now available on macOS because of **[cluster2600](https://github.com/cluster2600)** support. Thanks🎉!
@@ -237,40 +237,45 @@ $ go install github.com/ddddddO/packemon/cmd/packemon@latest
 
 ```console
 $ packemon --help
-Usage of packemon
-  -columns string
-        Specify columns to be displayed in monitor mode. Default is 'dstpDS' . (default "dstpDS")
-  -debug
-        Debugging mode.
-  -interface string
-        Specify name of network interface to be sent/received. Default is 'eth0'. (default "eth0")
-  -interfaces
-        Check the list of interfaces.
-  -limit int
-        Limits the list of packets that can be displayed on monitor mode. Default is '1000'; if less than 0 is specified, no limit. (default 1000)
-  -proto string
-        Specify either 'arp', 'icmp', 'tcp', 'dns' or 'http'.
-  -send
-        Generator mode. Default is 'Monitor mode'.
+NAME:
+   packemon - Packet monster (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ) TUI tool for sending packets of arbitrary input and monitoring packets on any network interfaces (default: eth0). Windows/macOS/Linux
 
-⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ
-                      ○
-                     о
-                    ｡
+              ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ⌒丶、＿ノ
+                                    ○
+                                   о
+                                  ｡
 
-                   ,､-､_  ＿_
- 　　　　,､-―､_,､'´　　　￣　　`ヽ,
- 　　　/　　　　　　 ・　　　 ．　　　ｌ、
- 　　　ｌ,　　　　　　 ヾニニつ　　　　`ヽ、
- 　　　 |　　　　　　　　　　　　　　　　　 `ヽ,
- 　　　 ﾉ　　　　　　　　　　　　　　　　　　ノ
- 　　 /::::　　　　　　　　　　　　　　　　　/
- 　／:::::::　　　　　　　　　　　　　　　　..::l、
- /::::::::::::::::::......:::::::.　　　　　　　............::::::::::`l,
- l::::::::::::::::::::::::::::::::::::......　　　....:::::::::::::::::::::::::::::`l,
- ヽ,:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::ﾉ
- 　　￣￣``ヽ､_:::::::::::::::::::::::,､-―´￣`ヽ､,､-'
- 　　　　　　　　 `ヽ―-―'´
+                                 ,､-､_  ＿_
+               　　　　,､-―､_,､'´　　　￣　　`ヽ,
+               　　　/　　　　　　 ・　　　 ．　　　ｌ、
+               　　　ｌ,　　　　　　 ヾニニつ　　　　`ヽ、
+               　　　 |　　　　　　　　　　　　　　　　　 `ヽ,
+               　　　 ﾉ　　　　　　　　　　　　　　　　　　ノ
+               　　 /::::　　　　　　　　　　　　　　　　　/
+               　／:::::::　　　　　　　　　　　　　　　　..::l、
+               /::::::::::::::::::......:::::::.　　　　　　　............::::::::::`l,
+               l::::::::::::::::::::::::::::::::::::......　　　....:::::::::::::::::::::::::::::`l,
+               ヽ,:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::ﾉ
+               　　￣￣``ヽ､_:::::::::::::::::::::::,､-―´￣`ヽ､,､-'
+               　　　　　　　　 `ヽ―-―'´
+
+USAGE:
+   packemon [global options] [command [command options]]
+
+VERSION:
+   unset / revision unset
+
+COMMANDS:
+   monitor, m, mon       Monitor mode. You can monitor packets received and sent on the specified interface. Default is 'eth0' interface.
+   generator, g, gen     Generator mode. Arbitrary packets can be generated and sent.
+   interfaces, i, intfs  Check the list of interfaces.
+   debugging, d, debug   Debugging mode.
+   version, v            Prints the version.
+   help, h               Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --help, -h     show help
+   --version, -v  print the version
 $
 ```
 
@@ -278,21 +283,21 @@ $
 
 ```console
 $ sudo setcap cap_net_raw,cap_bpf,cap_sys_admin,cap_net_admin+ep /path/to/packemon
-$ packemon --send
+$ packemon generator
 ```
 or
 ```console
-$ sudo packemon --send
+$ sudo packemon generator
 ```
 
 ### Monitor
 ```console
 $ sudo setcap cap_net_raw+ep /path/to/packemon
-$ packemon
+$ packemon monitor
 ```
 or
 ```console
-$ sudo packemon
+$ sudo packemon monitor
 ```
 
 ## Usecase
@@ -301,12 +306,12 @@ $ sudo packemon
 1. setup
     ```sh
     # Generator
-    $ sudo packemon --send
+    $ sudo packemon generator
     ```
 
     ```sh
     # Monitor
-    $ sudo packemon
+    $ sudo packemon monitor
     ```
 
     ← Generator | Monitor →
@@ -409,20 +414,20 @@ $ sudo tcpdump -U -i eth0 -w - | /mnt/c/Program\ Files/Wireshark/Wireshark.exe -
 - 受信画面
 
   ```console
-  $ sudo go run cmd/packemon/main.go
+  $ sudo go run cmd/packemon/main.go monitor
   ```
 
 
 - 送信画面
 
   ```console
-  $ sudo go run cmd/packemon/main.go --send
+  $ sudo go run cmd/packemon/main.go generator
   ```
 
 - 単発フレーム送信コマンド（e.g. ARP request）
 
   ```console
-  $ sudo go run cmd/packemon/main.go --debug --send --proto arp
+  $ sudo go run cmd/packemon/main.go debugging --send --proto arp
   ```
 
 #### TLS version 指定でリクエスト
@@ -463,7 +468,7 @@ $ ping -c 1 fe80::1
 
 #### 自前実装の tcp 3way handshake
 ```console
-$ sudo go run cmd/packemon/main.go --send --debug --proto tcp-3way-http
+$ sudo go run cmd/packemon/main.go debugging --send --proto tcp-3way-http
 ```
 
 ### 動作確認の様子

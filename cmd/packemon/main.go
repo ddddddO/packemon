@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -11,10 +10,15 @@ import (
 	"github.com/cilium/ebpf"
 	"github.com/ddddddO/packemon"
 	"github.com/ddddddO/packemon/internal/debugging"
-	"github.com/ddddddO/packemon/internal/tui"
 	"github.com/ddddddO/packemon/internal/tui/generator"
 	"github.com/ddddddO/packemon/internal/tui/monitor"
 	tc "github.com/ddddddO/packemon/tc_program"
+	"github.com/urfave/cli/v3"
+)
+
+var (
+	Version  = "unset"
+	Revision = "unset"
 )
 
 const DEFAULT_TARGET_NW_INTERFACE = "eth0"
@@ -44,125 +48,145 @@ const METAMON = "\n" +
 	" 　　　　　　　　 `ヽ―-―'´"
 
 func main() {
-	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage of %s\n", os.Args[0])
-		flag.PrintDefaults()
-		fmt.Fprintln(os.Stderr, METAMON)
+	interfaceFlag := &cli.StringFlag{
+		Name:  "interface",
+		Usage: `Specify name of network interface to be sent/received. Default is 'eth0'. (default "eth0")`,
+	}
+	monitorCommand := &cli.Command{
+		Name:    "monitor",
+		Aliases: []string{"m", "mon"},
+		Usage:   "Monitor mode. You can monitor packets received and sent on the specified interface. Default is 'eth0' interface.",
+		Flags: []cli.Flag{
+			interfaceFlag,
+			&cli.StringFlag{
+				Name:  "columns",
+				Usage: `Specify columns to be displayed in monitor mode. Default is 'dstpDS' . (default "dstpDS")`,
+			},
+			&cli.IntFlag{
+				Name:  "limit",
+				Usage: "Limits the list of packets that can be displayed on monitor mode. Default is '1000'; if less than -1 is specified, no limit. (default 1000)",
+			},
+		},
+		Before: notExistArgs,
+		Action: actionMonitor,
 	}
 
-	// TODO: そろそろサブコマンド化したい
-	var nwInterface string
-	flag.StringVar(&nwInterface, "interface", DEFAULT_TARGET_NW_INTERFACE, "Specify name of network interface to be sent/received. Default is 'eth0'.")
-	var wantInterfaces bool
-	flag.BoolVar(&wantInterfaces, "interfaces", false, "Check the list of interfaces.")
-	var columns string
-	flag.StringVar(&columns, "columns", DEFAULT_MONITOR_COLUMNS, fmt.Sprintf("Specify columns to be displayed in monitor mode. Default is '%s' .", DEFAULT_MONITOR_COLUMNS))
-	var limit int
-	flag.IntVar(&limit, "limit", DEFAULT_MONITOR_LIMIT, fmt.Sprintf("Limits the list of packets that can be displayed on monitor mode. Default is '%d'; if less than 0 is specified, no limit.", DEFAULT_MONITOR_LIMIT))
-	var wantSend bool
-	flag.BoolVar(&wantSend, "send", false, "Generator mode. Default is 'Monitor mode'.")
-	var debug bool
-	flag.BoolVar(&debug, "debug", false, "Debugging mode.")
-	var protocol string
-	flag.StringVar(&protocol, "proto", "", "Specify either 'arp', 'icmp', 'tcp', 'dns' or 'http'.")
+	app := &cli.Command{
+		Name:    "packemon",
+		Usage:   fmt.Sprintf("Packet monster (っ‘-’)╮=͟͟͞͞◒ ヽ( '-'ヽ) TUI tool for sending packets of arbitrary input and monitoring packets on any network interfaces (default: eth0). Windows/macOS/Linux\n%s", METAMON),
+		Version: fmt.Sprintf("%s / revision %s", Version, Revision),
+		// 以下でデフォルトでmonitorを起動するようにしているが、packemon --interface xxx はできないっぽい...
+		DefaultCommand: monitorCommand.Name,
+		Commands: []*cli.Command{
+			monitorCommand,
+			{
+				Name:    "generator",
+				Aliases: []string{"g", "gen"},
+				Usage:   "Generator mode. Arbitrary packets can be generated and sent.",
+				Flags:   []cli.Flag{interfaceFlag},
+				Before:  notExistArgs,
+				Action:  actionGenerator,
+			},
+			{
+				Name:    "interfaces",
+				Aliases: []string{"i", "intfs"},
+				Usage:   "Check the list of interfaces.",
+				Before:  notExistArgs,
+				Action:  actionInterfaces,
+			},
+			{
+				Name:    "debugging",
+				Aliases: []string{"d", "debug"},
+				Usage:   "Debugging mode.",
+				Flags: []cli.Flag{
+					interfaceFlag,
+					&cli.StringFlag{
+						Name:  "proto",
+						Usage: "Specify either 'arp', 'icmp', 'tcp', 'dns' or 'http'.",
+					},
+					&cli.BoolFlag{
+						Name:  "send",
+						Usage: "Debugging for Generator",
+					},
+				},
+				Before: notExistArgs,
+				Action: actionDebugging,
+			},
+			{
+				Name:    "version",
+				Aliases: []string{"v"},
+				Usage:   "Prints the version.",
+				Before:  notExistArgs,
+				Action: func(ctx context.Context, c *cli.Command) error {
+					fmt.Printf("gtree version %s / revision %s\n", Version, Revision)
+					return nil
+				},
+			},
+		},
+	}
 
-	flag.Parse()
+	if err := app.Run(context.Background(), os.Args); err != nil {
+		fmt.Fprint(os.Stderr, err)
+	}
+}
 
-	if wantInterfaces {
-		if err := showInterfaces(); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-		}
-		return
+func notExistArgs(ctx context.Context, c *cli.Command) (context.Context, error) {
+	if c.NArg() != 0 {
+		return nil, errors.New("command line contains unnecessary arguments")
+	}
+	return ctx, nil
+}
+
+func actionGenerator(ctx context.Context, c *cli.Command) error {
+	nwInterface := DEFAULT_TARGET_NW_INTERFACE
+	if c.String("interface") != "" {
+		nwInterface = c.String("interface")
 	}
 
 	var ingressMap, egressMap *ebpf.Map
-	if wantSend {
-		ebpfObjs, err := tc.InitializeTCProgram()
+	ebpfObjs, err := tc.InitializeTCProgram()
+	if err != nil {
+		// error出力するが、処理は進める
+		fmt.Fprintln(os.Stderr, err)
+	}
+
+	if ebpfObjs != nil {
+		qdisc, err := tc.AddClsactQdisc(nwInterface)
 		if err != nil {
 			// error出力するが、処理は進める
 			fmt.Fprintln(os.Stderr, err)
 		}
 
-		if ebpfObjs != nil {
-			qdisc, err := tc.AddClsactQdisc(nwInterface)
-			if err != nil {
-				// error出力するが、処理は進める
-				fmt.Fprintln(os.Stderr, err)
-			}
-
-			// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
-			filterEgress, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
-			if err != nil {
-				// error出力するが、処理は進める
-				fmt.Fprintln(os.Stderr, err)
-			}
-			filterIngress, err := tc.PrepareAnalyzingIngressPackets(nwInterface, ebpfObjs)
-			if err != nil {
-				// error出力するが、処理は進める
-				fmt.Fprintln(os.Stderr, err)
-			}
-			ingressMap = ebpfObjs.PktIngressCount
-			egressMap = ebpfObjs.PktEgressCount
-			defer func() {
-				if err := tc.Close(ebpfObjs, qdisc, filterEgress, filterIngress); err != nil {
-					fmt.Fprintln(os.Stderr, err)
-				}
-			}()
+		// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
+		filterEgress, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
+		if err != nil {
+			// error出力するが、処理は進める
+			fmt.Fprintln(os.Stderr, err)
 		}
+		filterIngress, err := tc.PrepareAnalyzingIngressPackets(nwInterface, ebpfObjs)
+		if err != nil {
+			// error出力するが、処理は進める
+			fmt.Fprintln(os.Stderr, err)
+		}
+		ingressMap = ebpfObjs.PktIngressCount
+		egressMap = ebpfObjs.PktEgressCount
+		defer func() {
+			if err := tc.Close(ebpfObjs, qdisc, filterEgress, filterIngress); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+			}
+		}()
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	for i := range columns {
-		if !strings.Contains(DEFAULT_MONITOR_COLUMNS, string(columns[i])) {
-			fmt.Fprintf(os.Stderr, "Contains unsupported columns: %s\n", string(columns[i]))
-			return
-		}
-	}
-
-	if err := run(ctx, columns, limit, nwInterface, wantSend, debug, protocol, ingressMap, egressMap); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return
-	}
-}
-
-// TODO: テーブル形式で出力してくれるライブラリ使ってもいいかも
-func showInterfaces() error {
-	interfaceDevices, err := packemon.NewInterfaceDevices()
-	if err != nil {
-		return fmt.Errorf("failed to NewInterfaceDevices: %w", err)
-	}
-
-	splitter := func() {
-		fmt.Println("--------------------------------------")
-	}
-	for _, interfaceDevice := range interfaceDevices {
-		splitter()
-		fmt.Printf("Interface name : %s\n", interfaceDevice.InterfaceName)
-		fmt.Printf("Device name    : %s\n", interfaceDevice.DeviceName)
-		fmt.Printf("Description    : %s\n", interfaceDevice.Description)
-		fmt.Printf("MAC address    : %s\n", interfaceDevice.MacAddr)
-
-		fmt.Printf("IP address     : \n")
-		for _, ipAddr := range interfaceDevice.IPAddrs {
-			fmt.Printf("\t%s\n", ipAddr)
-		}
-	}
-
-	return nil
-}
-
-func run(ctx context.Context, columns string, limit int, nwInterface string, wantSend bool, debug bool, protocol string, ingressMap *ebpf.Map, egressMap *ebpf.Map) error {
 	netIf, err := packemon.NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
 	}
 	defer netIf.Close()
 
-	if len(nwInterface) != 0 {
-		generator.DEFAULT_NW_INTERFACE = nwInterface
-	}
+	generator.DEFAULT_NW_INTERFACE = nwInterface
 	generator.DEFAULT_MAC_SOURCE = fmt.Sprintf("0x%s", strings.ReplaceAll(netIf.Intf.HardwareAddr.String(), ":", ""))
 	generator.DEFAULT_ARP_SENDER_MAC = generator.DEFAULT_MAC_SOURCE
 
@@ -192,41 +216,139 @@ func run(ctx context.Context, columns string, limit int, nwInterface string, wan
 		}
 	}
 
-	if debug {
-		if wantSend {
-			// if protocol == "tcp-3way-http" {
-			// 	dstIPAddr := make([]byte, 4)
-			// 	binary.BigEndian.PutUint32(dstIPAddr, 0xc0a80a6e) // 192.168.10.110
-			// 	var dstPort uint16 = 0x0050                       // 80
-			// 	httpGet := packemon.NewHTTP()
-			// 	return packemon.EstablishConnectionAndSendPayload(nwInterface, dstIPAddr, dstPort, httpGet.Bytes())
-			// }
+	packemonTUI := generator.New(netIf, ingressMap, egressMap)
+	return packemonTUI.Run(ctx)
+}
 
-			// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
-			// $ ip route
-			// $ arp xxx.xx.xxx.1
-			rawDefaultRouteMAC, err := packemon.GetDefaultRouteMAC()
-			if err != nil {
-				return err
-			}
-			firsthopMACAddr, err := packemon.StrHexToBytes(fmt.Sprintf("0x%s", strings.ReplaceAll(rawDefaultRouteMAC, ":", "")))
-			if err != nil {
-				return err
-			}
+func actionMonitor(ctx context.Context, c *cli.Command) error {
+	columns := DEFAULT_MONITOR_COLUMNS
+	if c.String("columns") != "" {
+		columns = c.String("columns")
+	}
+	for i := range columns {
+		if !strings.Contains(DEFAULT_MONITOR_COLUMNS, string(columns[i])) {
+			return fmt.Errorf("Contains unsupported columns: %s\n", string(columns[i]))
+		}
+	}
 
-			return debugMode(wantSend, protocol, netIf, packemon.HardwareAddr(firsthopMACAddr))
+	limit := DEFAULT_MONITOR_LIMIT
+	if c.Int("limit") != 0 {
+		limit = c.Int("limit")
+	}
+
+	nwInterface := DEFAULT_TARGET_NW_INTERFACE
+	if c.String("interface") != "" {
+		nwInterface = c.String("interface")
+	}
+	netIf, err := packemon.NewNetworkInterface(nwInterface)
+	if err != nil {
+		return err
+	}
+	defer netIf.Close()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	packemonTUI := monitor.New(netIf, columns, limit)
+	return packemonTUI.Run(ctx)
+}
+
+// TODO: テーブル形式で出力してくれるライブラリ使ってもいいかも
+func actionInterfaces(ctx context.Context, c *cli.Command) error {
+	interfaceDevices, err := packemon.NewInterfaceDevices()
+	if err != nil {
+		return fmt.Errorf("failed to NewInterfaceDevices: %w", err)
+	}
+
+	splitter := func() {
+		fmt.Println("--------------------------------------")
+	}
+	for _, interfaceDevice := range interfaceDevices {
+		splitter()
+		fmt.Printf("Interface name : %s\n", interfaceDevice.InterfaceName)
+		fmt.Printf("Device name    : %s\n", interfaceDevice.DeviceName)
+		fmt.Printf("Description    : %s\n", interfaceDevice.Description)
+		fmt.Printf("MAC address    : %s\n", interfaceDevice.MacAddr)
+
+		fmt.Printf("IP address     : \n")
+		for _, ipAddr := range interfaceDevice.IPAddrs {
+			fmt.Printf("\t%s\n", ipAddr)
+		}
+	}
+
+	return nil
+}
+
+func actionDebugging(ctx context.Context, c *cli.Command) error {
+	nwInterface := DEFAULT_TARGET_NW_INTERFACE
+	if c.String("interface") != "" {
+		nwInterface = c.String("interface")
+	}
+	netIf, err := packemon.NewNetworkInterface(nwInterface)
+	if err != nil {
+		return err
+	}
+	defer netIf.Close()
+
+	if c.Bool("send") {
+		// この辺り、デフォ値設定するとこももってきたけどいらんかも
+		generator.DEFAULT_NW_INTERFACE = nwInterface
+		generator.DEFAULT_MAC_SOURCE = fmt.Sprintf("0x%s", strings.ReplaceAll(netIf.Intf.HardwareAddr.String(), ":", ""))
+		generator.DEFAULT_ARP_SENDER_MAC = generator.DEFAULT_MAC_SOURCE
+
+		ipAddrs, err := netIf.Intf.Addrs()
+		if err != nil {
+			return err
 		}
 
-		// Monitor の debug は本チャンの networkinterface.go 使うようにする
-		go netIf.Recieve(ctx)
-		return debugPrint(ctx, netIf.PassiveCh)
+		// TODO: ちょっとここちゃんとした方が良さそう
+		for _, ipAddr := range ipAddrs {
+			// ipv6
+			if strings.Contains(ipAddr.String(), ":") {
+				if len(generator.DEFAULT_IPv6_SOURCE) == 0 {
+					// 一旦、最初に見つかったipv6アドレスを設定する
+					generator.DEFAULT_IPv6_SOURCE = strings.Split(ipAddr.String(), "/")[0]
+					continue
+				}
+				continue
+			}
+
+			// ipv4
+			if len(generator.DEFAULT_IP_SOURCE) == 0 {
+				// 一旦、最初に見つかったipv4アドレスを設定する
+				generator.DEFAULT_IP_SOURCE = strings.Split(ipAddr.String(), "/")[0]
+				generator.DEFAULT_ARP_SENDER_IP = generator.DEFAULT_IP_SOURCE
+				continue
+			}
+		}
+
+		// if protocol == "tcp-3way-http" {
+		// 	dstIPAddr := make([]byte, 4)
+		// 	binary.BigEndian.PutUint32(dstIPAddr, 0xc0a80a6e) // 192.168.10.110
+		// 	var dstPort uint16 = 0x0050                       // 80
+		// 	httpGet := packemon.NewHTTP()
+		// 	return packemon.EstablishConnectionAndSendPayload(nwInterface, dstIPAddr, dstPort, httpGet.Bytes())
+		// }
+
+		// PC再起動とかでdstのMACアドレス変わるみたい。以下で調べてdst正しいのにする
+		// $ ip route
+		// $ arp xxx.xx.xxx.1
+		rawDefaultRouteMAC, err := packemon.GetDefaultRouteMAC()
+		if err != nil {
+			return err
+		}
+		firsthopMACAddr, err := packemon.StrHexToBytes(fmt.Sprintf("0x%s", strings.ReplaceAll(rawDefaultRouteMAC, ":", "")))
+		if err != nil {
+			return err
+		}
+
+		protocol := c.String("proto")
+		return debugMode(true, protocol, netIf, packemon.HardwareAddr(firsthopMACAddr))
 	}
 
-	var packemonTUI tui.TUI = monitor.New(netIf, columns, limit)
-	if wantSend {
-		packemonTUI = generator.New(netIf, ingressMap, egressMap)
-	}
-	return packemonTUI.Run(ctx)
+	// Monitor の debug は本チャンの networkinterface.go 使うようにする
+	go netIf.Recieve(ctx)
+	return debugPrint(ctx, netIf.PassiveCh)
 }
 
 func debugPrint(ctx context.Context, passive <-chan *packemon.Passive) error {

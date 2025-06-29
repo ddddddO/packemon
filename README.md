@@ -263,7 +263,7 @@ USAGE:
    packemon [global options] [command [command options]]
 
 VERSION:
-   unset / revision unset
+   1.8.0 / revision cb61da2
 
 COMMANDS:
    monitor, m, mon       Monitor mode. You can monitor packets received and sent on the specified interface. Default is 'eth0' interface.

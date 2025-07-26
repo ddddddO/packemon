@@ -100,10 +100,15 @@ func (m *monitor) insertToTable(r *HistoryRow) {
 		x++
 	}
 
+	currentRow, currentColumn := m.table.GetSelection()
+
 	// カーソル下に移動してるのにパケットキャッチするたびにトップに移動するのはしんどいのでコメントアウト
 	// していたが、それも微妙かも？
 	// と思ったけどやっぱりコメントアウト
 	// m.table.ScrollToBeginning()
+
+	// パケットが届き、行が追加されてもカーソルをあてていた行をずらさずに固定するため
+	m.table = m.table.Select(currentRow+1, currentColumn)
 }
 
 func NewPacketsHistoryTable() *tview.Table {

@@ -94,6 +94,7 @@ func (m *monitor) Run(ctx context.Context) error {
 			m.table.SetSelectable(false, false)
 		}
 		if key == tcell.KeyEnter {
+			m.table.Select(0, 0)
 			m.table.SetSelectable(true, false)
 		}
 	}).SetSelectedStyle(tcell.Style{}.Background(tcell.ColorRed)).SetSelectedFunc(func(row int, column int) {

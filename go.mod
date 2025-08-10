@@ -9,7 +9,7 @@ require (
 	github.com/rivo/tview v0.0.0-20240426173458-c766eefb3803
 	github.com/urfave/cli/v3 v3.3.8
 	github.com/vishvananda/netlink v1.3.1
-	golang.org/x/crypto v0.40.0
+	golang.org/x/crypto v0.41.0
 	golang.org/x/sys v0.35.0
 )
 
@@ -19,7 +19,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
-	golang.org/x/net v0.41.0 // indirect
-	golang.org/x/term v0.33.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 )

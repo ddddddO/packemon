@@ -190,7 +190,8 @@ $ apk add --allow-untrusted packemon.apk
 $ brew install ddddddO/tap/packemon
 </pre>
 
-#### Confirmed executable in the following environments
+<details><summary>Confirmed executable in the following environments</summary>
+
 - OS: Debian GNU/Linux 12 (bookworm) on WSL2
   - Kernel: 5.15.167.4-microsoft-standard-WSL2
   - Architecture: x86_64
@@ -218,6 +219,9 @@ $ brew install ddddddO/tap/packemon
 - OS: `cat /etc/os-release`
   - Kernel: `uname -r`
   - Architecture: `uname -m` 
+
+</details>
+
 
 </details>
 
@@ -300,8 +304,8 @@ or
 $ sudo packemon monitor
 ```
 
-## Usecase
-### Sending DNS query and Monitoring DNS response
+### Sample execution
+#### Sending DNS query and Monitoring DNS response
 
 1. setup
     ```sh
@@ -345,6 +349,22 @@ $ sudo packemon monitor
 
       - DNS response (`SrcIP: 1.1.1.1`)
         ![](./assets/sending_dns_query_and_monitoring_dns_response/5.png)
+
+## Usecase
+### Network Learning and Education
+Packemon serves as an educational tool for understanding network protocols by allowing hands-on experimentation. You can generate custom packets at different OSI layers and observe their behavior, making it ideal for learning TCP/IP fundamentals.
+
+### Protocol Development and Testing
+The tool supports testing custom protocol implementations across multiple layers including Ethernet, ARP, IPv4/IPv6, TCP/UDP, TLS, DNS, and HTTP. This makes it valuable for developers working on network protocol stacks or testing protocol compliance.
+
+### Network Troubleshooting and Analysis
+Packemon provides packet monitoring capabilities similar to Wireshark, allowing you to capture and analyze network traffic in real-time. You can filter packets, examine protocol details, and export captured data to pcapng format for further analysis.
+
+### Security Research and Penetration Testing
+The tool can be used for security research, including testing for vulnerabilities like DNS reflection attacks.
+
+### Custom Network Tool Development
+Packemon demonstrates how to build network tools from scratch, serving as a reference implementation for developers creating their own packet manipulation utilities.
 
 ## Related tools
 - [Wireshark](https://www.wireshark.org/)

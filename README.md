@@ -188,6 +188,9 @@ $ apk add --allow-untrusted packemon.apk
 
 <b>Homebrew</b>
 $ brew install ddddddO/tap/packemon
+
+<b>AUR</b>
+https://aur.archlinux.org/packages?K=packemon
 </pre>
 
 <details><summary>Confirmed executable in the following environments</summary>

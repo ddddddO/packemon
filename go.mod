@@ -4,7 +4,7 @@ go 1.24
 
 require (
 	github.com/cilium/ebpf v0.19.0
-	github.com/gdamore/tcell/v2 v2.8.1
+	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/gopacket/gopacket v1.4.0
 	github.com/rivo/tview v0.0.0-20240426173458-c766eefb3803
 	github.com/urfave/cli/v3 v3.4.1

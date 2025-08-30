@@ -6,7 +6,7 @@ require (
 	github.com/cilium/ebpf v0.19.0
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/gopacket/gopacket v1.4.0
-	github.com/rivo/tview v0.0.0-20240426173458-c766eefb3803
+	github.com/rivo/tview v0.42.0
 	github.com/urfave/cli/v3 v3.4.1
 	github.com/vishvananda/netlink v1.3.1
 	golang.org/x/crypto v0.41.0

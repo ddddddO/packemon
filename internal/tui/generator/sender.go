@@ -173,7 +173,7 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 						s.packets.ethernet,
 						s.packets.ipv4,
 						s.packets.tcp,
-						nil, // s.packets.dns.Bytes(),
+						nil,
 					)
 				case "IPv6":
 					return packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
@@ -182,7 +182,7 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 						s.packets.ethernet,
 						s.packets.ipv6,
 						s.packets.tcp,
-						nil, // s.packets.dns.Bytes(),
+						nil,
 					)
 				case "ARP":
 					return fmt.Errorf("unsupported under protocol: %s", selectedL3)

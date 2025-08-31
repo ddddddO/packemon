@@ -8,14 +8,9 @@ import (
 	"github.com/rivo/tview"
 )
 
-var do3wayHandshakeForDNS = false
-
 func (g *generator) dnsForm() *tview.Form {
 	dnsForm := tview.NewForm().
 		AddTextView("DNS", "This section generates the DNS.\nIt is still under development.", 60, 4, true, false).
-		AddCheckbox("Do TCP 3way handshake ?", do3wayHandshakeForDNS, func(checked bool) {
-			do3wayHandshakeForDNS = checked
-		}).
 		AddInputField("Transaction ID", DEFAULT_DNS_TRANSACTION, 6, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 6 {
 				return true

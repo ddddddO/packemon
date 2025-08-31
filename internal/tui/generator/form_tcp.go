@@ -8,9 +8,14 @@ import (
 	"github.com/rivo/tview"
 )
 
+var doTCP3wayHandshake = false
+
 func (g *generator) tcpForm() *tview.Form {
 	tcpForm := tview.NewForm().
 		AddTextView("TCP", "This section generates the TCP.\nIt is still under development.", 60, 4, true, false).
+		AddCheckbox("Do TCP 3way handshake ?", doTCP3wayHandshake, func(checked bool) {
+			doTCP3wayHandshake = checked
+		}).
 		AddInputField("Source Port", DEFAULT_TCP_PORT_SOURCE, 5, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) <= 5 {
 				n, err := packemon.StrIntToUint16(textToCheck)

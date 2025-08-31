@@ -162,35 +162,64 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 
 			return s.sendFn(ethernetFrame)
 		case "TCP":
-			s.packets.tcp.Checksum = 0x0000
-			s.packets.tcp.Data = []byte{} // 前回分の TCP より上のデータをクリア
-			ethernetFrame := &packemon.EthernetFrame{
-				Header: s.packets.ethernet,
-			}
+			if doTCP3wayHandshake {
+				switch selectedL3 {
+				case "":
+					return fmt.Errorf("not implemented")
+				case "IPv4":
+					return packemon.EstablishConnectionAndSendPayloadXxx(
+						ctx,
+						DEFAULT_NW_INTERFACE,
+						s.packets.ethernet,
+						s.packets.ipv4,
+						s.packets.tcp,
+						nil, // s.packets.dns.Bytes(),
+					)
+				case "IPv6":
+					return packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
+						ctx,
+						DEFAULT_NW_INTERFACE,
+						s.packets.ethernet,
+						s.packets.ipv6,
+						s.packets.tcp,
+						nil, // s.packets.dns.Bytes(),
+					)
+				case "ARP":
+					return fmt.Errorf("unsupported under protocol: %s", selectedL3)
+				default:
+					return fmt.Errorf("unsupported under protocol: %s", selectedL3)
+				}
+			} else {
+				s.packets.tcp.Checksum = 0x0000
+				s.packets.tcp.Data = []byte{} // 前回分の TCP より上のデータをクリア
+				ethernetFrame := &packemon.EthernetFrame{
+					Header: s.packets.ethernet,
+				}
 
-			switch selectedL3 {
-			case "":
-				ethernetFrame.Data = s.packets.tcp.Bytes()
-			case "IPv4":
-				s.packets.tcp.CalculateChecksum(s.packets.ipv4)
-				s.packets.ipv4.Data = s.packets.tcp.Bytes()
-				s.packets.ipv4.CalculateTotalLength()
-				// 前回Send分が残ってると計算誤るため
-				s.packets.ipv4.HeaderChecksum = 0x0
-				s.packets.ipv4.CalculateChecksum()
-				ethernetFrame.Data = s.packets.ipv4.Bytes()
-			case "IPv6":
-				s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
-				s.packets.ipv6.Data = s.packets.tcp.Bytes()
-				s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
-				ethernetFrame.Data = s.packets.ipv6.Bytes()
-			case "ARP":
-				return fmt.Errorf("unsupported under ARP")
-			default:
-				return fmt.Errorf("not implemented under protocol: %s", selectedL3)
-			}
+				switch selectedL3 {
+				case "":
+					ethernetFrame.Data = s.packets.tcp.Bytes()
+				case "IPv4":
+					s.packets.tcp.CalculateChecksum(s.packets.ipv4)
+					s.packets.ipv4.Data = s.packets.tcp.Bytes()
+					s.packets.ipv4.CalculateTotalLength()
+					// 前回Send分が残ってると計算誤るため
+					s.packets.ipv4.HeaderChecksum = 0x0
+					s.packets.ipv4.CalculateChecksum()
+					ethernetFrame.Data = s.packets.ipv4.Bytes()
+				case "IPv6":
+					s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
+					s.packets.ipv6.Data = s.packets.tcp.Bytes()
+					s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
+					ethernetFrame.Data = s.packets.ipv6.Bytes()
+				case "ARP":
+					return fmt.Errorf("unsupported under ARP")
+				default:
+					return fmt.Errorf("not implemented under protocol: %s", selectedL3)
+				}
 
-			return s.sendFn(ethernetFrame)
+				return s.sendFn(ethernetFrame)
+			}
 		}
 	case "L5/6":
 		return fmt.Errorf("not implemented layer")
@@ -235,7 +264,7 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 
 					return s.sendFn(ethernetFrame)
 				case "TCP":
-					if do3wayHandshakeForDNS {
+					if doTCP3wayHandshake {
 						switch selectedL3 {
 						case "":
 							return fmt.Errorf("not implemented")
@@ -313,7 +342,7 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 					// TODO:
 					return fmt.Errorf("unsupported under protocol: %s", selectedL4)
 				case "TCP":
-					if do3wayHandshakeForHTTP {
+					if doTCP3wayHandshake {
 						switch selectedL3 {
 						case "":
 							return fmt.Errorf("not implemented")
@@ -377,7 +406,7 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 			case "TLSv1.2":
 				switch selectedL4 {
 				case "TCP":
-					if do3wayHandshakeForHTTP {
+					if doTCP3wayHandshake {
 						switch selectedL3 {
 						case "":
 							return fmt.Errorf("not implemented")
@@ -413,7 +442,7 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 			case "TLSv1.3":
 				switch selectedL4 {
 				case "TCP":
-					if do3wayHandshakeForHTTP {
+					if doTCP3wayHandshake {
 						switch selectedL3 {
 						case "":
 							return fmt.Errorf("not implemented")

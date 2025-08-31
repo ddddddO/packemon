@@ -85,6 +85,11 @@ func EstablishConnectionAndSendPayloadXxx(ctx context.Context, nwInterface strin
 				}
 				tcpConn.EstablishedConnection()
 
+				// L4より上位レイヤーのデータを送らずに3way handshakeだけしたい(でその後、サーバからデータ取得したい)みたいなことがあるため
+				if len(upperLayerData) == 0 {
+					continue
+				}
+
 				tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, upperLayerData, tcp.Sequence, tcp.Acknowledgment)
 				ipv4 = NewIPv4(IPv4_PROTO_TCP, srcIPAddr, dstIPAddr)
 				tcp.CalculateChecksum(ipv4)
@@ -240,6 +245,11 @@ func EstablishConnectionAndSendPayloadXxxForIPv6(ctx context.Context, nwInterfac
 					return err
 				}
 				tcpConn.EstablishedConnection()
+
+				// L4より上位レイヤーのデータを送らずに3way handshakeだけしたい(でその後、サーバからデータ取得したい)みたいなことがあるため
+				if len(upperLayerData) == 0 {
+					continue
+				}
 
 				tcp = NewTCPWithData(tcpConn.SrcPort, tcpConn.DstPort, upperLayerData, tcp.Sequence, tcp.Acknowledgment)
 				ipv6 = NewIPv6(IPv6_NEXT_HEADER_TCP, srcIPAddr, dstIPAddr)

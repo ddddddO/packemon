@@ -3,16 +3,38 @@ package packemon
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
+type TCPFlags uint8
+
 const (
-	TCP_FLAGS_SYN         = 0x02
-	TCP_FLAGS_SYN_ACK     = 0x12
-	TCP_FLAGS_ACK         = 0x10
-	TCP_FLAGS_FIN_ACK     = 0x11
-	TCP_FLAGS_PSH_ACK     = 0x18 // データを上位層へ渡してという信号
-	TCP_FLAGS_FIN_PSH_ACK = 0x19
+	TCP_FLAGS_SYN         TCPFlags = 0x02
+	TCP_FLAGS_SYN_ACK     TCPFlags = 0x12
+	TCP_FLAGS_ACK         TCPFlags = 0x10
+	TCP_FLAGS_FIN_ACK     TCPFlags = 0x11
+	TCP_FLAGS_PSH_ACK     TCPFlags = 0x18 // データを上位層へ渡してという信号
+	TCP_FLAGS_FIN_PSH_ACK TCPFlags = 0x19
 )
+
+func (tf TCPFlags) String() string {
+	switch tf {
+	case TCP_FLAGS_SYN:
+		return "Syn"
+	case TCP_FLAGS_SYN_ACK:
+		return "Syn/Ack"
+	case TCP_FLAGS_ACK:
+		return "Ack"
+	case TCP_FLAGS_FIN_ACK:
+		return "Fin/Ack"
+	case TCP_FLAGS_PSH_ACK:
+		return "Psh/Ack"
+	case TCP_FLAGS_FIN_PSH_ACK:
+		return "Fin/Psh/Ack"
+	default:
+		return fmt.Sprintf("raw: %x", tf)
+	}
+}
 
 type TCP struct {
 	SrcPort        uint16
@@ -26,7 +48,7 @@ type TCP struct {
 
 	// Control bits(8bit)
 	// ref: https://www.rfc-editor.org/rfc/rfc9293.html#section-3.1-6.14.1
-	Flags uint8
+	Flags TCPFlags
 
 	Window        uint16
 	Checksum      uint16
@@ -43,7 +65,7 @@ func ParsedTCP(payload []byte) *TCP {
 		Sequence:       binary.BigEndian.Uint32(payload[4:8]),
 		Acknowledgment: binary.BigEndian.Uint32(payload[8:12]),
 		HeaderLength:   payload[12] & 0b11110000,
-		Flags:          payload[13],
+		Flags:          TCPFlags(payload[13]),
 		Window:         binary.BigEndian.Uint16(payload[14:16]),
 		Checksum:       binary.BigEndian.Uint16(payload[16:18]),
 		UrgentPointer:  binary.BigEndian.Uint16(payload[18:20]),
@@ -68,7 +90,7 @@ func newTCP(flags uint8, srcPort, dstPort uint16, sequence, acknowledgment uint3
 		Sequence:       sequence,
 		Acknowledgment: acknowledgment,
 		HeaderLength:   0x0050,
-		Flags:          flags,
+		Flags:          TCPFlags(flags),
 		Window:         0xfaf0,
 		Checksum:       0x0000,
 		UrgentPointer:  0x0000,
@@ -160,7 +182,7 @@ func (t *TCP) headerToBytes() []byte {
 	WriteUint32(buf, t.Sequence)
 	WriteUint32(buf, t.Acknowledgment)
 	buf.WriteByte(t.HeaderLength)
-	buf.WriteByte(t.Flags)
+	buf.WriteByte(uint8(t.Flags))
 	WriteUint16(buf, t.Window)
 	WriteUint16(buf, t.Checksum)
 	WriteUint16(buf, t.UrgentPointer)

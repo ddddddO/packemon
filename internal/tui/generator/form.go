@@ -376,7 +376,7 @@ func defaultPackets() (*packets, error) {
 	if err != nil {
 		return nil, err
 	}
-	tcp.Flags = tcpFlags
+	tcp.Flags = packemon.TCPFlags(tcpFlags)
 
 	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
 	if err != nil {

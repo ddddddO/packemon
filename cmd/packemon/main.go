@@ -23,8 +23,8 @@ var (
 
 const DEFAULT_TARGET_NW_INTERFACE = "eth0"
 
-// d: dest mac, s: src mac, t: type, p: protocol, D: dest ip, S: src ip
-const DEFAULT_MONITOR_COLUMNS = "dstpDS"
+// d: dest mac, s: src mac, t: type, p: protocol, D: dest ip, S: src ip, i: info
+const DEFAULT_MONITOR_COLUMNS = "dstpDSi"
 const DEFAULT_MONITOR_LIMIT = 1000
 
 const METAMON = "\n" +
@@ -60,7 +60,7 @@ func main() {
 			interfaceFlag,
 			&cli.StringFlag{
 				Name:  "columns",
-				Usage: `Specify columns to be displayed in monitor mode. Default is 'dstpDS' . (default "dstpDS")`,
+				Usage: `Specify columns to be displayed in monitor mode. Default is 'dstpDSi' . (default "dstpDSi")`,
 			},
 			&cli.IntFlag{
 				Name:  "limit",

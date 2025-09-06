@@ -96,6 +96,8 @@ func (m *monitor) insertToTable(r *HistoryRow) {
 			m.table.SetCell(0, x, r.destinationIPAddr)
 		case 'S':
 			m.table.SetCell(0, x, r.sourceIPAddr)
+		case 'i':
+			m.table.SetCell(0, x, r.info)
 		}
 		x++
 	}
@@ -133,6 +135,8 @@ type HistoryRow struct {
 	protocol          *tview.TableCell
 	sourceIPAddr      *tview.TableCell
 	destinationIPAddr *tview.TableCell
+
+	info *tview.TableCell
 }
 
 func (m *monitor) newHistoryRow(passive *packemon.Passive, id uint64) *HistoryRow {
@@ -156,7 +160,13 @@ func (m *monitor) newHistoryRow(passive *packemon.Passive, id uint64) *HistoryRo
 	} else {
 		r.destinationIPAddr = tview.NewTableCell(fmt.Sprintf("DstIP:%s", "-")).SetTextColor(tcell.Color51)
 		r.sourceIPAddr = tview.NewTableCell(fmt.Sprintf("SrcIP:%s", "-")).SetTextColor(tcell.Color181)
-
 	}
+
+	if passive.TCP != nil {
+		r.info = tview.NewTableCell(fmt.Sprintf("%d <- %d |%s|", passive.TCP.DstPort, passive.TCP.SrcPort, passive.TCP.Flags)).SetTextColor(tcell.ColorFloralWhite)
+	} else if passive.UDP != nil {
+		r.info = tview.NewTableCell(fmt.Sprintf("%d <- %d", passive.UDP.DstPort, passive.UDP.SrcPort)).SetTextColor(tcell.ColorFloralWhite)
+	}
+
 	return r
 }

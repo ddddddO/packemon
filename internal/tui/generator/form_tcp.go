@@ -64,7 +64,7 @@ func (g *generator) tcpForm() *tview.Form {
 			if err != nil {
 				return false
 			}
-			g.sender.packets.tcp.Flags = b
+			g.sender.packets.tcp.Flags = packemon.TCPFlags(b)
 
 			return true
 		}, nil).

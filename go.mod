@@ -1,6 +1,6 @@
 module github.com/ddddddO/packemon
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/cilium/ebpf v0.19.0
@@ -9,8 +9,8 @@ require (
 	github.com/rivo/tview v0.42.0
 	github.com/urfave/cli/v3 v3.4.1
 	github.com/vishvananda/netlink v1.3.1
-	golang.org/x/crypto v0.41.0
-	golang.org/x/sys v0.35.0
+	golang.org/x/crypto v0.42.0
+	golang.org/x/sys v0.36.0
 )
 
 require (
@@ -19,7 +19,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
-	golang.org/x/net v0.42.0 // indirect
-	golang.org/x/term v0.34.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/term v0.35.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 )

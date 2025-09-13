@@ -80,12 +80,13 @@ The rightmost image shows how the packet list is filtered.
         - TCP 3way handshake ~ TLS handshake ~ TLS Application data (encrypted HTTP)
       - Supported cipher suites include
         - `TLS_CHACHA20_POLY1305_SHA256`
-  - [x] QUIC (**Using github.com/quic-go/quic-go**. The following are valid fields;)
+  - [x] QUIC (**Using [github.com/quic-go/quic-go](https://github.com/quic-go/quic-go)**. The following are valid fields;)
     - IPv4: `Source IP Addr`, `Destination IP Addr`
     - IPv6: `Source IP Addr`, `Destination IP Addr`
     - UDP: `Source Port`, `Destination Port` (UDP selection required)
     - QUIC: All fields
     - HTTP: All fields
+      - 🥳< HTTP/3!
 
   - [x] DNS (WIP)
   - [x] HTTP (WIP)

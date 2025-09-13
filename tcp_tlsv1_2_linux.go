@@ -11,8 +11,16 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, fIpv4 *IPv4, fTcp *TCP, upperLayerData []byte) error {
+	return establishTCPTLSv1_2AndSendPayload(ctx, fIpv4, fTcp, upperLayerData)
+}
+
+func EstablishTCPTLSv1_2AndSendPayloadForIPv6(ctx context.Context, fIpv6 *IPv6, fTcp *TCP, upperLayerData []byte) error {
+	return establishTCPTLSv1_2AndSendPayloadForIPv6(ctx, fIpv6, fTcp, upperLayerData)
+}
+
 // TCP 3way handshake と TLSv1.2 の handshake 後にリクエストする関数
-func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv4 *IPv4, fTcp *TCP, upperLayerData []byte) error {
+func EstablishTCPTLSv1_2AndSendPayload_CustomImpl(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv4 *IPv4, fTcp *TCP, upperLayerData []byte) error {
 	nw, err := NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err
@@ -307,7 +315,7 @@ func EstablishTCPTLSv1_2AndSendPayload(ctx context.Context, nwInterface string, 
 }
 
 // TCP 3way handshake と TLSv1.2 の handshake 後にリクエストする関数(IPv6用)
-func EstablishTCPTLSv1_2AndSendPayloadForIPv6(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv6 *IPv6, fTcp *TCP, upperLayerData []byte) error {
+func EstablishTCPTLSv1_2AndSendPayloadForIPv6_CustomImpl(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv6 *IPv6, fTcp *TCP, upperLayerData []byte) error {
 	nw, err := NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err

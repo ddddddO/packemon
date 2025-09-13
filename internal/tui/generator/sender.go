@@ -411,23 +411,41 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 						case "":
 							return fmt.Errorf("not implemented")
 						case "IPv4":
-							return packemon.EstablishTCPTLSv1_2AndSendPayload(
-								ctx,
-								DEFAULT_NW_INTERFACE,
-								s.packets.ethernet,
-								s.packets.ipv4,
-								s.packets.tcp,
-								s.packets.http.Bytes(),
-							)
+							if doCustomOfTLSv12 {
+								return packemon.EstablishTCPTLSv1_2AndSendPayload_CustomImpl(
+									ctx,
+									DEFAULT_NW_INTERFACE,
+									s.packets.ethernet,
+									s.packets.ipv4,
+									s.packets.tcp,
+									s.packets.http.Bytes(),
+								)
+							} else {
+								return packemon.EstablishTCPTLSv1_2AndSendPayload(
+									ctx,
+									s.packets.ipv4,
+									s.packets.tcp,
+									s.packets.http.Bytes(),
+								)
+							}
 						case "IPv6":
-							return packemon.EstablishTCPTLSv1_2AndSendPayloadForIPv6(
-								ctx,
-								DEFAULT_NW_INTERFACE,
-								s.packets.ethernet,
-								s.packets.ipv6,
-								s.packets.tcp,
-								s.packets.http.Bytes(),
-							)
+							if doCustomOfTLSv12 {
+								return packemon.EstablishTCPTLSv1_2AndSendPayloadForIPv6_CustomImpl(
+									ctx,
+									DEFAULT_NW_INTERFACE,
+									s.packets.ethernet,
+									s.packets.ipv6,
+									s.packets.tcp,
+									s.packets.http.Bytes(),
+								)
+							} else {
+								return packemon.EstablishTCPTLSv1_2AndSendPayloadForIPv6(
+									ctx,
+									s.packets.ipv6,
+									s.packets.tcp,
+									s.packets.http.Bytes(),
+								)
+							}
 						case "ARP":
 							return fmt.Errorf("unsupported under protocol: %s", selectedL3)
 						default:
@@ -447,16 +465,26 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 						case "":
 							return fmt.Errorf("not implemented")
 						case "IPv4":
-							return packemon.EstablishTCPTLSv1_3AndSendPayload(
-								ctx,
-								DEFAULT_NW_INTERFACE,
-								s.packets.ethernet,
-								s.packets.ipv4,
-								s.packets.tcp,
-								s.packets.http.Bytes(),
-							)
+							if doCustomOfTLSv13 {
+								return packemon.EstablishTCPTLSv1_3AndSendPayload_CustomImpl(
+									ctx,
+									DEFAULT_NW_INTERFACE,
+									s.packets.ethernet,
+									s.packets.ipv4,
+									s.packets.tcp,
+									s.packets.http.Bytes(),
+								)
+							} else {
+								return packemon.EstablishTCPTLSv1_3AndSendPayload(
+									ctx,
+									s.packets.ipv4,
+									s.packets.tcp,
+									s.packets.http.Bytes(),
+								)
+							}
 						case "IPv6":
 							return fmt.Errorf("not implemtented")
+							// if doCustomOfTLSv13 {}
 							// return packemon.EstablishTCPTLSv1_2AndSendPayloadForIPv6(
 							// 	ctx,
 							// 	DEFAULT_NW_INTERFACE,

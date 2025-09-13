@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"net"
 )
 
 type TCPFlags uint8
@@ -207,4 +208,15 @@ func EstablishConnectionAndSendPayload(nwInterface string, dstIPAddr []byte, dst
 	}
 
 	return nil
+}
+
+func createTCPAddr(ipBytes []byte, port uint16) (*net.TCPAddr, error) {
+	if len(ipBytes) != net.IPv4len && len(ipBytes) != net.IPv6len {
+		return nil, fmt.Errorf("invalid IP addr Length: %d bytes", len(ipBytes))
+	}
+
+	return &net.TCPAddr{
+		IP:   net.IP(ipBytes),
+		Port: int(port),
+	}, nil
 }

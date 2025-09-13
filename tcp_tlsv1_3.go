@@ -2,13 +2,69 @@ package packemon
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/tls"
+	"encoding/binary"
 	"fmt"
+	"net"
+	"time"
 
 	"golang.org/x/crypto/curve25519"
 )
+
+/*
+- 任意のsrcIPを指定できるけど、NICに紐づいたIPでないとエラーになるよう
+- 指定できるのが以下でそれ以外はダメ
+  - IPv4: Source IP Addr, Destination IP Addr
+  - TCP: Source Port, Destination Port
+  - Application Protocol
+*/
+func establishTCPTLSv1_3AndSendPayload(ctx context.Context, fIpv4 *IPv4, fTcp *TCP, upperLayerData []byte) error {
+	network := "tcp"
+
+	localIPBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(localIPBytes, fIpv4.SrcAddr)
+	localTCPAddr, err := createTCPAddr(localIPBytes, fTcp.SrcPort)
+	if err != nil {
+		return err
+	}
+
+	remoteIPBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(remoteIPBytes, fIpv4.DstAddr)
+	remoteTCPAddr, err := createTCPAddr(remoteIPBytes, fTcp.DstPort)
+	if err != nil {
+		return err
+	}
+
+	tcpConn, err := net.DialTCP(network, localTCPAddr, remoteTCPAddr)
+	if err != nil {
+		return err
+	}
+	defer tcpConn.Close()
+
+	// TODO: 他で設定してたタイムアウト値外だしして使うように
+	if err := tcpConn.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		return err
+	}
+
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: true,
+		// ServerName: ,
+		MinVersion: tls.VersionTLS13,
+		MaxVersion: tls.VersionTLS13,
+	}
+	tlsConn := tls.Client(tcpConn, tlsCfg)
+	defer tlsConn.Close()
+
+	if _, err := tlsConn.Write(upperLayerData); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func tryEstablishTLS13Handshake(tlsConn *TLSv12Connection, serverHelloTCP []byte, tcpConn *TCPConnection, tcp *TCP, srcIPAddr uint32, dstIPAddr uint32, dstMACAddr HardwareAddr, srcMACAddr HardwareAddr, ethrhTyp uint16, nw *NetworkInterface) (prevTCP *TCP, err error) {
 	tlsConn.currentHandshake = true

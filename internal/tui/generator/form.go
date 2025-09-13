@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/binary"
 	"net"
 	"strconv"
@@ -65,6 +66,8 @@ var (
 	DEFAULT_TCP_SEQUENCE         = "0x1f6e9499"
 	DEFAULT_TCP_FLAGS            = "0x02"
 
+	DEFAULT_QUIC_TLS_SERVER_NAME = "google.com"
+
 	DEFAULT_HTTP_METHOD     = "GET"
 	DEFAULT_HTTP_URI        = "/"
 	DEFAULT_HTTP_VERSION    = "HTTP/1.1"
@@ -93,6 +96,8 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 	tlsv1_2Form.SetBorder(true).SetTitle(" TLSv1.2 ").SetTitleAlign(tview.AlignLeft)
 	tlsv1_3Form := g.tlsv1_3Form()
 	tlsv1_3Form.SetBorder(true).SetTitle(" TLSv1.3 ").SetTitleAlign(tview.AlignLeft)
+	quicForm := g.quicForm()
+	quicForm.SetBorder(true).SetTitle(" QUIC ").SetTitleAlign(tview.AlignLeft)
 
 	// L4
 	tcpForm := g.tcpForm()
@@ -119,6 +124,7 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 		AddPage("DNS", dnsForm, true, true).
 		AddPage("TLSv1.2", tlsv1_2Form, true, true).
 		AddPage("TLSv1.3", tlsv1_3Form, true, true).
+		AddPage("QUIC", quicForm, true, true).
 		AddPage("UDP", udpForm, true, true).
 		AddPage("TCP", tcpForm, true, true).
 		AddPage("ICMP", icmpForm, true, true).
@@ -152,7 +158,7 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 	})
 	l7Protocols.SetCurrentOption(1)
 
-	l5_6s := []string{"", "TLSv1.2", "TLSv1.3"}
+	l5_6s := []string{"", "TLSv1.2", "TLSv1.3", "QUIC"}
 	l5_6Protocols := tview.NewDropDown()
 	l5_6Protocols.SetTitle("Lδ").SetBorder(true)
 	l5_6Protocols.SetOptions(l5_6s, func(text string, index int) {
@@ -270,6 +276,7 @@ type packets struct {
 	tcp      *packemon.TCP
 	udp      *packemon.UDP
 	dns      *packemon.DNS
+	quic     *packemon.QUIC
 	http     *packemon.HTTP
 }
 
@@ -281,6 +288,12 @@ func defaultPackets() (*packets, error) {
 		Host:      DEFAULT_HTTP_HOST,
 		UserAgent: DEFAULT_HTTP_USER_AGENT,
 		Accept:    DEFAULT_HTTP_ACCEPT,
+	}
+
+	quic := &packemon.QUIC{
+		TLSConfig: &tls.Config{
+			ServerName: DEFAULT_QUIC_TLS_SERVER_NAME,
+		},
 	}
 
 	dns := &packemon.DNS{}
@@ -520,6 +533,7 @@ func defaultPackets() (*packets, error) {
 		udp:      udp,
 		tcp:      tcp,
 		dns:      dns,
+		quic:     quic,
 		http:     http,
 	}, nil
 }

@@ -212,7 +212,7 @@ func EstablishConnectionAndSendPayload(nwInterface string, dstIPAddr []byte, dst
 
 func createTCPAddr(ipBytes []byte, port uint16) (*net.TCPAddr, error) {
 	if len(ipBytes) != net.IPv4len && len(ipBytes) != net.IPv6len {
-		return nil, fmt.Errorf("invalid IP addr Length: %d bytes", len(ipBytes))
+		return nil, fmt.Errorf("invalid IP addr length: %d bytes", len(ipBytes))
 	}
 
 	return &net.TCPAddr{

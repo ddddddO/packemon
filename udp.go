@@ -3,6 +3,8 @@ package packemon
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
+	"net"
 )
 
 type UDP struct {
@@ -67,4 +69,15 @@ func (u *UDP) Bytes() []byte {
 	WriteUint16(buf, u.Checksum)
 	buf.Write(u.Data)
 	return buf.Bytes()
+}
+
+func createUDPAddr(ipBytes []byte, port uint16) (*net.UDPAddr, error) {
+	if len(ipBytes) != net.IPv4len && len(ipBytes) != net.IPv6len {
+		return nil, fmt.Errorf("invalid IP addr length: %d bytes", len(ipBytes))
+	}
+
+	return &net.UDPAddr{
+		IP:   net.IP(ipBytes),
+		Port: int(port),
+	}, nil
 }

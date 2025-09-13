@@ -1,6 +1,112 @@
 package packemon
 
+import (
+	"context"
+	"crypto/tls"
+	"encoding/binary"
+	"net"
+	"time"
+)
+
 const IP_PAYLOAD_MAX_LENGTH = 1500 - 14 // =1486byte(IPヘッダ含む。14byteはEthernetヘッダ分)
+
+/*
+- 任意のsrcIPを指定できるけど、NICに紐づいたIPでないとエラーになるよう
+- 指定できるのが以下でそれ以外はダメ
+  - IPv4: Source IP Addr, Destination IP Addr
+  - TCP: Source Port, Destination Port
+  - Application Protocol
+*/
+func establishTCPTLSv1_2AndSendPayload(ctx context.Context, fIpv4 *IPv4, fTcp *TCP, upperLayerData []byte) error {
+	network := "tcp"
+
+	localIPBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(localIPBytes, fIpv4.SrcAddr)
+	localTCPAddr, err := createTCPAddr(localIPBytes, fTcp.SrcPort)
+	if err != nil {
+		return err
+	}
+
+	remoteIPBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(remoteIPBytes, fIpv4.DstAddr)
+	remoteTCPAddr, err := createTCPAddr(remoteIPBytes, fTcp.DstPort)
+	if err != nil {
+		return err
+	}
+
+	tcpConn, err := net.DialTCP(network, localTCPAddr, remoteTCPAddr)
+	if err != nil {
+		return err
+	}
+	defer tcpConn.Close()
+
+	// TODO: 他で設定してたタイムアウト値外だしして使うように
+	if err := tcpConn.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		return err
+	}
+
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: true,
+		// ServerName: ,
+		MinVersion: tls.VersionTLS12,
+		MaxVersion: tls.VersionTLS12,
+	}
+	tlsConn := tls.Client(tcpConn, tlsCfg)
+	defer tlsConn.Close()
+
+	if _, err := tlsConn.Write(upperLayerData); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/*
+- 任意のsrcIPを指定できるけど、NICに紐づいたIPでないとエラーになるよう
+- 指定できるのが以下でそれ以外はダメ
+  - IPv6: Source IP Addr, Destination IP Addr
+  - TCP: Source Port, Destination Port
+  - Application Protocol
+*/
+func establishTCPTLSv1_2AndSendPayloadForIPv6(ctx context.Context, fIpv6 *IPv6, fTcp *TCP, upperLayerData []byte) error {
+	network := "tcp"
+
+	localTCPAddr, err := createTCPAddr(fIpv6.SrcAddr, fTcp.SrcPort)
+	if err != nil {
+		return err
+	}
+
+	remoteTCPAddr, err := createTCPAddr(fIpv6.DstAddr, fTcp.DstPort)
+	if err != nil {
+		return err
+	}
+
+	tcpConn, err := net.DialTCP(network, localTCPAddr, remoteTCPAddr)
+	if err != nil {
+		return err
+	}
+	defer tcpConn.Close()
+
+	// TODO: 他で設定してたタイムアウト値外だしして使うように
+	if err := tcpConn.SetDeadline(time.Now().Add(5 * time.Second)); err != nil {
+		return err
+	}
+
+	tlsCfg := &tls.Config{
+		InsecureSkipVerify: true,
+		// ServerName: ,
+		MinVersion: tls.VersionTLS12,
+		MaxVersion: tls.VersionTLS12,
+	}
+	tlsConn := tls.Client(tcpConn, tlsCfg)
+	defer tlsConn.Close()
+
+	if _, err := tlsConn.Write(upperLayerData); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func SendTLSClientHello(nw *NetworkInterface, clientHello *TLSClientHello, srcPort, dstPort uint16, srcIPAddr uint32, dstIPAddr uint32, firsthopMACAddr [6]byte, prevSequence uint32, prevAcknowledgment uint32) error {
 	tcp := NewTCPWithData(srcPort, dstPort, clientHello.Bytes(), prevSequence, prevAcknowledgment)

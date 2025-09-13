@@ -10,8 +10,13 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func EstablishTCPTLSv1_3AndSendPayload(ctx context.Context, fIpv4 *IPv4, fTcp *TCP, upperLayerData []byte) error {
+	return establishTCPTLSv1_3AndSendPayload(ctx, fIpv4, fTcp, upperLayerData)
+}
+
+// TODO: Generatorの方でexperimentalな処理だよと説明したうえで呼べるようにしとく
 // TCP 3way handshake と TLSv1.3 の handshake 後にリクエストする関数
-func EstablishTCPTLSv1_3AndSendPayload(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv4 *IPv4, fTcp *TCP, upperLayerData []byte) error {
+func EstablishTCPTLSv1_3AndSendPayload_CustomImpl(ctx context.Context, nwInterface string, fEthrh *EthernetHeader, fIpv4 *IPv4, fTcp *TCP, upperLayerData []byte) error {
 	nw, err := NewNetworkInterface(nwInterface)
 	if err != nil {
 		return err

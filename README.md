@@ -39,69 +39,69 @@ The rightmost image shows how the packet list is filtered.
 
 ### Generator
 
-- Send generated packets to any network interfaces.
-  - You can specify network interface with `--interface` flag. Default is `eth0`.
+#### Send generated packets to any network interfaces.
+- You can specify network interface with `--interface` flag. Default is `eth0`.
 
-- Packets of various protocols are supported.
+#### Packets of various protocols are supported.
 
-  <details><summary>details</summary>
+<details><summary>details</summary>
 
-  - [x] Ethernet
-  - [x] ARP (WIP)
-  - [x] IPv4 (WIP)
-  - [x] IPv6 (WIP)
-  - [x] ICMPv4 (WIP)
-  - [ ] ICMPv6
-  - [x] TCP (WIP)
-  - [x] UDP (WIP)
-  - [x] TLSv1.2 (WIP)
-    - **Implementation using Go standard package** (The following are valid fields;)
-      - IPv4: `Source IP Addr`, `Destination IP Addr`
-      - IPv6: `Source IP Addr`, `Destination IP Addr`
-      - TCP: `Source Port`, `Destination Port`, `Do TCP 3way handshake ?`(Check required)
-      - HTTP: All fields
-
-    - **Experimental implementation (full scratch)**
-      - This tool is not very useful because the number of cipher suites it supports is still small, but an environment where you can try it out can be found [here](./cmd/debugging/https-server/README.md).
-        - TCP 3way handshake ~ TLS handshake ~ TLS Application data (encrypted HTTP)
-      - Supported cipher suites include
-        - `TLS_RSA_WITH_AES_128_GCM_SHA256`
-      - You can check the server for available cipher suites with the following command
-        - `nmap --script ssl-enum-ciphers -p 443 <server ip>`
-  - [x] TLSv1.3 (WIP)
-    - **Implementation using Go standard package** (The following are valid fields;)
-      - IPv4: `Source IP Addr`, `Destination IP Addr`
-      - IPv6: (Not available... Coming soon!)
-      - TCP: `Source Port`, `Destination Port`, `Do TCP 3way handshake ?`(Check required)
-      - HTTP: All fields
-
-    - **Experimental implementation (full scratch)**
-      - This tool is not very useful because the number of cipher suites it supports is still small, but an environment where you can try it out can be found [here](./cmd/debugging/https-server/README.md).
-        - TCP 3way handshake ~ TLS handshake ~ TLS Application data (encrypted HTTP)
-      - Supported cipher suites include
-        - `TLS_CHACHA20_POLY1305_SHA256`
-  - [x] QUIC (**Using [github.com/quic-go/quic-go](https://github.com/quic-go/quic-go)**. The following are valid fields;)
+- [x] Ethernet
+- [x] ARP (WIP)
+- [x] IPv4 (WIP)
+- [x] IPv6 (WIP)
+- [x] ICMPv4 (WIP)
+- [ ] ICMPv6
+- [x] TCP (WIP)
+- [x] UDP (WIP)
+- [x] TLSv1.2 (WIP)
+  - **Implementation using Go standard package** (The following are valid fields;)
     - IPv4: `Source IP Addr`, `Destination IP Addr`
     - IPv6: `Source IP Addr`, `Destination IP Addr`
-    - UDP: `Source Port`, `Destination Port` (UDP selection required)
-    - QUIC: All fields
+    - TCP: `Source Port`, `Destination Port`, `Do TCP 3way handshake ?`(Check required)
     - HTTP: All fields
-      - 🥳< HTTP/3!
 
-  - [x] DNS (WIP)
-  - [x] HTTP (WIP)
-  - [ ] xxxxx....
-  - [ ] Routing Protocols
-    - IGP (Interior Gateway Protocol)
-      - [ ] OSPF (Open Shortest Path First)
-      - [ ] EIGRP (Enhanced Interior Gateway Routing Protocol)
-      - [ ] RIP (Routing Information Protocol)
-    - EGP (Exterior Gateway Protocol)
-      - [ ] BGP (Border Gateway Protocol)
-        - [Currently there is only debug mode](./cmd/debugging/bgp/README.md)
-          - TCP 3way handshake ~ Open ~ Keepalive ~ Update ~ Notification
+  - **Experimental implementation (full scratch)**
+    - This tool is not very useful because the number of cipher suites it supports is still small, but an environment where you can try it out can be found [here](./cmd/debugging/https-server/README.md).
+      - TCP 3way handshake ~ TLS handshake ~ TLS Application data (encrypted HTTP)
+    - Supported cipher suites include
+      - `TLS_RSA_WITH_AES_128_GCM_SHA256`
+    - You can check the server for available cipher suites with the following command
+      - `nmap --script ssl-enum-ciphers -p 443 <server ip>`
+- [x] TLSv1.3 (WIP)
+  - **Implementation using Go standard package** (The following are valid fields;)
+    - IPv4: `Source IP Addr`, `Destination IP Addr`
+    - IPv6: (Not available... Coming soon!)
+    - TCP: `Source Port`, `Destination Port`, `Do TCP 3way handshake ?`(Check required)
+    - HTTP: All fields
 
-  </details>
+  - **Experimental implementation (full scratch)**
+    - This tool is not very useful because the number of cipher suites it supports is still small, but an environment where you can try it out can be found [here](./cmd/debugging/https-server/README.md).
+      - TCP 3way handshake ~ TLS handshake ~ TLS Application data (encrypted HTTP)
+    - Supported cipher suites include
+      - `TLS_CHACHA20_POLY1305_SHA256`
+- [x] QUIC (**Using [github.com/quic-go/quic-go](https://github.com/quic-go/quic-go)**. The following are valid fields;)
+  - IPv4: `Source IP Addr`, `Destination IP Addr`
+  - IPv6: `Source IP Addr`, `Destination IP Addr`
+  - UDP: `Source Port`, `Destination Port` (UDP selection required)
+  - QUIC: All fields
+  - HTTP: All fields
+    - 🥳< HTTP/3!
+
+- [x] DNS (WIP)
+- [x] HTTP (WIP)
+- [ ] xxxxx....
+- [ ] Routing Protocols
+  - IGP (Interior Gateway Protocol)
+    - [ ] OSPF (Open Shortest Path First)
+    - [ ] EIGRP (Enhanced Interior Gateway Routing Protocol)
+    - [ ] RIP (Routing Information Protocol)
+  - EGP (Exterior Gateway Protocol)
+    - [ ] BGP (Border Gateway Protocol)
+      - [Currently there is only debug mode](./cmd/debugging/bgp/README.md)
+        - TCP 3way handshake ~ Open ~ Keepalive ~ Update ~ Notification
+
+</details>
 
 >[!WARNING]
 > While using Generator mode, TCP RST packets automatically sent out by the kernel are dropped. When this mode is stopped, the original state is restored. Probably😅.
@@ -115,46 +115,46 @@ The rightmost image shows how the packet list is filtered.
 
 ### Monitor
 
-- Monitor any network interfaces.
-  - You can specify network interface with `--interface` flag. Default is `eth0`.
+#### Monitor any network interfaces.
+- You can specify network interface with `--interface` flag. Default is `eth0`.
 
-- Can filter packets to be displayed.
-  - You can filter the values for each item (e.g. `Dst`, `Proto`, `SrcIP`...etc.) displayed in the listed packets.
+#### Can filter packets to be displayed.
+- You can filter the values for each item (e.g. `Dst`, `Proto`, `SrcIP`...etc.) displayed in the listed packets.
 
-- Specified packets can be saved to pcapng file.
+#### Specified packets can be saved to pcapng file.
 
-- Packets of various protocols are supported.
+#### Packets of various protocols are supported.
 
-  <details><summary>details</summary>
+<details><summary>details</summary>
 
-  - [x] Ethernet
-  - [x] ARP
-  - [x] IPv4 (WIP)
-  - [x] IPv6 (WIP)
-  - [x] ICMPv4 (WIP)
-  - [ ] ICMPv6
-  - [x] TCP (WIP)
-  - [x] UDP
-  - [x] TLSv1.2 (WIP)
-  - [ ] TLSv1.3
-  - [ ] DNS (WIP)
-    - [x] DNS query
-    - [x] DNS query response
-    - [ ] xxxxx....
-  - [ ] HTTP (WIP)
-    - [x] HTTP GET request
-    - [x] HTTP GET response
-    - [ ] xxxxx....
+- [x] Ethernet
+- [x] ARP
+- [x] IPv4 (WIP)
+- [x] IPv6 (WIP)
+- [x] ICMPv4 (WIP)
+- [ ] ICMPv6
+- [x] TCP (WIP)
+- [x] UDP
+- [x] TLSv1.2 (WIP)
+- [ ] TLSv1.3
+- [ ] DNS (WIP)
+  - [x] DNS query
+  - [x] DNS query response
   - [ ] xxxxx....
-  - [ ] Routing Protocols
-    - IGP (Interior Gateway Protocol)
-      - [ ] OSPF (Open Shortest Path First)
-      - [ ] EIGRP (Enhanced Interior Gateway Routing Protocol)
-      - [ ] RIP (Routing Information Protocol)
-    - EGP (Exterior Gateway Protocol)
-      - [ ] BGP (Border Gateway Protocol)
+- [ ] HTTP (WIP)
+  - [x] HTTP GET request
+  - [x] HTTP GET response
+  - [ ] xxxxx....
+- [ ] xxxxx....
+- [ ] Routing Protocols
+  - IGP (Interior Gateway Protocol)
+    - [ ] OSPF (Open Shortest Path First)
+    - [ ] EIGRP (Enhanced Interior Gateway Routing Protocol)
+    - [ ] RIP (Routing Information Protocol)
+  - EGP (Exterior Gateway Protocol)
+    - [ ] BGP (Border Gateway Protocol)
 
-  </details>
+</details>
 
 >[!WARNING]
 > If packet parsing fails, it is indicated by “Proto:ETHER” as shown in the following image. 

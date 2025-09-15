@@ -392,12 +392,20 @@ The tool can be used for security research, including testing for vulnerabilitie
 Packemon demonstrates how to build network tools from scratch, serving as a reference implementation for developers creating their own packet manipulation utilities.
 
 ## Related tools
+### Monitor
 - [Wireshark](https://www.wireshark.org/)
 - [tcpdump](https://www.tcpdump.org/)
 - netcat(nc)
+- [fujiapple852/trippy](https://github.com/fujiapple852/trippy)
+- [Chleba/netscanner](https://github.com/Chleba/netscanner)
+- [gcla/termshark](https://github.com/gcla/termshark)
+- [sachaos/tcpterm](https://github.com/sachaos/tcpterm)
+### Generator
 - [Nmap](https://nmap.org/)
 - [Scapy](https://github.com/secdev/scapy)
 - [google/gopacket](https://github.com/google/gopacket) / [gopacket/gopacket](https://github.com/gopacket/gopacket) (maintained)
+- [cloverstd/tcping](https://github.com/cloverstd/tcping)
+- [akase244/synpack](https://github.com/akase244/synpack)
 
 ## Acknowledgments
 - [rivo/tview](https://github.com/rivo/tview)

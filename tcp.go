@@ -33,7 +33,7 @@ func (tf TCPFlags) String() string {
 	case TCP_FLAGS_FIN_PSH_ACK:
 		return "Fin/Psh/Ack"
 	default:
-		return fmt.Sprintf("raw: %x", tf)
+		return fmt.Sprintf("raw: %x", uint8(tf))
 	}
 }
 

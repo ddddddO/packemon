@@ -64,7 +64,12 @@ var (
 	DEFAULT_TCP_PORT_SOURCE      = "47000"
 	DEFAULT_TCP_PORT_DESTINATION = "80"
 	DEFAULT_TCP_SEQUENCE         = "0x1f6e9499"
+	DEFAULT_TCP_ACKNOWLEDGMENT   = "0x00000000"
+	DEFAULT_TCP_HEADER_LENGTH    = "0x0050"
 	DEFAULT_TCP_FLAGS            = "0x02"
+	DEFAULT_TCP_WINDOW           = "0xfaf0"
+	DEFAULT_TCP_CHECKSUM         = "0x0000"
+	DEFAULT_TCP_URGENT_POINTER   = "0x0000"
 
 	DEFAULT_QUIC_TLS_SERVER_NAME = "google.com"
 
@@ -363,11 +368,10 @@ func defaultPackets() (*packets, error) {
 
 	tcp := &packemon.TCP{
 		Acknowledgment: 0x00000000,
-		// HeaderLength:   0x00a0,
-		HeaderLength:  0x0050, // 0101
-		Window:        0xfaf0,
-		Checksum:      0x0000,
-		UrgentPointer: 0x0000,
+		HeaderLength:   0x0050, // 0101
+		Window:         0xfaf0,
+		Checksum:       0x0000,
+		UrgentPointer:  0x0000,
 		// Options:        packemon.Options(),
 	}
 	tcpSrcPort, err := packemon.StrIntToUint16(DEFAULT_TCP_PORT_SOURCE)
@@ -375,16 +379,19 @@ func defaultPackets() (*packets, error) {
 		return nil, err
 	}
 	tcp.SrcPort = tcpSrcPort
+
 	tcpDstPort, err := packemon.StrIntToUint16(DEFAULT_TCP_PORT_DESTINATION)
 	if err != nil {
 		return nil, err
 	}
 	tcp.DstPort = tcpDstPort
+
 	tcpSequence, err := strHexToBytes3(DEFAULT_TCP_SEQUENCE)
 	if err != nil {
 		return nil, err
 	}
 	tcp.Sequence = binary.BigEndian.Uint32(tcpSequence)
+
 	tcpFlags, err := packemon.StrHexToBytes3(DEFAULT_TCP_FLAGS)
 	if err != nil {
 		return nil, err

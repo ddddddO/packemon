@@ -110,7 +110,7 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 				return fmt.Errorf("unsupported under protocol: %s", selectedL3)
 			}
 		} else {
-			s.packets.tcp.Checksum = 0x0000
+			// s.packets.tcp.Checksum = 0x0000
 			s.packets.tcp.Data = []byte{} // 前回分の TCP より上のデータをクリア
 			ethernetFrame := &packemon.EthernetFrame{
 				Header: s.packets.ethernet,
@@ -121,7 +121,9 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 				ethernetFrame.Data = s.packets.tcp.Bytes()
 				return s.sendFn(ethernetFrame)
 			case "IPv4":
-				s.packets.tcp.CalculateChecksum(s.packets.ipv4)
+				if checkedCalcTCPChecksum {
+					s.packets.tcp.CalculateChecksum(s.packets.ipv4)
+				}
 				s.packets.ipv4.Data = s.packets.tcp.Bytes()
 				s.packets.ipv4.CalculateTotalLength()
 				// 前回Send分が残ってると計算誤るため
@@ -130,7 +132,9 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 				ethernetFrame.Data = s.packets.ipv4.Bytes()
 				return s.sendFn(ethernetFrame)
 			case "IPv6":
-				s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
+				if checkedCalcTCPChecksum {
+					s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
+				}
 				s.packets.ipv6.Data = s.packets.tcp.Bytes()
 				s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
 				ethernetFrame.Data = s.packets.ipv6.Bytes()

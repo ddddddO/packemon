@@ -38,7 +38,7 @@ func (t *TCP) viewTable() *tview.Table {
 	table.SetCell(4, 1, tui.TableCellContent("%x", t.HeaderLength>>4))
 
 	table.SetCell(5, 0, tui.TableCellTitle("Flags"))
-	table.SetCell(5, 1, tui.TableCellContent("%x", t.Flags))
+	table.SetCell(5, 1, tui.TableCellContent("%x", uint8(t.Flags)))
 
 	table.SetCell(6, 0, tui.TableCellTitle("Window"))
 	table.SetCell(6, 1, tui.TableCellContent("%x", t.Window))

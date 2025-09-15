@@ -16,6 +16,7 @@ const (
 	TCP_FLAGS_FIN_ACK     TCPFlags = 0x11
 	TCP_FLAGS_PSH_ACK     TCPFlags = 0x18 // データを上位層へ渡してという信号
 	TCP_FLAGS_FIN_PSH_ACK TCPFlags = 0x19
+	TCP_FLAGS_RST_ACK     TCPFlags = 0x14
 )
 
 func (tf TCPFlags) String() string {
@@ -32,6 +33,8 @@ func (tf TCPFlags) String() string {
 		return "Psh/Ack"
 	case TCP_FLAGS_FIN_PSH_ACK:
 		return "Fin/Psh/Ack"
+	case TCP_FLAGS_RST_ACK:
+		return "Rst/Ack"
 	default:
 		return fmt.Sprintf("raw: %x", uint8(tf))
 	}

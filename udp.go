@@ -47,6 +47,29 @@ func (u *UDP) Len() {
 	u.Length = uint16(length)
 }
 
+func (u *UDP) CalculateChecksum(ipv4 *IPv4) {
+	pseudoHeaderIPv4 := func() []byte {
+		buf := &bytes.Buffer{}
+		binary.Write(buf, binary.BigEndian, ipv4.SrcAddr)
+		binary.Write(buf, binary.BigEndian, ipv4.DstAddr)
+		buf.WriteByte(0x00)
+		buf.WriteByte(ipv4.Protocol)
+		u.Len()
+		WriteUint16(buf, u.Length)
+		return buf.Bytes()
+	}
+
+	forUDPChecksum := &bytes.Buffer{}
+	forUDPChecksum.Write(pseudoHeaderIPv4())
+	forUDPChecksum.Write(u.Bytes())
+	if len(u.Data)%2 != 0 {
+		forUDPChecksum.WriteByte(0x00)
+	}
+
+	data := forUDPChecksum.Bytes()
+	u.Checksum = binary.BigEndian.Uint16(calculateChecksum(data))
+}
+
 // IPv6 ではチェックサムがないため、上のレイヤでチェックサムが必要なため
 func (u *UDP) CalculateChecksumForIPv6(ipv6 *IPv6) {
 	pseudoHeader := ipv6.PseudoHeader(uint32(u.Length))

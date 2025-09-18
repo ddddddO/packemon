@@ -50,7 +50,9 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 		}
 
 	case "UDP":
-		s.packets.udp.Checksum = 0x0000
+		if checkedCalcUDPChecksum {
+			s.packets.udp.Checksum = 0x0000
+		}
 		s.packets.udp.Data = []byte{} // 前回分の UDP より上のデータをクリア
 		if checkedCalcUDPLength {
 			s.packets.udp.Len()
@@ -63,6 +65,9 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 		case "":
 			ethernetFrame.Data = s.packets.udp.Bytes()
 		case "IPv4":
+			if checkedCalcUDPChecksum {
+				s.packets.udp.CalculateChecksum(s.packets.ipv4)
+			}
 			s.packets.ipv4.Data = s.packets.udp.Bytes()
 			s.packets.ipv4.CalculateTotalLength()
 			// 前回Send分が残ってると計算誤るため
@@ -71,7 +76,9 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 			ethernetFrame.Data = s.packets.ipv4.Bytes()
 			return s.sendFn(ethernetFrame)
 		case "IPv6":
-			s.packets.udp.CalculateChecksumForIPv6(s.packets.ipv6)
+			if checkedCalcUDPChecksum {
+				s.packets.udp.CalculateChecksumForIPv6(s.packets.ipv6)
+			}
 			s.packets.ipv6.Data = s.packets.udp.Bytes()
 			s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
 			ethernetFrame.Data = s.packets.ipv6.Bytes()

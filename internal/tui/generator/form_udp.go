@@ -8,7 +8,8 @@ import (
 	"github.com/rivo/tview"
 )
 
-var checkedCalcUDPLength = false
+var checkedCalcUDPLength = true
+var checkedCalcUDPChecksum = true
 
 func (g *generator) udpForm() *tview.Form {
 	udpForm := tview.NewForm().
@@ -54,6 +55,28 @@ func (g *generator) udpForm() *tview.Form {
 				return false
 			}
 			g.sender.packets.udp.Length = binary.BigEndian.Uint16(b)
+
+			return true
+		}, nil).
+		AddCheckbox("Automatically calculate checksum ?", checkedCalcUDPChecksum, func(checked bool) {
+			checkedCalcUDPChecksum = checked
+		}).
+		AddInputField("Checksum", DEFAULT_UDP_CHECKSUM, 6, func(textToCheck string, lastChar rune) bool {
+			if checkedCalcUDPChecksum {
+				return false
+			}
+
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := packemon.StrHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			g.sender.packets.udp.Checksum = binary.BigEndian.Uint16(b)
 
 			return true
 		}, nil).

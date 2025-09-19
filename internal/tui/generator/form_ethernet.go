@@ -99,8 +99,8 @@ func (g *generator) ethernetForm() *tview.Form {
 		SetText("")
 
 	ethernetForm := tview.NewForm().
-		AddTextView("Ethernet Header", "This section generates Ethernet.\nIt is still under development.", 60, 4, true, false).
-		AddInputField("Destination Mac Addr(hex)", DEFAULT_MAC_DESTINATION, 20, func(textToCheck string, lastChar rune) bool {
+		AddTextView("Ethernet Header", "This section generates Ethernet.", 60, 3, true, false).
+		AddInputField("Destination Mac Addr", DEFAULT_MAC_DESTINATION, 20, func(textToCheck string, lastChar rune) bool {
 			// Support hex (0x), colon-separated, and dash-separated formats
 			result := validateAndParseMACAddress(textToCheck)
 
@@ -117,7 +117,7 @@ func (g *generator) ethernetForm() *tview.Form {
 			return result.Valid
 		}, nil).
 		AddFormItem(dstMACStatus).
-		AddInputField("Source Mac Addr(hex)", DEFAULT_MAC_SOURCE, 20, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Source Mac Addr", DEFAULT_MAC_SOURCE, 20, func(textToCheck string, lastChar rune) bool {
 			// Support hex (0x), colon-separated, and dash-separated formats
 			result := validateAndParseMACAddress(textToCheck)
 

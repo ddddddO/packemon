@@ -11,8 +11,8 @@ import (
 
 func (g *generator) arpForm() *tview.Form {
 	arpForm := tview.NewForm().
-		AddTextView("ARP", "This section generates ARP.\nIt is still under development.", 60, 4, true, false).
-		AddInputField("Hardware Type(hex)", DEFAULT_ARP_HARDWARE_TYPE, 6, func(textToCheck string, lastChar rune) bool {
+		AddTextView("ARP", "This section generates ARP.", 60, 3, true, false).
+		AddInputField("Hardware Type", DEFAULT_ARP_HARDWARE_TYPE, 6, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 6 {
 				return true
 			} else if len(textToCheck) > 6 {
@@ -27,7 +27,7 @@ func (g *generator) arpForm() *tview.Form {
 
 			return true
 		}, nil).
-		AddInputField("Protocol Type(hex)", DEFAULT_ARP_PROTOCOL_TYPE, 6, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Protocol Type", DEFAULT_ARP_PROTOCOL_TYPE, 6, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 6 {
 				return true
 			} else if len(textToCheck) > 6 {
@@ -42,7 +42,7 @@ func (g *generator) arpForm() *tview.Form {
 
 			return true
 		}, nil).
-		AddInputField("Hardware Size(hex)", DEFAULT_ARP_HARDWARE_SIZE, 4, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Hardware Size", DEFAULT_ARP_HARDWARE_SIZE, 4, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 4 {
 				return true
 			} else if len(textToCheck) > 4 {
@@ -57,7 +57,7 @@ func (g *generator) arpForm() *tview.Form {
 
 			return true
 		}, nil).
-		AddInputField("Protocol Size(hex)", DEFAULT_ARP_PROTOCOL_SIZE, 4, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Protocol Size", DEFAULT_ARP_PROTOCOL_SIZE, 4, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 4 {
 				return true
 			} else if len(textToCheck) > 4 {
@@ -72,7 +72,7 @@ func (g *generator) arpForm() *tview.Form {
 
 			return true
 		}, nil).
-		AddInputField("Operation Code(hex)", DEFAULT_ARP_OPERATION, 6, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Operation Code", DEFAULT_ARP_OPERATION, 6, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 6 {
 				return true
 			} else if len(textToCheck) > 6 {
@@ -87,7 +87,7 @@ func (g *generator) arpForm() *tview.Form {
 
 			return true
 		}, nil).
-		AddInputField("Sender Mac Addr(hex)", DEFAULT_ARP_SENDER_MAC, 14, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Sender Mac Addr", DEFAULT_ARP_SENDER_MAC, 14, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 14 {
 				return true
 			} else if len(textToCheck) > 14 {
@@ -118,7 +118,7 @@ func (g *generator) arpForm() *tview.Form {
 
 			return false
 		}, nil).
-		AddInputField("Target Mac Addr(hex)", DEFAULT_ARP_TARGET_MAC, 14, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Target Mac Addr", DEFAULT_ARP_TARGET_MAC, 14, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 14 {
 				return true
 			} else if len(textToCheck) > 14 {

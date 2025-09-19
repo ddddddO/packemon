@@ -152,6 +152,10 @@ func (g *generator) ipv4Form() *tview.Form {
 			checkedCalcIPv4Checksum = checked
 		}).
 		AddInputField("Header Checksum", DEFAULT_IP_HEADER_CHECKSUM, 6, func(textToCheck string, lastChar rune) bool {
+			if checkedCalcIPv4Checksum {
+				return false
+			}
+
 			if len(textToCheck) < 6 {
 				return true
 			} else if len(textToCheck) > 6 {

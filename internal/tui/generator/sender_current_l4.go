@@ -2,9 +2,7 @@ package generator
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
-	"time"
 
 	"github.com/ddddddO/packemon"
 )
@@ -12,20 +10,15 @@ import (
 func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 string) error {
 	switch selectedL4 {
 	case "ICMP":
-		// TODO: timestamp関数化
-		s.packets.icmpv4.Data = func() []byte {
-			now := time.Now().Unix()
-			b := make([]byte, 4)
-			binary.LittleEndian.PutUint32(b, uint32(now))
-			return binary.LittleEndian.AppendUint32(b, 0x00000000)
-		}()
-		// 前回Send分が残ってると計算誤るため
-		s.packets.icmpv4.Checksum = 0x0
-		s.packets.icmpv4.Checksum = func() uint16 {
-			b := make([]byte, 2)
-			binary.LittleEndian.PutUint16(b, s.packets.icmpv4.CalculateChecksum())
-			return binary.BigEndian.Uint16(b)
-		}()
+		s.packets.icmpv4.Data = []byte{}
+		if checkedCalcICMPTimestamp {
+			s.packets.icmpv4.Data = s.packets.icmpv4.TimestampForTypeTimestampRequest()
+		}
+		if checkedCalcICMPChecksum {
+			// 前回Send分が残ってると計算誤るため
+			s.packets.icmpv4.Checksum = 0x0
+			s.packets.icmpv4.CalculateChecksum()
+		}
 
 		switch selectedL3 {
 		case "":

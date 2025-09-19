@@ -76,6 +76,10 @@ func uintsToStrIPv6Addr(byteAddr []uint8) string {
 	return ipv6Addr.To16().String()
 }
 
+func (i *IPv6) CalculatePayloadLength() {
+	i.PayloadLength = uint16(len(i.Data))
+}
+
 func (i *IPv6) Bytes() []byte {
 	buf := &bytes.Buffer{}
 

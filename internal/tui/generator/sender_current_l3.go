@@ -29,6 +29,9 @@ func (s *sender) sendL3(ctx context.Context, selectedL3 string) error {
 		})
 	case "IPv6":
 		s.packets.ipv6.Data = []byte{} // 前回分の IPv6 より上のデータをクリア
+		if checkedCalcIPv6PayloadLength {
+			s.packets.ipv6.CalculatePayloadLength()
+		}
 		return s.sendFn(&packemon.EthernetFrame{
 			Header: s.packets.ethernet,
 			Data:   s.packets.ipv6.Bytes(),

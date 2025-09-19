@@ -51,7 +51,9 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 						s.packets.udp.CalculateChecksumForIPv6(s.packets.ipv6)
 					}
 					s.packets.ipv6.Data = s.packets.udp.Bytes()
-					s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
+					if checkedCalcIPv6PayloadLength {
+						s.packets.ipv6.CalculatePayloadLength()
+					}
 					ethernetFrame.Data = s.packets.ipv6.Bytes()
 					return s.sendFn(ethernetFrame)
 				case "ARP":
@@ -88,7 +90,9 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 						return fmt.Errorf("unsupported under protocol: %s", selectedL3)
 					}
 				} else {
-					s.packets.tcp.Checksum = 0x0000
+					if checkedCalcTCPChecksum {
+						s.packets.tcp.Checksum = 0x0000
+					}
 					s.packets.tcp.Data = s.packets.dns.Bytes()
 					ethernetFrame := &packemon.EthernetFrame{
 						Header: s.packets.ethernet,
@@ -118,7 +122,9 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 							s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
 						}
 						s.packets.ipv6.Data = s.packets.tcp.Bytes()
-						s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
+						if checkedCalcIPv6PayloadLength {
+							s.packets.ipv6.CalculatePayloadLength()
+						}
 						ethernetFrame.Data = s.packets.ipv6.Bytes()
 						return s.sendFn(ethernetFrame)
 					case "ARP":
@@ -175,7 +181,9 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 						return fmt.Errorf("unsupported under protocol: %s", selectedL3)
 					}
 				} else {
-					s.packets.tcp.Checksum = 0x0000
+					if checkedCalcTCPChecksum {
+						s.packets.tcp.Checksum = 0x0000
+					}
 					s.packets.tcp.Data = s.packets.http.Bytes()
 					ethernetFrame := &packemon.EthernetFrame{
 						Header: s.packets.ethernet,
@@ -203,8 +211,9 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 						if checkedCalcTCPChecksum {
 							s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
 						}
-						s.packets.ipv6.Data = s.packets.tcp.Bytes()
-						s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
+						if checkedCalcIPv6PayloadLength {
+							s.packets.ipv6.CalculatePayloadLength()
+						}
 						ethernetFrame.Data = s.packets.ipv6.Bytes()
 						return s.sendFn(ethernetFrame)
 					case "ARP":

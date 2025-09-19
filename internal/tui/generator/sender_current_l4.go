@@ -88,7 +88,9 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 				s.packets.udp.CalculateChecksumForIPv6(s.packets.ipv6)
 			}
 			s.packets.ipv6.Data = s.packets.udp.Bytes()
-			s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
+			if checkedCalcIPv6PayloadLength {
+				s.packets.ipv6.CalculatePayloadLength()
+			}
 			ethernetFrame.Data = s.packets.ipv6.Bytes()
 			return s.sendFn(ethernetFrame)
 		case "ARP":
@@ -126,6 +128,9 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 			}
 		} else {
 			s.packets.tcp.Data = []byte{} // 前回分の TCP より上のデータをクリア
+			if checkedCalcTCPChecksum {
+				s.packets.tcp.Checksum = 0x0000
+			}
 			ethernetFrame := &packemon.EthernetFrame{
 				Header: s.packets.ethernet,
 			}
@@ -154,7 +159,9 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 					s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
 				}
 				s.packets.ipv6.Data = s.packets.tcp.Bytes()
-				s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
+				if checkedCalcIPv6PayloadLength {
+					s.packets.ipv6.CalculatePayloadLength()
+				}
 				ethernetFrame.Data = s.packets.ipv6.Bytes()
 				return s.sendFn(ethernetFrame)
 			case "ARP":

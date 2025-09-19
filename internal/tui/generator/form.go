@@ -47,9 +47,14 @@ var (
 	DEFAULT_IP_SOURCE          = ""
 	DEFAULT_IP_DESTINATION     = ""
 
-	DEFAULT_IPv6_PROTOCOL    = "ICMPv6"
-	DEFAULT_IPv6_SOURCE      = ""
-	DEFAULT_IPv6_DESTINATION = ""
+	DEFAULT_IPv6_VERSION        = "0x06"
+	DEFAULT_IPv6_TRAFFIC_CLASS  = "0x00"
+	DEFAULT_IPv6_FLOW_LABEL     = "0x00000"
+	DEFAULT_IPv6_PAYLOAD_LENGTH = "0x0000"
+	DEFAULT_IPv6_PROTOCOL       = "ICMPv6"
+	DEFAULT_IPv6_HOP_LIMIT      = "0x40"
+	DEFAULT_IPv6_SOURCE         = ""
+	DEFAULT_IPv6_DESTINATION    = ""
 
 	DEFAULT_ICMP_TYPE       = "0x08"
 	DEFAULT_ICMP_CODE       = "0x00"
@@ -465,9 +470,8 @@ func defaultPackets() (*packets, error) {
 	}
 
 	ipv6 := &packemon.IPv6{
-		Version:      0x06,
-		TrafficClass: 0x00,
-		// FlowLabel:     0x7d77b,
+		Version:       0x06,
+		TrafficClass:  0x00,
 		FlowLabel:     0x00000,
 		PayloadLength: 0x0000,
 		NextHeader:    packemon.IPv6_NEXT_HEADER_ICMPv6,

@@ -30,7 +30,7 @@ func (g *generator) ipv4Form() *tview.Form {
 
 			return true
 		}, nil).
-		AddInputField("InternetHeaderLength", DEFAULT_IP_IHL, 4, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Internet Header Length", DEFAULT_IP_IHL, 4, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 4 {
 				return true
 			} else if len(textToCheck) > 4 {
@@ -45,7 +45,7 @@ func (g *generator) ipv4Form() *tview.Form {
 
 			return true
 		}, nil).
-		AddInputField("TypeOfService", DEFAULT_IP_TOS, 4, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Type of Service", DEFAULT_IP_TOS, 4, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 4 {
 				return true
 			} else if len(textToCheck) > 4 {
@@ -63,7 +63,7 @@ func (g *generator) ipv4Form() *tview.Form {
 		AddCheckbox("Automatically calculate total length ?", checkedCalcIPv4TotalLength, func(checked bool) {
 			checkedCalcIPv4TotalLength = checked
 		}).
-		AddInputField("TotalLength", DEFAULT_IP_TOTAL_LENGTH, 6, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Total Length", DEFAULT_IP_TOTAL_LENGTH, 6, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 6 {
 				return true
 			} else if len(textToCheck) > 6 {
@@ -108,7 +108,7 @@ func (g *generator) ipv4Form() *tview.Form {
 
 			return true
 		}, nil).
-		AddInputField("FragmentOffset", DEFAULT_IP_FRAGMENT_OFFSET, 6, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Fragment Offset", DEFAULT_IP_FRAGMENT_OFFSET, 6, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 6 {
 				return true
 			} else if len(textToCheck) > 6 {
@@ -151,7 +151,7 @@ func (g *generator) ipv4Form() *tview.Form {
 		AddCheckbox("Automatically calculate header checksum ?", checkedCalcIPv4Checksum, func(checked bool) {
 			checkedCalcIPv4Checksum = checked
 		}).
-		AddInputField("HeaderChecksum", DEFAULT_IP_HEADER_CHECKSUM, 6, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Header Checksum", DEFAULT_IP_HEADER_CHECKSUM, 6, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 6 {
 				return true
 			} else if len(textToCheck) > 6 {

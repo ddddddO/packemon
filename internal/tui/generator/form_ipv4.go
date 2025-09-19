@@ -9,10 +9,13 @@ import (
 	"github.com/rivo/tview"
 )
 
+var checkedCalcIPv4TotalLength = true
+var checkedCalcIPv4Checksum = true
+
 func (g *generator) ipv4Form() *tview.Form {
 	ipv4Form := tview.NewForm().
 		AddTextView("IPv4 Header", "This section generates the IPv4 header.\nIt is still under development.", 60, 4, true, false).
-		AddInputField("Version(hex)", "0x04", 4, func(textToCheck string, lastChar rune) bool {
+		AddInputField("Version", "0x04", 4, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 4 {
 				return true
 			} else if len(textToCheck) > 4 {
@@ -27,6 +30,114 @@ func (g *generator) ipv4Form() *tview.Form {
 
 			return true
 		}, nil).
+		AddInputField("InternetHeaderLength", DEFAULT_IP_IHL, 4, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 4 {
+				return true
+			} else if len(textToCheck) > 4 {
+				return false
+			}
+
+			b, err := strHexToUint8(textToCheck)
+			if err != nil {
+				return false
+			}
+			g.sender.packets.ipv4.Ihl = uint8(b)
+
+			return true
+		}, nil).
+		AddInputField("TypeOfService", DEFAULT_IP_TOS, 4, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 4 {
+				return true
+			} else if len(textToCheck) > 4 {
+				return false
+			}
+
+			b, err := strHexToUint8(textToCheck)
+			if err != nil {
+				return false
+			}
+			g.sender.packets.ipv4.Tos = uint8(b)
+
+			return true
+		}, nil).
+		AddCheckbox("Automatically calculate total length ?", checkedCalcIPv4TotalLength, func(checked bool) {
+			checkedCalcIPv4TotalLength = checked
+		}).
+		AddInputField("TotalLength", DEFAULT_IP_TOTAL_LENGTH, 6, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := packemon.StrHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			g.sender.packets.ipv4.TotalLength = binary.BigEndian.Uint16(b)
+
+			return true
+		}, nil).
+		AddInputField("Identification", DEFAULT_IP_IDENTIFICATION, 6, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := packemon.StrHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			g.sender.packets.ipv4.Identification = binary.BigEndian.Uint16(b)
+
+			return true
+		}, nil).
+		AddInputField("Flags", DEFAULT_IP_FLAGS, 4, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 4 {
+				return true
+			} else if len(textToCheck) > 4 {
+				return false
+			}
+
+			b, err := strHexToUint8(textToCheck)
+			if err != nil {
+				return false
+			}
+			g.sender.packets.ipv4.Flags = uint8(b)
+
+			return true
+		}, nil).
+		AddInputField("FragmentOffset", DEFAULT_IP_FRAGMENT_OFFSET, 6, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := packemon.StrHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			g.sender.packets.ipv4.FragmentOffset = binary.BigEndian.Uint16(b)
+
+			return true
+		}, nil).
+		AddInputField("TTL", DEFAULT_IP_TTL, 4, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 4 {
+				return true
+			} else if len(textToCheck) > 4 {
+				return false
+			}
+
+			b, err := strHexToUint8(textToCheck)
+			if err != nil {
+				return false
+			}
+			g.sender.packets.ipv4.Ttl = uint8(b)
+
+			return true
+		}, nil).
 		AddDropDown("Protocol", []string{"ICMP", "UDP", "TCP"}, 1, func(selected string, _ int) {
 			switch selected {
 			case "ICMP":
@@ -37,6 +148,24 @@ func (g *generator) ipv4Form() *tview.Form {
 				g.sender.packets.ipv4.Protocol = packemon.IPv4_PROTO_TCP
 			}
 		}).
+		AddCheckbox("Automatically calculate header checksum ?", checkedCalcIPv4Checksum, func(checked bool) {
+			checkedCalcIPv4Checksum = checked
+		}).
+		AddInputField("HeaderChecksum", DEFAULT_IP_HEADER_CHECKSUM, 6, func(textToCheck string, lastChar rune) bool {
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := packemon.StrHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			g.sender.packets.ipv4.HeaderChecksum = binary.BigEndian.Uint16(b)
+
+			return true
+		}, nil).
 		AddInputField("Source IP Addr", DEFAULT_IP_SOURCE, 15, func(textToCheck string, lastChar rune) bool {
 			count := strings.Count(textToCheck, ".")
 			if count < 3 {

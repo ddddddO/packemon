@@ -34,9 +34,18 @@ var (
 	DEFAULT_ARP_TARGET_MAC    = "0x000000000000"
 	DEFAULT_ARP_TARGET_IP     = ""
 
-	DEFAULT_IP_PROTOCOL    = "ICMP"
-	DEFAULT_IP_SOURCE      = ""
-	DEFAULT_IP_DESTINATION = ""
+	DEFAULT_IP_VERSION         = "0x04"
+	DEFAULT_IP_IHL             = "0x05"
+	DEFAULT_IP_TOS             = "0x00"
+	DEFAULT_IP_TOTAL_LENGTH    = "0x0014"
+	DEFAULT_IP_IDENTIFICATION  = "0xe31f"
+	DEFAULT_IP_FLAGS           = "0x40"
+	DEFAULT_IP_FRAGMENT_OFFSET = "0x0000"
+	DEFAULT_IP_TTL             = "0x80"
+	DEFAULT_IP_PROTOCOL        = "ICMP"
+	DEFAULT_IP_HEADER_CHECKSUM = "0x0000"
+	DEFAULT_IP_SOURCE          = ""
+	DEFAULT_IP_DESTINATION     = ""
 
 	DEFAULT_IPv6_PROTOCOL    = "ICMPv6"
 	DEFAULT_IPv6_SOURCE      = ""
@@ -435,13 +444,13 @@ func defaultPackets() (*packets, error) {
 		Version:        0x04,
 		Ihl:            0x05,
 		Tos:            0x00,
-		TotalLength:    0x14,
+		TotalLength:    0x0014,
 		Identification: 0xe31f,
 		Flags:          0x40,
-		FragmentOffset: 0x0,
+		FragmentOffset: 0x0000,
 		Ttl:            0x80,
 		Protocol:       packemon.IPv4_PROTO_UDP,
-		HeaderChecksum: 0,
+		HeaderChecksum: 0x0000,
 		SrcAddr:        binary.BigEndian.Uint32(srcIP),
 		DstAddr:        binary.BigEndian.Uint32(dstIP),
 	}

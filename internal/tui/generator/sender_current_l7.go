@@ -36,10 +36,14 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 						s.packets.udp.CalculateChecksum(s.packets.ipv4)
 					}
 					s.packets.ipv4.Data = s.packets.udp.Bytes()
-					s.packets.ipv4.CalculateTotalLength()
-					// 前回Send分が残ってると計算誤るため
-					s.packets.ipv4.HeaderChecksum = 0x0
-					s.packets.ipv4.CalculateChecksum()
+					if checkedCalcIPv4TotalLength {
+						s.packets.ipv4.CalculateTotalLength()
+					}
+					if checkedCalcIPv4Checksum {
+						// 前回Send分が残ってると計算誤るため
+						s.packets.ipv4.HeaderChecksum = 0x0
+						s.packets.ipv4.CalculateChecksum()
+					}
 					ethernetFrame.Data = s.packets.ipv4.Bytes()
 					return s.sendFn(ethernetFrame)
 				case "IPv6":
@@ -95,16 +99,24 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 						ethernetFrame.Data = s.packets.tcp.Bytes()
 						return s.sendFn(ethernetFrame)
 					case "IPv4":
-						s.packets.tcp.CalculateChecksum(s.packets.ipv4)
+						if checkedCalcTCPChecksum {
+							s.packets.tcp.CalculateChecksum(s.packets.ipv4)
+						}
 						s.packets.ipv4.Data = s.packets.tcp.Bytes()
-						s.packets.ipv4.CalculateTotalLength()
-						// 前回Send分が残ってると計算誤るため
-						s.packets.ipv4.HeaderChecksum = 0x0
-						s.packets.ipv4.CalculateChecksum()
+						if checkedCalcIPv4TotalLength {
+							s.packets.ipv4.CalculateTotalLength()
+						}
+						if checkedCalcIPv4Checksum {
+							// 前回Send分が残ってると計算誤るため
+							s.packets.ipv4.HeaderChecksum = 0x0
+							s.packets.ipv4.CalculateChecksum()
+						}
 						ethernetFrame.Data = s.packets.ipv4.Bytes()
 						return s.sendFn(ethernetFrame)
 					case "IPv6":
-						s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
+						if checkedCalcTCPChecksum {
+							s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
+						}
 						s.packets.ipv6.Data = s.packets.tcp.Bytes()
 						s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
 						ethernetFrame.Data = s.packets.ipv6.Bytes()
@@ -173,16 +185,24 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 					case "":
 						return fmt.Errorf("not implemented")
 					case "IPv4":
-						s.packets.tcp.CalculateChecksum(s.packets.ipv4)
+						if checkedCalcTCPChecksum {
+							s.packets.tcp.CalculateChecksum(s.packets.ipv4)
+						}
 						s.packets.ipv4.Data = s.packets.tcp.Bytes()
-						s.packets.ipv4.CalculateTotalLength()
-						// 前回Send分が残ってると計算誤るため
-						s.packets.ipv4.HeaderChecksum = 0x0
-						s.packets.ipv4.CalculateChecksum()
+						if checkedCalcIPv4TotalLength {
+							s.packets.ipv4.CalculateTotalLength()
+						}
+						if checkedCalcIPv4Checksum {
+							// 前回Send分が残ってると計算誤るため
+							s.packets.ipv4.HeaderChecksum = 0x0
+							s.packets.ipv4.CalculateChecksum()
+						}
 						ethernetFrame.Data = s.packets.ipv4.Bytes()
 						return s.sendFn(ethernetFrame)
 					case "IPv6":
-						s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
+						if checkedCalcTCPChecksum {
+							s.packets.tcp.CalculateChecksumForIPv6(s.packets.ipv6)
+						}
 						s.packets.ipv6.Data = s.packets.tcp.Bytes()
 						s.packets.ipv6.PayloadLength = uint16(len(s.packets.ipv6.Data))
 						ethernetFrame.Data = s.packets.ipv6.Bytes()

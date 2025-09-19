@@ -31,10 +31,14 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 		case "":
 		case "IPv4":
 			s.packets.ipv4.Data = s.packets.icmpv4.Bytes()
-			s.packets.ipv4.CalculateTotalLength()
-			// 前回Send分が残ってると計算誤るため
-			s.packets.ipv4.HeaderChecksum = 0x0
-			s.packets.ipv4.CalculateChecksum()
+			if checkedCalcIPv4TotalLength {
+				s.packets.ipv4.CalculateTotalLength()
+			}
+			if checkedCalcIPv4Checksum {
+				// 前回Send分が残ってると計算誤るため
+				s.packets.ipv4.HeaderChecksum = 0x0
+				s.packets.ipv4.CalculateChecksum()
+			}
 			ethernetFrame := &packemon.EthernetFrame{
 				Header: s.packets.ethernet,
 				Data:   s.packets.ipv4.Bytes(),
@@ -69,10 +73,14 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 				s.packets.udp.CalculateChecksum(s.packets.ipv4)
 			}
 			s.packets.ipv4.Data = s.packets.udp.Bytes()
-			s.packets.ipv4.CalculateTotalLength()
-			// 前回Send分が残ってると計算誤るため
-			s.packets.ipv4.HeaderChecksum = 0x0
-			s.packets.ipv4.CalculateChecksum()
+			if checkedCalcIPv4TotalLength {
+				s.packets.ipv4.CalculateTotalLength()
+			}
+			if checkedCalcIPv4Checksum {
+				// 前回Send分が残ってると計算誤るため
+				s.packets.ipv4.HeaderChecksum = 0x0
+				s.packets.ipv4.CalculateChecksum()
+			}
 			ethernetFrame.Data = s.packets.ipv4.Bytes()
 			return s.sendFn(ethernetFrame)
 		case "IPv6":
@@ -117,7 +125,6 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 				return fmt.Errorf("unsupported under protocol: %s", selectedL3)
 			}
 		} else {
-			// s.packets.tcp.Checksum = 0x0000
 			s.packets.tcp.Data = []byte{} // 前回分の TCP より上のデータをクリア
 			ethernetFrame := &packemon.EthernetFrame{
 				Header: s.packets.ethernet,
@@ -132,10 +139,14 @@ func (s *sender) sendL4(ctx context.Context, selectedL4 string, selectedL3 strin
 					s.packets.tcp.CalculateChecksum(s.packets.ipv4)
 				}
 				s.packets.ipv4.Data = s.packets.tcp.Bytes()
-				s.packets.ipv4.CalculateTotalLength()
-				// 前回Send分が残ってると計算誤るため
-				s.packets.ipv4.HeaderChecksum = 0x0
-				s.packets.ipv4.CalculateChecksum()
+				if checkedCalcIPv4TotalLength {
+					s.packets.ipv4.CalculateTotalLength()
+				}
+				if checkedCalcIPv4Checksum {
+					// 前回Send分が残ってると計算誤るため
+					s.packets.ipv4.HeaderChecksum = 0x0
+					s.packets.ipv4.CalculateChecksum()
+				}
 				ethernetFrame.Data = s.packets.ipv4.Bytes()
 				return s.sendFn(ethernetFrame)
 			case "IPv6":

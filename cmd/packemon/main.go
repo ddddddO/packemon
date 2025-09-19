@@ -118,7 +118,7 @@ func main() {
 				Usage:   "Prints the version.",
 				Before:  notExistArgs,
 				Action: func(ctx context.Context, c *cli.Command) error {
-					fmt.Printf("gtree version %s / revision %s\n", Version, Revision)
+					fmt.Printf("packemon version %s / revision %s\n", Version, Revision)
 					return nil
 				},
 			},

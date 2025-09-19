@@ -13,7 +13,7 @@ var checkedCalcTCPChecksum = true
 
 func (g *generator) tcpForm() *tview.Form {
 	tcpForm := tview.NewForm().
-		AddTextView("TCP", "This section generates the TCP.\nIt is still under development.", 60, 4, true, false).
+		AddTextView("TCP", "This section generates TCP.", 60, 3, true, false).
 		AddCheckbox("Do TCP 3way handshake ?", doTCP3wayHandshake, func(checked bool) {
 			doTCP3wayHandshake = checked
 		}).

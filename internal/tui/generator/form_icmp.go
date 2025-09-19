@@ -10,7 +10,7 @@ import (
 
 func (g *generator) icmpForm() *tview.Form {
 	icmpForm := tview.NewForm().
-		AddTextView("ICMP", "This section generates the ICMP.\nIt is still under development.", 60, 4, true, false).
+		AddTextView("ICMP", "This section generates ICMP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Type(hex)", DEFAULT_ICMP_TYPE, 4, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 4 {
 				return true

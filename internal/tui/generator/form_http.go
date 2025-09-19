@@ -8,7 +8,7 @@ import (
 
 func (g *generator) httpForm(ctx context.Context) *tview.Form {
 	httpForm := tview.NewForm().
-		AddTextView("HTTP", "This section generates the HTTP.\nIt is still under development.", 60, 4, true, false).
+		AddTextView("HTTP", "This section generates HTTP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Method", DEFAULT_HTTP_METHOD, 10, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) <= 10 {
 				g.sender.packets.http.Method = textToCheck

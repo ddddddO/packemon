@@ -13,7 +13,7 @@ var checkedCalcUDPChecksum = true
 
 func (g *generator) udpForm() *tview.Form {
 	udpForm := tview.NewForm().
-		AddTextView("UDP", "This section generates the UDP.\nIt is still under development.", 60, 4, true, false).
+		AddTextView("UDP", "This section generates UDP.", 60, 3, true, false).
 		AddInputField("Source Port", DEFAULT_UDP_PORT_SOURCE, 5, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) <= 5 {
 				n, err := packemon.StrIntToUint16(textToCheck)

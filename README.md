@@ -47,14 +47,14 @@ The rightmost image shows how the packet list is filtered.
 <details><summary>details</summary>
 
 - [x] Ethernet
-- [x] ARP (WIP)
-- [x] IPv4 (WIP)
-- [x] IPv6 (WIP)
-- [x] ICMPv4 (WIP)
+- [x] ARP
+- [x] IPv4
+- [x] IPv6
+- [x] ICMPv4
 - [ ] ICMPv6
-- [x] TCP (WIP)
-- [x] UDP (WIP)
-- [x] TLSv1.2 (WIP)
+- [x] TCP
+- [x] UDP
+- [x] TLSv1.2
   - **Implementation using Go standard package** (The following are valid fields;)
     - IPv4: `Source IP Addr`, `Destination IP Addr`
     - IPv6: `Source IP Addr`, `Destination IP Addr`
@@ -68,7 +68,7 @@ The rightmost image shows how the packet list is filtered.
       - `TLS_RSA_WITH_AES_128_GCM_SHA256`
     - You can check the server for available cipher suites with the following command
       - `nmap --script ssl-enum-ciphers -p 443 <server ip>`
-- [x] TLSv1.3 (WIP)
+- [x] TLSv1.3
   - **Implementation using Go standard package** (The following are valid fields;)
     - IPv4: `Source IP Addr`, `Destination IP Addr`
     - IPv6: (Not available... Coming soon!)

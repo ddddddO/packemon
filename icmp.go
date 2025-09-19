@@ -42,26 +42,29 @@ func NewICMP() *ICMP {
 	}
 
 	// pingのecho requestのpacketを観察すると以下で良さそう
-	timestamp := func() []byte {
-		now := time.Now().Unix()
-		b := make([]byte, 4)
-		binary.LittleEndian.PutUint32(b, uint32(now))
-		return binary.LittleEndian.AppendUint32(b, 0x00000000)
-	}()
+	// タイムスタンプ要求以外で必要ではないよう
+	// icmp.Data = icmp.TimestampForTypeTimestampRequest()
 
-	icmp.Data = timestamp
-
-	icmp.Checksum = func() uint16 {
-		b := make([]byte, 2)
-		binary.LittleEndian.PutUint16(b, icmp.CalculateChecksum())
-		return binary.BigEndian.Uint16(b)
-	}()
+	icmp.CalculateChecksum()
 
 	return icmp
 }
 
+// icmpのタイムスタンプ要求で必要みたい
+// Linuxで、sudo hping3 1.1.1.1 --icmp --icmptype 13 でタイムスタンプ要求のパケット確認できる
+func (*ICMP) TimestampForTypeTimestampRequest() []byte {
+	originalTimestamp := time.Now().Unix()
+	receiveTimestamp := 0x00000000
+	transmitTimestamp := 0x00000000
+
+	b := make([]byte, 4)
+	binary.LittleEndian.PutUint32(b, uint32(originalTimestamp))
+	bb := binary.LittleEndian.AppendUint32(b, uint32(receiveTimestamp))
+	return binary.LittleEndian.AppendUint32(bb, uint32(transmitTimestamp))
+}
+
 // copy from https://cs.opensource.google/go/x/net/+/master:icmp/message.go
-func (i *ICMP) CalculateChecksum() uint16 {
+func (i *ICMP) CalculateChecksum() {
 	b := i.Bytes()
 	csumcv := len(b) - 1 // checksum coverage
 	s := uint32(0)
@@ -73,7 +76,10 @@ func (i *ICMP) CalculateChecksum() uint16 {
 	}
 	s = s>>16 + s&0xffff
 	s = s + s>>16
-	return ^uint16(s)
+
+	ret := make([]byte, 2)
+	binary.LittleEndian.PutUint16(ret, ^uint16(s))
+	i.Checksum = binary.BigEndian.Uint16(ret)
 }
 
 func (i *ICMP) Bytes() []byte {

@@ -14,7 +14,7 @@ var checkedCalcIPv4Checksum = true
 
 func (g *generator) ipv4Form() *tview.Form {
 	ipv4Form := tview.NewForm().
-		AddTextView("IPv4 Header", "This section generates the IPv4 header.\nIt is still under development.", 60, 4, true, false).
+		AddTextView("IPv4 Header", "This section generates IPv4.", 60, 3, true, false).
 		AddInputField("Version", "0x04", 4, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 4 {
 				return true

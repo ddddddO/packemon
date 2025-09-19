@@ -10,7 +10,7 @@ import (
 
 func (g *generator) dnsForm() *tview.Form {
 	dnsForm := tview.NewForm().
-		AddTextView("DNS", "This section generates the DNS.\nIt is still under development.", 60, 4, true, false).
+		AddTextView("DNS", "This section generates DNS.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Transaction ID", DEFAULT_DNS_TRANSACTION, 6, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 6 {
 				return true

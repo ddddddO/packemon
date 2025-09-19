@@ -11,7 +11,7 @@ import (
 
 func (g *generator) arpForm() *tview.Form {
 	arpForm := tview.NewForm().
-		AddTextView("ARP", "This section generates the ARP.\nIt is still under development.", 60, 4, true, false).
+		AddTextView("ARP", "This section generates ARP.\nIt is still under development.", 60, 4, true, false).
 		AddInputField("Hardware Type(hex)", DEFAULT_ARP_HARDWARE_TYPE, 6, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 6 {
 				return true

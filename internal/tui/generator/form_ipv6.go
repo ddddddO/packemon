@@ -15,7 +15,7 @@ var checkedCalcIPv6PayloadLength = true
 
 func (g *generator) ipv6Form() *tview.Form {
 	ipv6Form := tview.NewForm().
-		AddTextView("IPv6 Header", "This section generates the IPv6 header.\nIt is still under development.", 60, 4, true, false).
+		AddTextView("IPv6 Header", "This section generates IPv6.", 60, 3, true, false).
 		AddInputField("Version", "0x06", 4, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 4 {
 				return true

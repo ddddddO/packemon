@@ -170,3 +170,12 @@ func (d *DNS) Bytes() []byte {
 	}
 	return buf.Bytes()
 }
+
+// TCPでDNSクエリを投げるときは、DNSクエリ長を先頭につけるため
+func (d *DNS) BytesForTCP() []byte {
+	buf := make([]byte, 2)
+	dnsQueryBytes := d.Bytes()
+	length := len(dnsQueryBytes)
+	binary.BigEndian.PutUint16(buf, uint16(length))
+	return append(buf, dnsQueryBytes...)
+}

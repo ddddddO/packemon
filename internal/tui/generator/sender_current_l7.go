@@ -73,7 +73,7 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 							s.packets.ethernet,
 							s.packets.ipv4,
 							s.packets.tcp,
-							s.packets.dns.Bytes(),
+							s.packets.dns.BytesForTCP(),
 						)
 					case "IPv6":
 						return packemon.EstablishConnectionAndSendPayloadXxxForIPv6(
@@ -82,7 +82,7 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 							s.packets.ethernet,
 							s.packets.ipv6,
 							s.packets.tcp,
-							s.packets.dns.Bytes(),
+							s.packets.dns.BytesForTCP(),
 						)
 					case "ARP":
 						return fmt.Errorf("unsupported under protocol: %s", selectedL3)
@@ -93,7 +93,7 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 					if checkedCalcTCPChecksum {
 						s.packets.tcp.Checksum = 0x0000
 					}
-					s.packets.tcp.Data = s.packets.dns.Bytes()
+					s.packets.tcp.Data = s.packets.dns.BytesForTCP()
 					ethernetFrame := &packemon.EthernetFrame{
 						Header: s.packets.ethernet,
 					}

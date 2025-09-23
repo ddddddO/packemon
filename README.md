@@ -375,6 +375,44 @@ $ sudo packemon monitor
       - DNS response (`SrcIP: 1.1.1.1`)
         ![](./assets/sending_dns_query_and_monitoring_dns_response/5.png)
 
+## Network Scan
+
+### Host Scan
+
+This is a method for identifying which hosts (devices) are operational on a network.
+
+||Description|How to do it in Pakemon (Generator)|
+|--|--|--|
+|Ping Sweep|Send ICMP echo requests to multiple IP addresses on the network to identify the hosts that return echo replies. This is a simple and widely used technique.||
+|ARP Scan|On a local network, broadcast an ARP request to identify the host that responds. Verify the association between the IP address and MAC address.||
+
+### Port Scan
+
+This is a method for identifying which ports are open (which services are running) on a network device. It is used by attackers to find vulnerable services and by administrators to verify security settings.
+
+||Description|How to do it in Pakemon (Generator)|
+|--|--|--|
+|TCP Connect Scan|This is the most basic scanning method, which verifies whether a port is open by performing a complete TCP three-way handshake (SYN -> SYN/ACK -> ACK).||
+|SYN Scan (Half-open Scan)|This technique checks port availability without completing the TCP handshake. It sends a SYN packet; if a SYN/ACK packet is returned, the port is deemed open. It then sends a RST packet to reset the connection. Because it leaves minimal traces in logs, it is also called a stealth scan.||
+|UDP Scan|Because it uses the connectionless UDP protocol, it is well-suited for verifying whether a UDP port is open or closed. It sends a UDP packet and determines that the port is open if there is no ICMP Port Unreachable (Type 3, Code 3) response.||
+
+
+### Vulnerability Scan
+This is a method for detecting known vulnerabilities (such as in operating systems, applications, or configuration errors).
+
+||Description|How to do it in Pakemon (Generator)|
+|--|--|--|
+|Automated Scanners|Using tools such as Nessus and OpenVAS, we perform automated scans based on known vulnerability databases.||
+|Banner Grabbing|Connect to the port and retrieve the “banner” returned by the service (e.g., web server version information) to check for known vulnerabilities.||
+
+### Other Scan
+
+||Description|How to do it in Pakemon (Generator)|
+|--|--|--|
+|OS Fingerprinting|This technique identifies the target host's operating system by analyzing TCP/IP packet characteristics such as TTL values and window sizes.||
+|Port Redirection|This scan verifies settings for forwarding packets to different ports or hosts.||
+
+
 ## Usecase
 ### Network Learning and Education
 Packemon serves as an educational tool for understanding network protocols by allowing hands-on experimentation. You can generate custom packets at different OSI layers and observe their behavior, making it ideal for learning TCP/IP fundamentals.

@@ -22,7 +22,7 @@ The images of Packemon on REDME should be used as reference only, as they may lo
 > This tool is implemented with protocol stacks from scratch and utilizes raw socket.</br>
 > There may be many bugs. If you find a bug, I would be glad if you raise an issue or give me a pull request!
 
-## Feature
+## Feature - Overview
 
 This TUI tool has two major functions: packet generation and packet monitoring.
 
@@ -37,12 +37,12 @@ See **[here](https://github.com/ddddddO/packemon#sending-dns-query-and-monitorin
 Packemon's Monitor allows user to select each packet by pressing `Enter` key. Then, select any line and press `Enter` key to see the details of the desired packet. Pressing `Esc` key in the packet detail screen will return you to the original packet list screen.
 The rightmost image shows how the packet list is filtered.
 
-### Generator
+## Feature - Generator
 
-#### Send generated packets to any network interfaces.
+### Send generated packets to any network interfaces.
 - You can specify network interface with `--interface` flag. Default is `eth0`.
 
-#### Packets of various protocols are supported.
+### Packets of various protocols are supported.
 
 <details><summary>details</summary>
 
@@ -113,17 +113,17 @@ The rightmost image shows how the packet list is filtered.
 > $ **sudo mount -t debugfs none /sys/kernel/debug** (only once)<br>
 > $ **sudo cat /sys/kernel/debug/tracing/trace_pipe**
 
-### Monitor
+## Feature - Monitor
 
-#### Monitor any network interfaces.
+### Monitor any network interfaces.
 - You can specify network interface with `--interface` flag. Default is `eth0`.
 
-#### Can filter packets to be displayed.
+### Can filter packets to be displayed.
 - You can filter the values for each item (e.g. `Dst`, `Proto`, `SrcIP`...etc.) displayed in the listed packets.
 
-#### Specified packets can be saved to pcapng file.
+### Specified packets can be saved to pcapng file.
 
-#### Packets of various protocols are supported.
+### Packets of various protocols are supported.
 
 <details><summary>details</summary>
 
@@ -262,7 +262,7 @@ For macOS, besides Homebrew, this is also easy.
 $ go install github.com/ddddddO/packemon/cmd/packemon@latest
 </pre>
 
-## Usage
+## Usage - Overview
 
 ```console
 $ packemon --help
@@ -308,7 +308,7 @@ GLOBAL OPTIONS:
 $
 ```
 
-### Generator
+## Usage - Generator
 
 ```console
 $ sudo setcap cap_net_raw,cap_bpf,cap_sys_admin,cap_net_admin+ep /path/to/packemon
@@ -319,7 +319,7 @@ or
 $ sudo packemon generator
 ```
 
-### Monitor
+## Usage - Monitor
 ```console
 $ sudo setcap cap_net_raw+ep /path/to/packemon
 $ packemon monitor
@@ -329,8 +329,8 @@ or
 $ sudo packemon monitor
 ```
 
-### Sample execution
-#### Sending DNS query and Monitoring DNS response
+## Usage - Sample execution
+### Sending DNS query and Monitoring DNS response
 
 <details><summary>process</summary>
 
@@ -379,7 +379,7 @@ $ sudo packemon monitor
 
 </details>
 
-## Network Scan
+## Usage - Network Scan
 
 ### Host Scan
 

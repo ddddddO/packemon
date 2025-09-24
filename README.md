@@ -37,7 +37,7 @@ See **[here](https://github.com/ddddddO/packemon#sending-dns-query-and-monitorin
 Packemon's Monitor allows user to select each packet by pressing `Enter` key. Then, select any line and press `Enter` key to see the details of the desired packet. Pressing `Esc` key in the packet detail screen will return you to the original packet list screen.
 The rightmost image shows how the packet list is filtered.
 
-## Feature - Generator
+## Feature - *Generator*
 
 ### Send generated packets to any network interfaces.
 - You can specify network interface with `--interface` flag. Default is `eth0`.
@@ -113,7 +113,7 @@ The rightmost image shows how the packet list is filtered.
 > $ **sudo mount -t debugfs none /sys/kernel/debug** (only once)<br>
 > $ **sudo cat /sys/kernel/debug/tracing/trace_pipe**
 
-## Feature - Monitor
+## Feature - *Monitor*
 
 ### Monitor any network interfaces.
 - You can specify network interface with `--interface` flag. Default is `eth0`.
@@ -308,7 +308,7 @@ GLOBAL OPTIONS:
 $
 ```
 
-## Usage - Generator
+## Usage - *Generator*
 
 ```console
 $ sudo setcap cap_net_raw,cap_bpf,cap_sys_admin,cap_net_admin+ep /path/to/packemon
@@ -319,7 +319,7 @@ or
 $ sudo packemon generator
 ```
 
-## Usage - Monitor
+## Usage - *Monitor*
 ```console
 $ sudo setcap cap_net_raw+ep /path/to/packemon
 $ packemon monitor

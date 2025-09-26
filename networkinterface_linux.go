@@ -5,7 +5,6 @@ package packemon
 
 import (
 	"context"
-	"encoding/binary"
 	"errors"
 	"net"
 	"strings"
@@ -63,10 +62,13 @@ func newNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 		return nil, errors.New("network interface may not have IP address configured")
 	}
 
+	// FIXME: IPv6で、「strconv.ParseUint: parsing "fe80::cc88:acff:fee5:73fd"」のエラーが出ていた
+	//　 　　　現状、ipAddrは使われてないので、パース失敗しても実害はない。なので一旦errを無視する
 	ipAddr, err := StrIPToBytes(strings.Split(ipAddrs[0].String(), "/")[0])
-	if err != nil {
-		return nil, err
-	}
+	_, _ = ipAddr, err
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// https://ja.manpages.org/af_packet/7 のリンク先に、以下コード1行分の説明あり. ためになる.
 	// https://github.com/pandax381/seccamp2024 の README にリンクされているスライドもためになる(「KLab Expert Camp 6 - Day3」のとこ).
@@ -89,7 +91,7 @@ func newNetworkInterface(nwInterface string) (*NetworkInterface, error) {
 		Intf:       intf,
 		Socket:     sock,
 		SocketAddr: addr,
-		IPAdder:    binary.BigEndian.Uint32(ipAddr),
+		// IPAdder:    binary.BigEndian.Uint32(ipAddr), // FIXME: どこにも使われてなかったからわからなかったけど、IPv6アドレスだとダメ
 
 		PassiveCh: make(chan *Passive, 100),
 	}, nil

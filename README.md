@@ -47,6 +47,7 @@ The rightmost image shows how the packet list is filtered.
 <details><summary>details</summary>
 
 - [x] Ethernet
+  - [x] IEEE802.1Q(VLAN tag)
 - [x] ARP
 - [x] IPv4
 - [x] IPv6
@@ -128,6 +129,7 @@ The rightmost image shows how the packet list is filtered.
 <details><summary>details</summary>
 
 - [x] Ethernet
+  - [x] IEEE802.1Q(VLAN tag)
 - [x] ARP
 - [x] IPv4 (WIP)
 - [x] IPv6 (WIP)

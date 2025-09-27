@@ -15,7 +15,9 @@ import (
 
 // TODO: この辺りLABELとrenameした方が分かりやすそう
 const (
-	DEFAULT_ETHER_TYPE = "IPv4"
+	DEFAULT_ETHER_TYPE         = "IPv4"
+	DEFAULT_ETHER_DOT1Q_FIELDS = "0x0000"
+	DEFAULT_ETHER_DOT1Q_TYPE   = "0x0800" // =IPv4
 )
 
 var (
@@ -544,6 +546,12 @@ func defaultPackets() (*packets, error) {
 		Dst: packemon.HardwareAddr(dstMAC),
 		Src: packemon.HardwareAddr(srcMAC),
 		Typ: packemon.ETHER_TYPE_IPv4,
+
+		// 送信時にBytes()するときにEtherTypeがDot1Qだったら以下のデータ書き出すからここで詰めて問題ない
+		Dot1QFiels: &packemon.EthernetDot1QFields{
+			Dot1QFiels: 0x0000,
+			Type:       0x0800, // =IPv4
+		},
 	}
 
 	return &packets{

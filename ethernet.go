@@ -81,9 +81,9 @@ type EthernetDot1QFields struct {
 	Type       uint16
 
 	// TODO: Dot1QFiels をさらに細分化
-	// UserPriority    uint8  // 3bit
-	// CanonicalFormat uint8  // 1bit
-	// VLANID          uint16 // 12bit
+	// PriorityCodePoint        uint8  // 3bit
+	// CanonicalFormatIndicator uint8  // 1bit
+	// VLANID                   uint16 // 12bit
 }
 
 type HardwareAddr [6]uint8

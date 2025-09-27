@@ -152,7 +152,7 @@ func (g *generator) ethernetForm() *tview.Form {
 				underIPv6 = false
 			}
 		}).
-		AddInputField("UP/CF/VLANID(EtherType=Dot1Q is required)", DEFAULT_ETHER_DOT1Q_FIELDS, 6, func(textToCheck string, lastChar rune) bool {
+		AddInputField("PCP/CFI/VLANID(EtherType=Dot1Q is required)", DEFAULT_ETHER_DOT1Q_FIELDS, 6, func(textToCheck string, lastChar rune) bool {
 			if g.sender.packets.ethernet.Typ != packemon.ETHER_TYPE_DOT1Q {
 				return false
 			}

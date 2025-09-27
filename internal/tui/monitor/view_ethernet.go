@@ -31,5 +31,13 @@ func (ef *EthernetFrame) viewTable() *tview.Table {
 	table.SetCell(2, 0, tui.TableCellTitle("Type"))
 	table.SetCell(2, 1, tui.TableCellContent("%x", ef.Header.Typ))
 
+	if ef.Header.Typ == packemon.ETHER_TYPE_DOT1Q {
+		table.SetCell(3, 0, tui.TableCellTitle("UP/CF/VLAN ID (Dot1Q)"))
+		table.SetCell(3, 1, tui.TableCellContent("%x", ef.Header.Dot1QFiels.Dot1QFiels))
+
+		table.SetCell(4, 0, tui.TableCellTitle("Type (Dot1Q)"))
+		table.SetCell(4, 1, tui.TableCellContent("%x", ef.Header.Dot1QFiels.Type))
+	}
+
 	return table
 }

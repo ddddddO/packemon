@@ -43,14 +43,20 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" Hexadecimal dump ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	// L2
+	loopForL2View := 0
 	switch {
 	case h.EthernetFrame != nil:
-		const ethernetHeaderLength = 14
-		viewHexadecimalDump(table, 0, "Ethernet", h.EthernetFrame.Bytes()[0:ethernetHeaderLength])
+		frame := h.EthernetFrame.Bytes()
+		ethernetHeaderLength := 14
+		if h.EthernetFrame.Header.Typ == packemon.ETHER_TYPE_DOT1Q && len(frame) >= 18 {
+			ethernetHeaderLength = 18
+			loopForL2View++
+		}
+		viewHexadecimalDump(table, 0, "Ethernet", frame[0:ethernetHeaderLength])
 	}
 
 	// L3
-	loopForL3View := 1
+	loopForL3View := 1 + loopForL2View
 	switch {
 	case h.ARP != nil:
 		loopForL3View = viewHexadecimalDump(table, loopForL3View, "ARP", h.ARP.Bytes())

@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"strings"
 
@@ -135,7 +136,7 @@ func (g *generator) ethernetForm() *tview.Form {
 		}, nil).
 		AddFormItem(srcMACStatus).
 		// TODO: 自由にフレーム作れるとするなら、ここもhexで受け付けるようにして、IP or ARPヘッダフォームへの切り替えも自由にできた方がいいかも
-		AddDropDown("Ether Type", []string{"IPv4", "IPv6", "ARP"}, 0, func(selected string, _ int) {
+		AddDropDown("Ether Type", []string{"IPv4", "IPv6", "ARP", "Dot1Q"}, 0, func(selected string, _ int) {
 			switch selected {
 			case "IPv4":
 				g.sender.packets.ethernet.Typ = packemon.ETHER_TYPE_IPv4
@@ -146,8 +147,49 @@ func (g *generator) ethernetForm() *tview.Form {
 			case "ARP":
 				g.sender.packets.ethernet.Typ = packemon.ETHER_TYPE_ARP
 				underIPv6 = false
+			case "Dot1Q":
+				g.sender.packets.ethernet.Typ = packemon.ETHER_TYPE_DOT1Q
+				underIPv6 = false
 			}
 		}).
+		AddInputField("UP/CF/VLANID(EtherType=Dot1Q is required)", DEFAULT_ETHER_DOT1Q_FIELDS, 6, func(textToCheck string, lastChar rune) bool {
+			if g.sender.packets.ethernet.Typ != packemon.ETHER_TYPE_DOT1Q {
+				return false
+			}
+
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := packemon.StrHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			g.sender.packets.ethernet.Dot1QFiels.Dot1QFiels = binary.BigEndian.Uint16(b)
+
+			return true
+		}, nil).
+		AddInputField("Type(EtherType=Dot1Q is required)", DEFAULT_ETHER_DOT1Q_TYPE, 6, func(textToCheck string, lastChar rune) bool {
+			if g.sender.packets.ethernet.Typ != packemon.ETHER_TYPE_DOT1Q {
+				return false
+			}
+
+			if len(textToCheck) < 6 {
+				return true
+			} else if len(textToCheck) > 6 {
+				return false
+			}
+
+			b, err := packemon.StrHexToBytes2(textToCheck)
+			if err != nil {
+				return false
+			}
+			g.sender.packets.ethernet.Dot1QFiels.Type = binary.BigEndian.Uint16(b)
+
+			return true
+		}, nil).
 		AddButton("Send!", func() {
 			if err := g.sender.sendLayer2(context.TODO()); err != nil {
 				g.addErrPage(err)

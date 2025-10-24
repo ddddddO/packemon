@@ -8,7 +8,7 @@ require (
 	github.com/gopacket/gopacket v1.4.0
 	github.com/quic-go/quic-go v0.55.0
 	github.com/rivo/tview v0.42.0
-	github.com/urfave/cli/v3 v3.4.1
+	github.com/urfave/cli/v3 v3.5.0
 	github.com/vishvananda/netlink v1.3.1
 	golang.org/x/crypto v0.43.0
 	golang.org/x/sys v0.37.0

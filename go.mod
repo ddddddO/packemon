@@ -3,7 +3,7 @@ module github.com/ddddddO/packemon
 go 1.25.2
 
 require (
-	github.com/cilium/ebpf v0.19.0
+	github.com/cilium/ebpf v0.20.0
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/gopacket/gopacket v1.4.0
 	github.com/quic-go/quic-go v0.55.0

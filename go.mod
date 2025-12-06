@@ -4,7 +4,7 @@ go 1.25.2
 
 require (
 	github.com/cilium/ebpf v0.20.0
-	github.com/gdamore/tcell/v2 v2.12.2
+	github.com/gdamore/tcell/v2 v2.13.2
 	github.com/gopacket/gopacket v1.5.0
 	github.com/quic-go/quic-go v0.57.1
 	github.com/rivo/tview v0.42.0

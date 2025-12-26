@@ -6,7 +6,7 @@ require (
 	github.com/cilium/ebpf v0.20.0
 	github.com/gdamore/tcell/v2 v2.13.5
 	github.com/gopacket/gopacket v1.5.0
-	github.com/quic-go/quic-go v0.57.1
+	github.com/quic-go/quic-go v0.58.0
 	github.com/rivo/tview v0.42.0
 	github.com/urfave/cli/v3 v3.6.1
 	github.com/vishvananda/netlink v1.3.1

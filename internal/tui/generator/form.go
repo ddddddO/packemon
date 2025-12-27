@@ -134,7 +134,11 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 	ipv6Form := g.ipv6Form()
 	ipv6Form.SetBorder(true).SetTitle(" IPv6 Header ").SetTitleAlign(tview.AlignLeft)
 	ipv4Form := g.ipv4Form()
-	ipv4Form.SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
+	ipv4Form.(interface {
+		SetBorder(bool) *tview.Box
+		SetTitle(string) *tview.Box
+		SetTitleAlign(int) *tview.Box
+	}).SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft)
 	arpForm := g.arpForm()
 	arpForm.SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft)
 

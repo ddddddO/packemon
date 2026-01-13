@@ -270,13 +270,12 @@ func actionInterfaces(ctx context.Context, c *cli.Command) error {
 	}
 
 	if c.Bool("json") {
-		// Veriyi JSON formatına çevir (Indent ile okunaklı olsun)
 		jsonData, err := json.MarshalIndent(interfaceDevices, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal json: %w", err)
 		}
 		fmt.Println(string(jsonData))
-		return nil // JSON bastık, işimiz bitti. Çıkıyoruz.
+		return nil
 	}
 
 	splitter := func() {

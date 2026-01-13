@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -91,8 +92,16 @@ func main() {
 				Name:    "interfaces",
 				Aliases: []string{"i", "intfs"},
 				Usage:   "Check the list of interfaces.",
-				Before:  notExistArgs,
-				Action:  actionInterfaces,
+
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:  "json",
+						Usage: "Output list in JSON format",
+					},
+				},
+
+				Before: notExistArgs,
+				Action: actionInterfaces,
 			},
 			{
 				Name:    "debugging",
@@ -258,6 +267,15 @@ func actionInterfaces(ctx context.Context, c *cli.Command) error {
 	interfaceDevices, err := packemon.NewInterfaceDevices()
 	if err != nil {
 		return fmt.Errorf("failed to NewInterfaceDevices: %w", err)
+	}
+
+	if c.Bool("json") {
+		jsonData, err := json.MarshalIndent(interfaceDevices, "", "  ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal json: %w", err)
+		}
+		fmt.Println(string(jsonData))
+		return nil
 	}
 
 	splitter := func() {

@@ -23,16 +23,16 @@ func (u *UDP) viewTable() *tview.Table {
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" UDP Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	table.SetCell(0, 0, tui.TableCellTitle("Src Port"))
-	table.SetCell(0, 1, tui.TableCellContent("%x (%d)", u.SrcPort, u.SrcPort))
+	table.SetCell(0, 1, tui.TableCellContent("%#x (%d)", u.SrcPort, u.SrcPort))
 
 	table.SetCell(1, 0, tui.TableCellTitle("Dst Port"))
-	table.SetCell(1, 1, tui.TableCellContent("%x (%d)", u.DstPort, u.DstPort))
+	table.SetCell(1, 1, tui.TableCellContent("%#x (%d)", u.DstPort, u.DstPort))
 
 	table.SetCell(2, 0, tui.TableCellTitle("Length"))
-	table.SetCell(2, 1, tui.TableCellContent("%x", u.Length))
+	table.SetCell(2, 1, tui.TableCellContent("%#x", u.Length))
 
 	table.SetCell(3, 0, tui.TableCellTitle("Checksum"))
-	table.SetCell(3, 1, tui.TableCellContent("%x", u.Checksum))
+	table.SetCell(3, 1, tui.TableCellContent("%#x", u.Checksum))
 
 	return table
 }

@@ -23,19 +23,19 @@ func (i *IPv6) viewTable() *tview.Table {
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" IPv6 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)
 
 	table.SetCell(0, 0, tui.TableCellTitle("Version"))
-	table.SetCell(0, 1, tui.TableCellContent("%x", i.Version))
+	table.SetCell(0, 1, tui.TableCellContent("%#x", i.Version))
 
 	table.SetCell(1, 0, tui.TableCellTitle("Traffic Class"))
-	table.SetCell(1, 1, tui.TableCellContent("%x", i.TrafficClass))
+	table.SetCell(1, 1, tui.TableCellContent("%#x", i.TrafficClass))
 
 	table.SetCell(2, 0, tui.TableCellTitle("Flow Label"))
-	table.SetCell(2, 1, tui.TableCellContent("%x", i.FlowLabel))
+	table.SetCell(2, 1, tui.TableCellContent("%#x", i.FlowLabel))
 
 	table.SetCell(3, 0, tui.TableCellTitle("Payload Length"))
-	table.SetCell(3, 1, tui.TableCellContent("%x", i.PayloadLength))
+	table.SetCell(3, 1, tui.TableCellContent("%#x", i.PayloadLength))
 
 	table.SetCell(4, 0, tui.TableCellTitle("Next Header"))
-	table.SetCell(4, 1, tui.TableCellContent("%x", i.NextHeader))
+	table.SetCell(4, 1, tui.TableCellContent("%#x", i.NextHeader))
 
 	table.SetCell(5, 0, tui.TableCellTitle("Hop Limit"))
 	table.SetCell(5, 1, tui.TableCellContent("%d", i.HopLimit))

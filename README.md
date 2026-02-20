@@ -507,7 +507,7 @@ thanks!
   ![](./assets/tui_send_icmp_result2.png)
 
 - フレームを受信して詳細表示（ARPとIPv4）
-  ![](./assets/tui_send_recieve.png)
+  ![](./assets/tui_send_receive.png)
 
   <details><summary>少し前のUI（`5062561` のコミット）</summary>
 

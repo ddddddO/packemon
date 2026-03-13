@@ -11,7 +11,7 @@ require (
 	github.com/urfave/cli/v3 v3.7.0
 	github.com/vishvananda/netlink v1.3.1
 	golang.org/x/crypto v0.48.0
-	golang.org/x/sys v0.41.0
+	golang.org/x/sys v0.42.0
 )
 
 require (

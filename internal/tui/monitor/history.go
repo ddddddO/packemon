@@ -78,39 +78,48 @@ func (m *monitor) filterAndInsertToTable(passive *packemon.Passive, id uint64) {
 }
 
 func (m *monitor) insertToTable(r *HistoryRow) {
-	m.table.InsertRow(0)
-	m.table.SetCell(0, 0, r.id)
+	currentRow, currentColumn := m.table.GetSelection()
 
+	if m.prepend {
+		m.table.InsertRow(0)
+		m.table.SetCell(0, 0, r.id)
+		m.insertRow(0, r)
+
+		// パケットが届き、行が追加されてもカーソルをあてていた行をずらさずに固定するため
+		m.table = m.table.Select(currentRow+1, currentColumn)
+		m.table.ScrollToBeginning()
+	} else {
+		next := m.table.GetRowCount()
+		m.table.InsertRow(next)
+		m.table.SetCell(next, 0, r.id)
+		m.insertRow(next, r)
+
+		m.table = m.table.Select(currentRow, currentColumn)
+		m.table.ScrollToEnd()
+	}
+}
+
+func (m *monitor) insertRow(y int, r *HistoryRow) {
 	x := 1
 	for i := range m.columns {
 		switch m.columns[i] {
 		case 'd':
-			m.table.SetCell(0, x, r.destinationMAC)
+			m.table.SetCell(y, x, r.destinationMAC)
 		case 's':
-			m.table.SetCell(0, x, r.sourceMAC)
+			m.table.SetCell(y, x, r.sourceMAC)
 		case 't':
-			m.table.SetCell(0, x, r.typ)
+			m.table.SetCell(y, x, r.typ)
 		case 'p':
-			m.table.SetCell(0, x, r.protocol)
+			m.table.SetCell(y, x, r.protocol)
 		case 'D':
-			m.table.SetCell(0, x, r.destinationIPAddr)
+			m.table.SetCell(y, x, r.destinationIPAddr)
 		case 'S':
-			m.table.SetCell(0, x, r.sourceIPAddr)
+			m.table.SetCell(y, x, r.sourceIPAddr)
 		case 'i':
-			m.table.SetCell(0, x, r.info)
+			m.table.SetCell(y, x, r.info)
 		}
 		x++
 	}
-
-	currentRow, currentColumn := m.table.GetSelection()
-
-	// カーソル下に移動してるのにパケットキャッチするたびにトップに移動するのはしんどいのでコメントアウト
-	// していたが、それも微妙かも？
-	// と思ったけどやっぱりコメントアウト
-	// m.table.ScrollToBeginning()
-
-	// パケットが届き、行が追加されてもカーソルをあてていた行をずらさずに固定するため
-	m.table = m.table.Select(currentRow+1, currentColumn)
 }
 
 func NewPacketsHistoryTable() *tview.Table {

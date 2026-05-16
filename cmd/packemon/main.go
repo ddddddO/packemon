@@ -67,6 +67,10 @@ func main() {
 				Name:  "limit",
 				Usage: "Limits the list of packets that can be displayed on monitor mode. Default is '1000'; if less than -1 is specified, no limit. (default 1000)",
 			},
+			&cli.BoolFlag{
+				Name:  "prepend",
+				Usage: "Display the newest rows at the top.",
+			},
 		},
 		Before: notExistArgs,
 		Action: actionMonitor,
@@ -245,6 +249,8 @@ func actionMonitor(ctx context.Context, c *cli.Command) error {
 		limit = c.Int("limit")
 	}
 
+	prepend := c.Bool("prepend")
+
 	nwInterface := DEFAULT_TARGET_NW_INTERFACE
 	if c.String("interface") != "" {
 		nwInterface = c.String("interface")
@@ -258,7 +264,7 @@ func actionMonitor(ctx context.Context, c *cli.Command) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	packemonTUI := monitor.New(netIf, columns, limit)
+	packemonTUI := monitor.New(netIf, columns, limit, prepend)
 	return packemonTUI.Run(ctx)
 }
 

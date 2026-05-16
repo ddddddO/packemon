@@ -19,6 +19,7 @@ type monitor struct {
 	app *tview.Application
 
 	table         *tview.Table
+	prepend       bool
 	storedPackets sync.Map
 	storedMaxID   *storedMaxID
 	limit         int
@@ -48,7 +49,7 @@ func (m *storedMaxID) set(currentID uint64) {
 	}
 }
 
-func New(networkInterface *packemon.NetworkInterface, columns string, limit int) *monitor {
+func New(networkInterface *packemon.NetworkInterface, columns string, limit int, prepend bool) *monitor {
 	pages := tview.NewPages()
 	table := NewPacketsHistoryTable()
 	pages.AddPage("history", table, true, true)
@@ -76,6 +77,7 @@ func New(networkInterface *packemon.NetworkInterface, columns string, limit int)
 
 		app:           tview.NewApplication(),
 		table:         table,
+		prepend:       prepend,
 		storedPackets: sync.Map{},
 		storedMaxID:   &storedMaxID{},
 		limit:         limit,
@@ -89,7 +91,7 @@ func New(networkInterface *packemon.NetworkInterface, columns string, limit int)
 func (m *monitor) Run(ctx context.Context) error {
 	go m.networkInterface.Recieve(ctx)
 
-	m.table.Select(0, 0).SetFixed(1, 1).SetDoneFunc(func(key tcell.Key) {
+	m.table.Select(0, 0).SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEscape {
 			m.table.SetSelectable(false, false)
 		}

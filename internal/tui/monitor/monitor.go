@@ -94,9 +94,15 @@ func (m *monitor) Run(ctx context.Context) error {
 	m.table.Select(0, 0).SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEscape {
 			m.table.SetSelectable(false, false)
+
+			if m.prepend {
+				m.table.ScrollToBeginning()
+			} else {
+				m.table.ScrollToEnd()
+			}
 		}
 		if key == tcell.KeyEnter {
-			m.table.Select(0, 0)
+			m.table.Select(m.table.GetOffset())
 			m.table.SetSelectable(true, false)
 		}
 	}).SetSelectedStyle(tcell.Style{}.Background(tcell.ColorRed)).SetSelectedFunc(func(row int, column int) {

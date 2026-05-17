@@ -87,7 +87,6 @@ func (m *monitor) insertToTable(r *HistoryRow) {
 
 		// パケットが届き、行が追加されてもカーソルをあてていた行をずらさずに固定するため
 		m.table = m.table.Select(currentRow+1, currentColumn)
-		m.table.ScrollToBeginning()
 	} else {
 		next := m.table.GetRowCount()
 		m.table.InsertRow(next)
@@ -95,7 +94,6 @@ func (m *monitor) insertToTable(r *HistoryRow) {
 		m.insertRow(next, r)
 
 		m.table = m.table.Select(currentRow, currentColumn)
-		m.table.ScrollToEnd()
 	}
 }
 

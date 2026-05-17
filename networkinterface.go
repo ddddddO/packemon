@@ -34,15 +34,11 @@ func (nw *NetworkInterface) Close() error {
 
 func ParsedPacket(recieved []byte) (passive *Passive) {
 	ethernetFrame := ParsedEthernetFrame(recieved)
+	passive = &Passive{
+		EthernetFrame: ethernetFrame,
+	}
 	defer func() {
 		if e := recover(); e != nil {
-			// TODO: なにかしらログ出す
-			// log.Printf("Panic!:\n%v\n", e)
-
-			// 一旦生のイーサネットフレームを出しとく
-			passive = &Passive{
-				EthernetFrame: ethernetFrame,
-			}
 		}
 	}()
 
@@ -77,7 +73,7 @@ func ParsedPacket(recieved []byte) (passive *Passive) {
 			case IPv4_PROTO_TCP:
 				tcp := ParsedTCP(ipv4.Data)
 
-				passive := &Passive{
+				passive = &Passive{
 					EthernetFrame: ethernetFrame,
 					IPv4:          ipv4,
 					TCP:           tcp,
@@ -116,7 +112,7 @@ func ParsedPacket(recieved []byte) (passive *Passive) {
 			case IPv4_PROTO_UDP:
 				udp := ParsedUDP(ipv4.Data)
 
-				passive := &Passive{
+				passive = &Passive{
 					EthernetFrame: ethernetFrame,
 					IPv4:          ipv4,
 					UDP:           udp,
@@ -163,7 +159,7 @@ func ParsedPacket(recieved []byte) (passive *Passive) {
 				}
 			case IPv6_NEXT_HEADER_UDP:
 				udp := ParsedUDP(ipv6.Data)
-				passive := &Passive{
+				passive = &Passive{
 					EthernetFrame: ethernetFrame,
 					IPv6:          ipv6,
 					UDP:           udp,
@@ -220,7 +216,7 @@ func ParsedPacket(recieved []byte) (passive *Passive) {
 		case IPv4_PROTO_TCP:
 			tcp := ParsedTCP(ipv4.Data)
 
-			passive := &Passive{
+			passive = &Passive{
 				EthernetFrame: ethernetFrame,
 				IPv4:          ipv4,
 				TCP:           tcp,
@@ -259,7 +255,7 @@ func ParsedPacket(recieved []byte) (passive *Passive) {
 		case IPv4_PROTO_UDP:
 			udp := ParsedUDP(ipv4.Data)
 
-			passive := &Passive{
+			passive = &Passive{
 				EthernetFrame: ethernetFrame,
 				IPv4:          ipv4,
 				UDP:           udp,
@@ -306,7 +302,7 @@ func ParsedPacket(recieved []byte) (passive *Passive) {
 			}
 		case IPv6_NEXT_HEADER_UDP:
 			udp := ParsedUDP(ipv6.Data)
-			passive := &Passive{
+			passive = &Passive{
 				EthernetFrame: ethernetFrame,
 				IPv6:          ipv6,
 				UDP:           udp,

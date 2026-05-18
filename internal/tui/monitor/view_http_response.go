@@ -10,14 +10,6 @@ type HTTPResponse struct {
 	*packemon.HTTPResponse
 }
 
-func (*HTTPResponse) rows() int {
-	return 8
-}
-
-func (*HTTPResponse) columns() int {
-	return 30
-}
-
 func (h *HTTPResponse) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" HTTP Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

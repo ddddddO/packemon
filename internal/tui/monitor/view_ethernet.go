@@ -10,14 +10,6 @@ type EthernetFrame struct {
 	*packemon.EthernetFrame
 }
 
-func (*EthernetFrame) rows() int {
-	return 7
-}
-
-func (*EthernetFrame) columns() int {
-	return 30
-}
-
 func (ef *EthernetFrame) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" Ethernet Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

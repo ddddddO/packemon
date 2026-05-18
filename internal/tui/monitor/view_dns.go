@@ -13,14 +13,6 @@ type DNS struct {
 	*packemon.DNS
 }
 
-func (d *DNS) rows() int {
-	return 19 + (len(d.Answers) * 7)
-}
-
-func (*DNS) columns() int {
-	return 30
-}
-
 func (d *DNS) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" DNS Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

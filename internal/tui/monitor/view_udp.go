@@ -10,14 +10,6 @@ type UDP struct {
 	*packemon.UDP
 }
 
-func (*UDP) rows() int {
-	return 8
-}
-
-func (*UDP) columns() int {
-	return 30
-}
-
 func (u *UDP) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" UDP Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

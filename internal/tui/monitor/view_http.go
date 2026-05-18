@@ -10,14 +10,6 @@ type HTTP struct {
 	*packemon.HTTP
 }
 
-func (*HTTP) rows() int {
-	return 8
-}
-
-func (*HTTP) columns() int {
-	return 30
-}
-
 func (h *HTTP) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" HTTP Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

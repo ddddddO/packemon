@@ -10,14 +10,6 @@ type ICMP struct {
 	*packemon.ICMP
 }
 
-func (*ICMP) rows() int {
-	return 16
-}
-
-func (*ICMP) columns() int {
-	return 30
-}
-
 func (i *ICMP) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" ICMP Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

@@ -10,14 +10,6 @@ type IPv6 struct {
 	*packemon.IPv6
 }
 
-func (*IPv6) rows() int {
-	return 16
-}
-
-func (*IPv6) columns() int {
-	return 30
-}
-
 func (i *IPv6) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" IPv6 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

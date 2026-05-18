@@ -28,16 +28,6 @@ type HexadecimalDump struct {
 	data []byte
 }
 
-func (h *HexadecimalDump) rows() int {
-	// TODO: データ量でよしなに決めたい
-	// あと、スクロールなにか指定しないといけない？最後までスクロールできてないみたい
-	return 200
-}
-
-func (*HexadecimalDump) columns() int {
-	return 30
-}
-
 func (h *HexadecimalDump) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" Hexadecimal dump ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

@@ -11,8 +11,6 @@ import (
 )
 
 type Viewer interface {
-	rows() int
-	columns() int
 	viewTable() *tview.Table
 }
 
@@ -26,32 +24,17 @@ func (m *monitor) updateView(passive *packemon.Passive) {
 			}
 		}()
 
-		packetDetail := tview.NewGrid()
+		packetDetail := tview.NewFlex().SetDirection(tview.FlexRow)
 
 		m.app.QueueUpdate(func() {
 			packetDetail.Clear()
 		})
 
-		// m.grid.RemoveItem(m.grid) // ほんと？
-
-		// +1 分は、PCAP保存領域用(savingPCAPView)
-		rows := make([]int, len(viewers)+1)
-		columns := make([]int, len(viewers)+1)
 		for i := range viewers {
-			rows[i] = viewers[i].rows()
-			columns[i] = viewers[i].columns()
-		}
-
-		// SetRows しなくなったので、各テーブルの rows メソッドいらないかも
-		// t.grid.SetRows(rows...).SetColumns(columns...).SetBorders(false)
-		packetDetail.SetColumns(columns...).SetBorders(false)
-
-		for i := range viewers {
-			packetDetail.AddItem(viewers[i].viewTable(), i, 0, 1, 3, 0, 0, false) // focus=true にするとスクロールしない
+			packetDetail.AddItem(viewers[i].viewTable(), 0, 1, false)
 		}
 		savingPCAPView := m.savingPCAPView(passive)
-		row := len(viewers)
-		packetDetail.AddItem(savingPCAPView, row, 0, 1, 3, 0, 0, false)
+		packetDetail.AddItem(savingPCAPView, 0, 1, false)
 
 		packetDetail.SetInputCapture(
 			func(event *tcell.EventKey) *tcell.EventKey {

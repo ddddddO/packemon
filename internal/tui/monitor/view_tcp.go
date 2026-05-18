@@ -10,14 +10,6 @@ type TCP struct {
 	*packemon.TCP
 }
 
-func (*TCP) rows() int {
-	return 16
-}
-
-func (*TCP) columns() int {
-	return 30
-}
-
 func (t *TCP) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TCP Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

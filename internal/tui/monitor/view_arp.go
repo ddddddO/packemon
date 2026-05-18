@@ -10,14 +10,6 @@ type ARP struct {
 	*packemon.ARP
 }
 
-func (*ARP) rows() int {
-	return 13
-}
-
-func (*ARP) columns() int {
-	return 30
-}
-
 func (a *ARP) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" ARP ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

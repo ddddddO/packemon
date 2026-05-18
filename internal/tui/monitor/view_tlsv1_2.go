@@ -12,14 +12,6 @@ type TLSv1_2_CLIENT_HELLO struct {
 	*packemon.TLSClientHello
 }
 
-func (*TLSv1_2_CLIENT_HELLO) rows() int {
-	return 8
-}
-
-func (*TLSv1_2_CLIENT_HELLO) columns() int {
-	return 30
-}
-
 func (t *TLSv1_2_CLIENT_HELLO) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" TLS Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

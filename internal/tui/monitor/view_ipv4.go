@@ -10,14 +10,6 @@ type IPv4 struct {
 	*packemon.IPv4
 }
 
-func (*IPv4) rows() int {
-	return 16
-}
-
-func (*IPv4) columns() int {
-	return 30
-}
-
 func (i *IPv4) viewTable() *tview.Table {
 	table := tview.NewTable().SetBorders(false)
 	table.Box = tview.NewBox().SetBorder(true).SetTitle(" IPv4 Header ").SetTitleAlign(tview.AlignLeft).SetBorderPadding(1, 1, 1, 1)

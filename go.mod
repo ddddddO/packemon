@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/cilium/ebpf v0.21.0
-	github.com/gdamore/tcell/v2 v2.13.9
+	github.com/gdamore/tcell/v2 v2.13.10
 	github.com/gopacket/gopacket v1.6.0
 	github.com/quic-go/quic-go v0.59.1
 	github.com/rivo/tview v0.42.0

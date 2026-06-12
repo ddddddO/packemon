@@ -6,7 +6,7 @@ require (
 	github.com/cilium/ebpf v0.21.0
 	github.com/gdamore/tcell/v2 v2.13.10
 	github.com/gopacket/gopacket v1.6.1
-	github.com/quic-go/quic-go v0.59.1
+	github.com/quic-go/quic-go v0.60.0
 	github.com/rivo/tview v0.42.0
 	github.com/urfave/cli/v3 v3.9.0
 	github.com/vishvananda/netlink v1.3.1
@@ -21,7 +21,7 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	go.uber.org/mock v0.6.0 // indirect
-	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/term v0.43.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 )

@@ -18,11 +18,12 @@ type monitor struct {
 
 	app *tview.Application
 
-	table         *tview.Table
-	prepend       bool
-	storedPackets sync.Map
-	storedMaxID   *storedMaxID
-	limit         int
+	table           *tview.Table
+	prepend         bool
+	shouldParseFull bool
+	storedPackets   sync.Map
+	storedMaxID     *storedMaxID
+	limit           int
 
 	grid        *tview.Grid
 	filterInput *tview.Grid
@@ -49,7 +50,7 @@ func (m *storedMaxID) set(currentID uint64) {
 	}
 }
 
-func New(networkInterface *packemon.NetworkInterface, columns string, limit int, prepend bool) *monitor {
+func New(networkInterface *packemon.NetworkInterface, columns string, limit int, prepend bool, shouldParseFull bool) *monitor {
 	pages := tview.NewPages()
 	table := NewPacketsHistoryTable()
 	pages.AddPage("history", table, true, true)
@@ -75,21 +76,22 @@ func New(networkInterface *packemon.NetworkInterface, columns string, limit int,
 		passiveCh:        networkInterface.PassiveCh,
 		columns:          columns,
 
-		app:           tview.NewApplication(),
-		table:         table,
-		prepend:       prepend,
-		storedPackets: sync.Map{},
-		storedMaxID:   &storedMaxID{},
-		limit:         limit,
-		grid:          grid,
-		filterInput:   filterInput,
-		filter:        newFilter(),
-		pages:         pages,
+		app:             tview.NewApplication(),
+		table:           table,
+		prepend:         prepend,
+		shouldParseFull: shouldParseFull,
+		storedPackets:   sync.Map{},
+		storedMaxID:     &storedMaxID{},
+		limit:           limit,
+		grid:            grid,
+		filterInput:     filterInput,
+		filter:          newFilter(),
+		pages:           pages,
 	}
 }
 
 func (m *monitor) Run(ctx context.Context) error {
-	go m.networkInterface.Recieve(ctx)
+	go m.networkInterface.Recieve(ctx, m.shouldParseFull)
 
 	m.table.Select(0, 0).SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEscape {

@@ -119,6 +119,11 @@ The rightmost image shows how the packet list is filtered.
 ### Monitor any network interfaces.
 - You can specify network interface with `--interface` flag. Default is `eth0`.
 
+### Can view details for L5 and higher.
+- You can view details at the L5 level or higher by specifying the `--parse-full` flag.
+  - However, there are currently few supported protocols, and development progress has been slow...
+- If you do not specify this flag, the parse results up to L4 will be displayed (though a full dump will still be shown).
+
 ### Can filter packets to be displayed.
 - You can filter the values for each item (e.g. `Dst`, `Proto`, `SrcIP`...etc.) displayed in the listed packets.
 
@@ -294,7 +299,7 @@ USAGE:
    packemon [global options] [command [command options]]
 
 VERSION:
-   1.8.0 / revision cb61da2
+   1.X.Y / revision zzzzzzz
 
 COMMANDS:
    monitor, m, mon       Monitor mode. You can monitor packets received and sent on the specified interface. Default is 'eth0' interface.
@@ -359,7 +364,7 @@ Packemon demonstrates how to build network tools from scratch, serving as a refe
 
     ```sh
     # Monitor
-    $ sudo packemon monitor
+    $ sudo packemon monitor --parse-full
     ```
 
     ← Generator | Monitor →

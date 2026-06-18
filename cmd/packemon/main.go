@@ -71,6 +71,10 @@ func main() {
 				Name:  "prepend",
 				Usage: "Display the newest rows at the top.",
 			},
+			&cli.BoolFlag{
+				Name:  "parse-full",
+				Usage: "Enable full parsing (L5+) for packets using well-known ports. (Experimental)",
+			},
 		},
 		Before: notExistArgs,
 		Action: actionMonitor,
@@ -250,6 +254,7 @@ func actionMonitor(ctx context.Context, c *cli.Command) error {
 	}
 
 	prepend := c.Bool("prepend")
+	shouldParseFull := c.Bool("parse-full")
 
 	nwInterface := DEFAULT_TARGET_NW_INTERFACE
 	if c.String("interface") != "" {
@@ -264,7 +269,7 @@ func actionMonitor(ctx context.Context, c *cli.Command) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	packemonTUI := monitor.New(netIf, columns, limit, prepend)
+	packemonTUI := monitor.New(netIf, columns, limit, prepend, shouldParseFull)
 	return packemonTUI.Run(ctx)
 }
 
@@ -371,7 +376,7 @@ func actionDebugging(ctx context.Context, c *cli.Command) error {
 	}
 
 	// Monitor の debug は本チャンの networkinterface.go 使うようにする
-	go netIf.Recieve(ctx)
+	go netIf.Recieve(ctx, true)
 	return debugPrint(ctx, netIf.PassiveCh)
 }
 

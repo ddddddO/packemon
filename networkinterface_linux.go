@@ -121,7 +121,7 @@ func (nw *NetworkInterface) send(ethernetFrame *EthernetFrame) error {
 	return unix.Sendto(nw.Socket, ethernetFrame.Bytes(), 0, &nw.SocketAddr)
 }
 
-func (nw *NetworkInterface) recieve(ctx context.Context) error {
+func (nw *NetworkInterface) recieve(ctx context.Context, shouldParseFull bool) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -136,7 +136,7 @@ func (nw *NetworkInterface) recieve(ctx context.Context) error {
 				return err
 			}
 
-			nw.PassiveCh <- ParsedPacket(recieved[:n])
+			nw.PassiveCh <- ParsedPacket(recieved[:n], shouldParseFull)
 		}
 	}
 }

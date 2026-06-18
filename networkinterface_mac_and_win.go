@@ -183,7 +183,7 @@ func (nw *NetworkInterface) send(ethernetFrame *EthernetFrame) error {
 	return nil
 }
 
-func (nw *NetworkInterface) recieve(ctx context.Context) error {
+func (nw *NetworkInterface) recieve(ctx context.Context, shouldParseFull bool) error {
 	packetSource := gopacket.NewPacketSource(nw.Handle, layers.LayerTypeEthernet)
 	packets := packetSource.Packets()
 
@@ -201,7 +201,7 @@ func (nw *NetworkInterface) recieve(ctx context.Context) error {
 				continue
 			}
 
-			nw.PassiveCh <- ParsedPacket(received)
+			nw.PassiveCh <- ParsedPacket(received, shouldParseFull)
 		}
 	}
 }

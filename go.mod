@@ -10,7 +10,7 @@ require (
 	github.com/rivo/tview v0.42.0
 	github.com/urfave/cli/v3 v3.10.1
 	golang.org/x/crypto v0.53.0
-	golang.org/x/sys v0.46.0
+	golang.org/x/sys v0.47.0
 )
 
 require (

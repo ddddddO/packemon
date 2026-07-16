@@ -6,26 +6,22 @@ package tc_program
 import (
 	"fmt"
 
-	"github.com/vishvananda/netlink"
+	"github.com/cilium/ebpf/link"
 )
 
 func InitializeTCProgram() (*tc_programObjects, error) {
 	return nil, errNotSupportOnMac("InitializeTCProgram")
 }
 
-func AddClsactQdisc(attachTo string) (*netlink.GenericQdisc, error) {
-	return nil, errNotSupportOnMac("AddClsactQdisc")
-}
-
-func PrepareDropingRSTPacket(nwInterface string, objs *tc_programObjects) (*netlink.BpfFilter, error) {
+func PrepareDropingRSTPacket(nwInterface string, objs *tc_programObjects) (link.Link, error) {
 	return nil, errNotSupportOnMac("PrepareDropingRSTPacket")
 }
 
-func PrepareAnalyzingIngressPackets(nwInterface string, objs *tc_programObjects) (*netlink.BpfFilter, error) {
+func PrepareAnalyzingIngressPackets(nwInterface string, objs *tc_programObjects) (link.Link, error) {
 	return nil, errNotSupportOnMac("PrepareAnalyzingIngressPackets")
 }
 
-func Close(ebpfProg *tc_programObjects, qdisc *netlink.GenericQdisc, filters ...*netlink.BpfFilter) error {
+func Close(ebpfProg *tc_programObjects, links ...link.Link) error {
 	return nil
 }
 

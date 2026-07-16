@@ -1,4 +1,4 @@
-- 外部パッケージの github.com/vishvananda/netlink が何らか利用できない状態になって、RST パケットがドロップできないとなっても、回避策はある（[ref](https://zenn.dev/satoken/articles/golang-rfc9401#%E5%8B%95%E4%BD%9C%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF-~%E6%AD%BB%E4%BA%A1%E3%83%95%E3%83%A9%E3%82%B0%E3%81%8C%E7%AB%8B%E3%81%A3%E3%81%9Ftcp%E3%83%91%E3%82%B1%E3%83%83%E3%83%88%E3%81%A8%E3%81%AF~)）
+- 以下はコマンドでRSTパケットをドロップする（[ref](https://zenn.dev/satoken/articles/golang-rfc9401#%E5%8B%95%E4%BD%9C%E3%83%81%E3%82%A7%E3%83%83%E3%82%AF-~%E6%AD%BB%E4%BA%A1%E3%83%95%E3%83%A9%E3%82%B0%E3%81%8C%E7%AB%8B%E3%81%A3%E3%81%9Ftcp%E3%83%91%E3%82%B1%E3%83%83%E3%83%88%E3%81%A8%E3%81%AF~)）
 
     ```console
     $ sudo iptables -A OUTPUT -s 127.0.0.1 -d 127.0.0.1 -p tcp --tcp-flags RST RST -j DROP

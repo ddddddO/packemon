@@ -12,6 +12,16 @@ import (
 	"github.com/cilium/ebpf"
 )
 
+// Names of all BPF objects in the ELF.
+//
+// Used for safe lookups in a Collection or CollectionSpec.
+const (
+	tc_programMapPktEgressCount  = "pkt_egress_count"
+	tc_programMapPktIngressCount = "pkt_ingress_count"
+	tc_programProgControlEgress  = "control_egress"
+	tc_programProgControlIngress = "control_ingress"
+)
+
 // loadTc_program returns the embedded CollectionSpec for tc_program.
 func loadTc_program() (*ebpf.CollectionSpec, error) {
 	reader := bytes.NewReader(_Tc_programBytes)
@@ -32,7 +42,7 @@ func loadTc_program() (*ebpf.CollectionSpec, error) {
 //	*tc_programMaps
 //
 // See ebpf.CollectionSpec.LoadAndAssign documentation for details.
-func loadTc_programObjects(obj interface{}, opts *ebpf.CollectionOptions) error {
+func loadTc_programObjects(obj any, opts *ebpf.CollectionOptions) error {
 	spec, err := loadTc_program()
 	if err != nil {
 		return err

@@ -168,19 +168,13 @@ func actionGenerator(ctx context.Context, c *cli.Command) error {
 	}
 
 	if ebpfObjs != nil {
-		qdisc, err := tc.AddClsactQdisc(nwInterface)
-		if err != nil {
-			// error出力するが、処理は進める
-			fmt.Fprintln(os.Stderr, err)
-		}
-
 		// Generator で TCP 3way handshake する際に、カーネルが自動で RST パケットを送っており、それをドロップするため
-		filterEgress, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
+		linkEgress, err := tc.PrepareDropingRSTPacket(nwInterface, ebpfObjs)
 		if err != nil {
 			// error出力するが、処理は進める
 			fmt.Fprintln(os.Stderr, err)
 		}
-		filterIngress, err := tc.PrepareAnalyzingIngressPackets(nwInterface, ebpfObjs)
+		linkIngress, err := tc.PrepareAnalyzingIngressPackets(nwInterface, ebpfObjs)
 		if err != nil {
 			// error出力するが、処理は進める
 			fmt.Fprintln(os.Stderr, err)
@@ -188,7 +182,7 @@ func actionGenerator(ctx context.Context, c *cli.Command) error {
 		ingressMap = ebpfObjs.PktIngressCount
 		egressMap = ebpfObjs.PktEgressCount
 		defer func() {
-			if err := tc.Close(ebpfObjs, qdisc, filterEgress, filterIngress); err != nil {
+			if err := tc.Close(ebpfObjs, linkEgress, linkIngress); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 			}
 		}()

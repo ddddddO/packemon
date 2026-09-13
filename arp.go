@@ -3,6 +3,7 @@ package packemon
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 const ARP_HARDWARE_TYPE_THERNET = 0x0001
@@ -88,4 +89,85 @@ func NewARPReply(sMACAdder HardwareAddr, sIPAddr uint32, tMACAddr HardwareAddr, 
 		TargetHardwareAddr: tMACAddr,
 		TargetIPAddr:       tIPAddr,
 	}
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (a *ARP) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "ARP",
+		Children: []*FieldNode{
+			{Name: "Hardware Type", Value: fmt.Sprintf("0x%04x", a.HardwareType)},
+			{Name: "Protocol Type", Value: fmt.Sprintf("0x%04x", a.ProtocolType)},
+			{Name: "Hardware Size", Value: fmt.Sprintf("0x%02x", a.HardwareAddrLength)},
+			{Name: "Protocol Size", Value: fmt.Sprintf("0x%02x", a.ProtocolLength)},
+			{Name: "Operation Code", Value: fmt.Sprintf("0x%04x", a.Operation)},
+			{Name: "Sender Mac Addr", Value: a.SenderHardwareAddr.String()},
+			{Name: "Sender IP Addr", Value: uint32ToIPv4Str(a.SenderIPAddr)},
+			{Name: "Target Mac Addr", Value: a.TargetHardwareAddr.String()},
+			{Name: "Target IP Addr", Value: uint32ToIPv4Str(a.TargetIPAddr)},
+		},
+	}
+}
+
+// ScratchARPAssembler は、スクラッチ実装（ARP.Bytes）による Assembler。
+type ScratchARPAssembler struct{}
+
+var _ Assembler = (*ScratchARPAssembler)(nil)
+
+func (s *ScratchARPAssembler) Fields() []FieldSpec {
+	return []FieldSpec{
+		{Key: "hardware_type", Label: "Hardware Type", Kind: FieldKindHex, Default: "0x0001"},
+		{Key: "protocol_type", Label: "Protocol Type", Kind: FieldKindHex, Default: "0x0800"},
+		{Key: "hardware_size", Label: "Hardware Size", Kind: FieldKindHex, Default: "0x06"},
+		{Key: "protocol_size", Label: "Protocol Size", Kind: FieldKindHex, Default: "0x04"},
+		{Key: "operation", Label: "Operation Code", Kind: FieldKindHex, Default: "0x0001"},
+		{Key: "sender_mac", Label: "Sender Mac Addr", Kind: FieldKindText, Default: "00:00:00:00:00:00"},
+		{Key: "sender_ip", Label: "Sender IP Addr", Kind: FieldKindText, Default: "0.0.0.0"},
+		{Key: "target_mac", Label: "Target Mac Addr", Kind: FieldKindText, Default: "00:00:00:00:00:00"},
+		{Key: "target_ip", Label: "Target IP Addr", Kind: FieldKindText, Default: "0.0.0.0"},
+	}
+}
+
+func (s *ScratchARPAssembler) Assemble(values map[string]any, _ []byte) ([]byte, error) {
+	// ARP は上位レイヤを持たないため payload は使わない
+	arp, err := s.AssembleARP(values)
+	if err != nil {
+		return nil, err
+	}
+	return arp.Bytes(), nil
+}
+
+// AssembleARP は values から ARP 構造体を組み立てる。
+// TUI の動的フォームが、既存の送信経路（sender の packets）へ構造体を渡すために使う。
+func (s *ScratchARPAssembler) AssembleARP(values map[string]any) (*ARP, error) {
+	arp := &ARP{}
+	var err error
+	if arp.HardwareType, err = uint16FromValue(values["hardware_type"]); err != nil {
+		return nil, fmt.Errorf("hardware_type: %w", err)
+	}
+	if arp.ProtocolType, err = uint16FromValue(values["protocol_type"]); err != nil {
+		return nil, fmt.Errorf("protocol_type: %w", err)
+	}
+	if arp.HardwareAddrLength, err = uint8FromValue(values["hardware_size"]); err != nil {
+		return nil, fmt.Errorf("hardware_size: %w", err)
+	}
+	if arp.ProtocolLength, err = uint8FromValue(values["protocol_size"]); err != nil {
+		return nil, fmt.Errorf("protocol_size: %w", err)
+	}
+	if arp.Operation, err = uint16FromValue(values["operation"]); err != nil {
+		return nil, fmt.Errorf("operation: %w", err)
+	}
+	if arp.SenderHardwareAddr, err = hardwareAddrFromValue(values["sender_mac"]); err != nil {
+		return nil, fmt.Errorf("sender_mac: %w", err)
+	}
+	if arp.SenderIPAddr, err = ipv4AddrFromValue(values["sender_ip"]); err != nil {
+		return nil, fmt.Errorf("sender_ip: %w", err)
+	}
+	if arp.TargetHardwareAddr, err = hardwareAddrFromValue(values["target_mac"]); err != nil {
+		return nil, fmt.Errorf("target_mac: %w", err)
+	}
+	if arp.TargetIPAddr, err = ipv4AddrFromValue(values["target_ip"]); err != nil {
+		return nil, fmt.Errorf("target_ip: %w", err)
+	}
+	return arp, nil
 }

@@ -13,6 +13,12 @@ type sender struct {
 	selectedProtocolByLayer map[string]string
 	packets                 *packets
 	sendFn                  func(*packemon.EthernetFrame) error
+
+	// applyForms は、動的フォーム（buildDynamicForm）の現在値を packets へ反映する関数群。
+	// 旧手書きフォームは入力のたびに packets へ直接反映していたが、動的フォームは送信時に
+	// まとめて反映するため、どのレイヤの送信でも直前に全フォームぶん実行する（send 冒頭）。
+	// これにより上位レイヤ（TLS/DNS等）の送信時にも下位フォームの最新値が使われる。
+	applyForms map[string]func() error
 }
 
 func newSender(packets *packets, sendFn func(*packemon.EthernetFrame) error) *sender {
@@ -27,7 +33,13 @@ func newSender(packets *packets, sendFn func(*packemon.EthernetFrame) error) *se
 		selectedProtocolByLayer: selectedProtocolByLayer,
 		packets:                 packets,
 		sendFn:                  sendFn,
+		applyForms:              map[string]func() error{},
 	}
+}
+
+// registerApplyForm は、動的フォームの「現在値を packets へ反映する」関数を登録する。
+func (s *sender) registerApplyForm(name string, apply func() error) {
+	s.applyForms[name] = apply
 }
 
 func (s *sender) sendLayer2(ctx context.Context) error {
@@ -55,6 +67,13 @@ func (s *sender) send(ctx context.Context, currentLayer string) (err error) {
 			err = fmt.Errorf("Panic!!\n%v\nstack trace\n%s\n", e, string(trace))
 		}
 	}()
+
+	// 動的フォームの現在値を packets へ反映する（旧手書きフォームの「入力のたびに反映」の代替）
+	for name, apply := range s.applyForms {
+		if err := apply(); err != nil {
+			return fmt.Errorf("%s form: %w", name, err)
+		}
+	}
 
 	// selectedL2 := s.selectedProtocolByLayer["L2"] // 今、固定でイーサネットだからコメントアウト
 	selectedL3 := s.selectedProtocolByLayer["L3"]

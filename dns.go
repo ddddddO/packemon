@@ -3,6 +3,7 @@ package packemon
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"strings"
 )
 
@@ -178,4 +179,70 @@ func (d *DNS) BytesForTCP() []byte {
 	length := len(dnsQueryBytes)
 	binary.BigEndian.PutUint16(buf, uint16(length))
 	return append(buf, dnsQueryBytes...)
+}
+
+// ScratchDNSAssembler は、スクラッチ実装（DNS.Bytes）による Assembler。
+type ScratchDNSAssembler struct{}
+
+var _ Assembler = (*ScratchDNSAssembler)(nil)
+
+func (s *ScratchDNSAssembler) Fields() []FieldSpec {
+	return []FieldSpec{
+		{Key: "transaction_id", Label: "Transaction ID", Kind: FieldKindHex, Default: "0xaa78"},
+		{Key: "flags", Label: "Flags", Kind: FieldKindHex, Default: "0x0100"},
+		{Key: "questions", Label: "Questions", Kind: FieldKindHex, Default: "0x0001"},
+		{Key: "answer_rrs", Label: "AnswerRRs", Kind: FieldKindHex, Default: "0x0000"},
+		{Key: "authority_rrs", Label: "AuthorityRRs", Kind: FieldKindHex, Default: "0x0000"},
+		{Key: "additional_rrs", Label: "AdditionalRRs", Kind: FieldKindHex, Default: "0x0000"},
+		{Key: "query_domain", Label: "Queries Domain", Kind: FieldKindText, Default: "go.dev"},
+		{Key: "query_type", Label: "Queries Type", Kind: FieldKindHex, Default: "0x0001"},
+		{Key: "query_class", Label: "Queries Class", Kind: FieldKindHex, Default: "0x0001"},
+	}
+}
+
+func (s *ScratchDNSAssembler) Assemble(values map[string]any, _ []byte) ([]byte, error) {
+	// DNS は上位レイヤを持たないため payload は使わない
+	dns, err := s.AssembleDNS(values)
+	if err != nil {
+		return nil, err
+	}
+	return dns.Bytes(), nil
+}
+
+// AssembleDNS は values から DNS 構造体を組み立てる。
+// TUI の動的フォームが、既存の送信経路（sender の packets）へ構造体を渡すために使う。
+func (s *ScratchDNSAssembler) AssembleDNS(values map[string]any) (*DNS, error) {
+	dns := &DNS{Queries: &Queries{}}
+	var err error
+	if dns.TransactionID, err = uint16FromValue(values["transaction_id"]); err != nil {
+		return nil, fmt.Errorf("transaction_id: %w", err)
+	}
+	if dns.Flags, err = uint16FromValue(values["flags"]); err != nil {
+		return nil, fmt.Errorf("flags: %w", err)
+	}
+	if dns.Questions, err = uint16FromValue(values["questions"]); err != nil {
+		return nil, fmt.Errorf("questions: %w", err)
+	}
+	if dns.AnswerRRs, err = uint16FromValue(values["answer_rrs"]); err != nil {
+		return nil, fmt.Errorf("answer_rrs: %w", err)
+	}
+	if dns.AuthorityRRs, err = uint16FromValue(values["authority_rrs"]); err != nil {
+		return nil, fmt.Errorf("authority_rrs: %w", err)
+	}
+	if dns.AdditionalRRs, err = uint16FromValue(values["additional_rrs"]); err != nil {
+		return nil, fmt.Errorf("additional_rrs: %w", err)
+	}
+
+	domain, err := stringFromValue(values["query_domain"])
+	if err != nil {
+		return nil, fmt.Errorf("query_domain: %w", err)
+	}
+	dns.Domain(domain) // ドメイン名のラベルエンコードは既存実装に委ねる
+	if dns.Queries.Typ, err = uint16FromValue(values["query_type"]); err != nil {
+		return nil, fmt.Errorf("query_type: %w", err)
+	}
+	if dns.Queries.Class, err = uint16FromValue(values["query_class"]); err != nil {
+		return nil, fmt.Errorf("query_class: %w", err)
+	}
+	return dns, nil
 }

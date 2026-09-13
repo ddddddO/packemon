@@ -2,154 +2,40 @@ package generator
 
 import (
 	"context"
-	"encoding/binary"
-	"strings"
 
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
 )
 
+// arpForm は ARP の入力フォームを返す。
+// Assembler（ScratchARPAssembler）の Fields 定義から動的に生成する。
+// フォーム値は apply（sender.applyForms 経由、どのレイヤの送信でも直前に実行される）で
+// sender の packets へ反映され、Ethernet フレームへの連結は既存の送信経路（sendL3）が担う。
 func (g *generator) arpForm() *tview.Form {
-	arpForm := tview.NewForm().
-		AddTextView("ARP", "This section generates ARP.", 60, 3, true, false).
-		AddInputField("Hardware Type", DEFAULT_ARP_HARDWARE_TYPE, 6, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
+	assembler := &packemon.ScratchARPAssembler{}
+	// 自機の MAC/IP・デフォルトルートの IP は起動時に DEFAULT_* に設定される（cmd/packemon/main.go, init.go）。
+	// これらを初期値として注入する（デフォルトのまま Send! すれば応答が返る ARP リクエストになる）
+	arpForm, collectValues := buildDynamicForm(assembler, "ARP", "This section generates ARP.", map[string]string{
+		"sender_mac": DEFAULT_ARP_SENDER_MAC,
+		"sender_ip":  DEFAULT_ARP_SENDER_IP,
+		"target_mac": DEFAULT_ARP_TARGET_MAC,
+		"target_ip":  DEFAULT_ARP_TARGET_IP,
+	})
 
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.arp.HardwareType = binary.BigEndian.Uint16(b)
+	g.sender.registerApplyForm("ARP", func() error {
+		arp, err := assembler.AssembleARP(collectValues())
+		if err != nil {
+			return err
+		}
+		g.sender.packets.arp = arp
+		return nil
+	})
 
-			return true
-		}, nil).
-		AddInputField("Protocol Type", DEFAULT_ARP_PROTOCOL_TYPE, 6, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.arp.ProtocolType = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
-		AddInputField("Hardware Size", DEFAULT_ARP_HARDWARE_SIZE, 4, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 4 {
-				return true
-			} else if len(textToCheck) > 4 {
-				return false
-			}
-
-			b, err := strHexToUint8(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.arp.HardwareAddrLength = b
-
-			return true
-		}, nil).
-		AddInputField("Protocol Size", DEFAULT_ARP_PROTOCOL_SIZE, 4, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 4 {
-				return true
-			} else if len(textToCheck) > 4 {
-				return false
-			}
-
-			b, err := strHexToUint8(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.arp.ProtocolLength = b
-
-			return true
-		}, nil).
-		AddInputField("Operation Code", DEFAULT_ARP_OPERATION, 6, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.arp.Operation = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
-		AddInputField("Sender Mac Addr", DEFAULT_ARP_SENDER_MAC, 14, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 14 {
-				return true
-			} else if len(textToCheck) > 14 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.arp.SenderHardwareAddr = packemon.HardwareAddr(b)
-
-			return true
-		}, nil).
-		AddInputField("Sender IP Addr", DEFAULT_ARP_SENDER_IP, 15, func(textToCheck string, lastChar rune) bool {
-			count := strings.Count(textToCheck, ".")
-			if count < 3 {
-				return true
-			} else if count == 3 {
-				ip, err := packemon.StrIPToBytes(textToCheck)
-				if err != nil {
-					return false
-				}
-
-				g.sender.packets.arp.SenderIPAddr = binary.BigEndian.Uint32(ip)
-				return true
-			}
-
-			return false
-		}, nil).
-		AddInputField("Target Mac Addr", DEFAULT_ARP_TARGET_MAC, 14, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 14 {
-				return true
-			} else if len(textToCheck) > 14 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.arp.TargetHardwareAddr = packemon.HardwareAddr(b)
-
-			return true
-		}, nil).
-		AddInputField("Target IP Addr", DEFAULT_ARP_TARGET_IP, 15, func(textToCheck string, lastChar rune) bool {
-			count := strings.Count(textToCheck, ".")
-			if count < 3 {
-				return true
-			} else if count == 3 {
-				ip, err := packemon.StrIPToBytes(textToCheck)
-				if err != nil {
-					return false
-				}
-
-				g.sender.packets.arp.TargetIPAddr = binary.BigEndian.Uint32(ip)
-				return true
-			}
-
-			return false
-		}, nil).
+	arpForm.
 		AddButton("Send!", func() {
+			// ARP ページからの送信は L3=ARP を明示する（Ethernet フォームの EtherType とは独立に、
+			// sendL3 が Ethernet フレームの Data へ ARP を詰める既存経路に乗せる）
+			g.sender.selectedProtocolByLayer["L3"] = "ARP"
 			if err := g.sender.sendLayer3(context.TODO()); err != nil {
 				g.addErrPage(err)
 			}

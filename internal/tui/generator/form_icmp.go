@@ -2,7 +2,6 @@ package generator
 
 import (
 	"context"
-	"encoding/binary"
 
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
@@ -11,92 +10,31 @@ import (
 var checkedCalcICMPChecksum = true
 var checkedCalcICMPTimestamp = false
 
+// icmpForm は ICMP の入力フォームを返す。
+// Assembler（ScratchICMPAssembler）の Fields 定義から動的に生成する。
+// フォーム値は apply（sender.applyForms 経由、どのレイヤの送信でも直前に実行される）で
+// sender の packets へ反映され、L3連結・checksum計算は既存の送信経路（sendL4）が担う。
 func (g *generator) icmpForm() *tview.Form {
-	icmpForm := tview.NewForm().
-		AddTextView("ICMP", "This section generates ICMP.", 60, 3, true, false).
-		AddInputField("Type", DEFAULT_ICMP_TYPE, 4, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 4 {
-				return true
-			} else if len(textToCheck) > 4 {
-				return false
-			}
+	assembler := &packemon.ScratchICMPAssembler{}
+	icmpForm, collectValues := buildDynamicForm(assembler, "ICMP", "This section generates ICMP.", nil)
 
-			b, err := strHexToUint8(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.icmpv4.Typ = uint8(b)
+	g.sender.registerApplyForm("ICMP", func() error {
+		values := collectValues()
+		icmp, err := assembler.AssembleICMP(values)
+		if err != nil {
+			return err
+		}
+		// checksum の自動計算は送信時に既存経路（sendL4）が行うため、フラグへ転記する
+		calc, err := boolFromValues(values, "calc_checksum")
+		if err != nil {
+			return err
+		}
+		checkedCalcICMPChecksum = calc
+		g.sender.packets.icmpv4 = icmp
+		return nil
+	})
 
-			return true
-		}, nil).
-		AddInputField("Code", DEFAULT_ICMP_CODE, 4, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 4 {
-				return true
-			} else if len(textToCheck) > 4 {
-				return false
-			}
-
-			b, err := strHexToUint8(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.icmpv4.Code = uint8(b)
-
-			return true
-		}, nil).
-		AddCheckbox("Automatically calculate checksum ?", checkedCalcICMPChecksum, func(checked bool) {
-			checkedCalcICMPChecksum = checked
-		}).
-		AddInputField("Checksum", DEFAULT_ICMP_CHECKSUM, 6, func(textToCheck string, lastChar rune) bool {
-			if checkedCalcICMPChecksum {
-				return false
-			}
-
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.icmpv4.Checksum = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
-		AddInputField("Identifier", DEFAULT_ICMP_IDENTIFIER, 6, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.icmpv4.Identifier = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
-		AddInputField("Sequence", DEFAULT_ICMP_SEQUENCE, 6, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.icmpv4.Sequence = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
-		// Timestamp request(Type=13) で必要なタイムスタンプ群をData部に追加するときにチェックする
+	icmpForm.
 		AddCheckbox("Automatically add timestamp ?", checkedCalcICMPTimestamp, func(checked bool) {
 			checkedCalcICMPTimestamp = checked
 		}).

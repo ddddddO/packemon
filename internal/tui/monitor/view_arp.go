@@ -38,7 +38,7 @@ func (a *ARP) viewTable() *tview.Table {
 	table.SetCell(7, 0, tui.TableCellTitle("Target Hardware Addr"))
 	table.SetCell(7, 1, tui.TableCellContent("%#x", a.TargetHardwareAddr))
 
-	table.SetCell(8, 0, tui.TableCellTitle("Target Hardware Addr"))
+	table.SetCell(8, 0, tui.TableCellTitle("Target IP Addr"))
 	table.SetCell(8, 1, tui.TableCellContent("%#x", a.TargetIPAddr))
 
 	return table

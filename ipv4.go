@@ -3,6 +3,7 @@ package packemon
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"net"
 )
 
@@ -141,4 +142,140 @@ func uint32ToStrIPv4Addr(byteAddr uint32) string {
 	b := make([]byte, 4)
 	binary.BigEndian.PutUint32(b, byteAddr)
 	return net.IPv4(b[0], b[1], b[2], b[3]).String()
+}
+
+// uint32ToIPv4Str は uint32 表現の IPv4 アドレスを "192.168.0.1" 形式へ変換する。
+func uint32ToIPv4Str(addr uint32) string {
+	return fmt.Sprintf("%d.%d.%d.%d", byte(addr>>24), byte(addr>>16), byte(addr>>8), byte(addr))
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (i *IPv4) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "IPv4",
+		Children: []*FieldNode{
+			{Name: "Version", Value: fmt.Sprintf("%d", i.Version)},
+			{Name: "Header Length", Value: fmt.Sprintf("%d", i.Ihl)},
+			{Name: "Type of Service", Value: fmt.Sprintf("0x%02x", i.Tos)},
+			{Name: "Total Length", Value: fmt.Sprintf("%d", i.TotalLength)},
+			{Name: "Identification", Value: fmt.Sprintf("0x%04x", i.Identification)},
+			{Name: "Flags", Value: fmt.Sprintf("0x%02x", i.Flags)},
+			{Name: "Fragment Offset", Value: fmt.Sprintf("%d", i.FragmentOffset)},
+			{Name: "TTL", Value: fmt.Sprintf("%d", i.Ttl)},
+			{Name: "Protocol", Value: fmt.Sprintf("0x%02x", i.Protocol)},
+			{Name: "Header Checksum", Value: fmt.Sprintf("0x%04x", i.HeaderChecksum)},
+			{Name: "Source Address", Value: i.StrSrcIPAddr()},
+			{Name: "Destination Address", Value: i.StrDstIPAddr()},
+		},
+	}
+}
+
+// ScratchIPv4Assembler は、スクラッチ実装（IPv4.Bytes）による Assembler。
+type ScratchIPv4Assembler struct{}
+
+var _ Assembler = (*ScratchIPv4Assembler)(nil)
+
+func (s *ScratchIPv4Assembler) Fields() []FieldSpec {
+	return []FieldSpec{
+		{Key: "version", Label: "Version", Kind: FieldKindHex, Default: "0x04"},
+		{Key: "ihl", Label: "Header Length", Kind: FieldKindHex, Default: "0x05"},
+		{Key: "tos", Label: "Type of Service", Kind: FieldKindHex, Default: "0x00"},
+		{Key: "total_length", Label: "Total Length", Kind: FieldKindHex, Default: "0x0014"},
+		{Key: "calc_total_length", Label: "Automatically calculate total length ?", Kind: FieldKindCheckbox, Default: "true"},
+		{Key: "identification", Label: "Identification", Kind: FieldKindHex, Default: "0xe31f"},
+		{Key: "flags", Label: "Flags", Kind: FieldKindHex, Default: "0x40"},
+		{Key: "fragment_offset", Label: "Fragment Offset", Kind: FieldKindHex, Default: "0x0000"},
+		{Key: "ttl", Label: "TTL", Kind: FieldKindHex, Default: "0x80"},
+		{Key: "protocol", Label: "Protocol", Kind: FieldKindSelectOrHex, Default: "ICMP", Options: []string{"ICMP", "UDP", "TCP"}},
+		{Key: "checksum", Label: "Header Checksum", Kind: FieldKindHex, Default: "0x0000"},
+		{Key: "calc_checksum", Label: "Automatically calculate checksum ?", Kind: FieldKindCheckbox, Default: "true"},
+		{Key: "src", Label: "Source IP Addr", Kind: FieldKindText, Default: "0.0.0.0"},
+		{Key: "dst", Label: "Destination IP Addr", Kind: FieldKindText, Default: "0.0.0.0"},
+	}
+}
+
+func (s *ScratchIPv4Assembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
+	ip, err := s.AssembleIPv4(values)
+	if err != nil {
+		return nil, err
+	}
+	ip.Data = payload
+
+	// 自動計算のオン/オフ（オフにすれば「わざと不正な値」も送れる）
+	if calc, err := boolFromValue(values["calc_total_length"]); err != nil {
+		return nil, fmt.Errorf("calc_total_length: %w", err)
+	} else if calc {
+		ip.CalculateTotalLength()
+	}
+	if calc, err := boolFromValue(values["calc_checksum"]); err != nil {
+		return nil, fmt.Errorf("calc_checksum: %w", err)
+	} else if calc {
+		ip.HeaderChecksum = 0x0
+		ip.CalculateChecksum()
+	}
+
+	return ip.Bytes(), nil
+}
+
+// AssembleIPv4 は values から IPv4 構造体を組み立てる（自動計算は行わず生値のまま）。
+// TUI の動的フォームが、既存の送信経路（sender の packets、自動計算やL4連結はそちらの責務）へ
+// 構造体を渡すために使う。
+func (s *ScratchIPv4Assembler) AssembleIPv4(values map[string]any) (*IPv4, error) {
+	ip := &IPv4{}
+	var err error
+	if ip.Version, err = uint8FromValue(values["version"]); err != nil {
+		return nil, fmt.Errorf("version: %w", err)
+	}
+	if ip.Ihl, err = uint8FromValue(values["ihl"]); err != nil {
+		return nil, fmt.Errorf("ihl: %w", err)
+	}
+	if ip.Tos, err = uint8FromValue(values["tos"]); err != nil {
+		return nil, fmt.Errorf("tos: %w", err)
+	}
+	if ip.TotalLength, err = uint16FromValue(values["total_length"]); err != nil {
+		return nil, fmt.Errorf("total_length: %w", err)
+	}
+	if ip.Identification, err = uint16FromValue(values["identification"]); err != nil {
+		return nil, fmt.Errorf("identification: %w", err)
+	}
+	if ip.Flags, err = uint8FromValue(values["flags"]); err != nil {
+		return nil, fmt.Errorf("flags: %w", err)
+	}
+	if ip.FragmentOffset, err = uint16FromValue(values["fragment_offset"]); err != nil {
+		return nil, fmt.Errorf("fragment_offset: %w", err)
+	}
+	if ip.Ttl, err = uint8FromValue(values["ttl"]); err != nil {
+		return nil, fmt.Errorf("ttl: %w", err)
+	}
+	if ip.Protocol, err = ipProtocolFromValue(values["protocol"]); err != nil {
+		return nil, fmt.Errorf("protocol: %w", err)
+	}
+	if ip.HeaderChecksum, err = uint16FromValue(values["checksum"]); err != nil {
+		return nil, fmt.Errorf("checksum: %w", err)
+	}
+	if ip.SrcAddr, err = ipv4AddrFromValue(values["src"]); err != nil {
+		return nil, fmt.Errorf("src: %w", err)
+	}
+	if ip.DstAddr, err = ipv4AddrFromValue(values["dst"]); err != nil {
+		return nil, fmt.Errorf("dst: %w", err)
+	}
+	return ip, nil
+}
+
+// ipProtocolFromValue は、プロトコル名（"ICMP" 等。TUI の選択肢）、"0x01" 等の文字列、
+// または uint8 そのものを受け付ける。
+func ipProtocolFromValue(v any) (uint8, error) {
+	if s, ok := v.(string); ok {
+		switch s {
+		case "ICMP":
+			return IPv4_PROTO_ICMP, nil
+		case "UDP":
+			return IPv4_PROTO_UDP, nil
+		case "TCP":
+			return IPv4_PROTO_TCP, nil
+		case "ICMPv6":
+			return IPv6_NEXT_HEADER_ICMPv6, nil
+		}
+	}
+	return uint8FromValue(v)
 }

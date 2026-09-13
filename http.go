@@ -214,3 +214,26 @@ func (s *ScratchHTTPAssembler) AssembleHTTP(values map[string]any) (*HTTP, error
 	}
 	return http, nil
 }
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (h *HTTP) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "HTTP",
+		Children: []*FieldNode{
+			{Name: "Method", Value: h.Method},
+			{Name: "Uri", Value: h.Uri},
+			{Name: "Version", Value: h.Version},
+			{Name: "Host", Value: h.Host},
+		},
+	}
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (hr *HTTPResponse) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "HTTP Response",
+		Children: []*FieldNode{
+			{Name: "Status Line", Value: hr.StatusLine},
+		},
+	}
+}

@@ -118,7 +118,7 @@ func (i *IPv6) FieldNode() *FieldNode {
 			{Name: "Traffic Class", Value: fmt.Sprintf("0x%02x", i.TrafficClass)},
 			{Name: "Flow Label", Value: fmt.Sprintf("0x%05x", i.FlowLabel)},
 			{Name: "Payload Length", Value: fmt.Sprintf("%d", i.PayloadLength)},
-			{Name: "Next Header", Value: fmt.Sprintf("0x%02x", i.NextHeader)},
+			{Name: "Next Header", Value: ipProtocolValueString(i.NextHeader)},
 			{Name: "Hop Limit", Value: fmt.Sprintf("%d", i.HopLimit)},
 			{Name: "Source Address", Value: i.StrSrcIPAddr()},
 			{Name: "Destination Address", Value: i.StrDstIPAddr()},

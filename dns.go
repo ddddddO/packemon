@@ -246,3 +246,100 @@ func (s *ScratchDNSAssembler) AssembleDNS(values map[string]any) (*DNS, error) {
 	}
 	return dns, nil
 }
+
+// FlagsString は Flags の意味（クエリ/レスポンス）を返す。
+func (d *DNS) FlagsString() string {
+	switch {
+	case IsDNSRequest(d.Flags):
+		return "Standard query"
+	case IsDNSResponse(d.Flags):
+		return "Standard query response"
+	default:
+		return "-"
+	}
+}
+
+// DomainString は Queries.Domain（ラベルエンコード済み）を "go.dev" 形式へ戻す。
+func (d *DNS) DomainString() string {
+	s := ""
+	for i := 0; i < len(d.Queries.Domain); {
+		b := d.Queries.Domain[i]
+		charCnt := int(b)
+
+		for j := 0; j < charCnt; j++ {
+			i++
+			s += string(d.Queries.Domain[i])
+		}
+		i++
+
+		if b == 0x00 {
+			return s
+		}
+		s += "."
+	}
+	return s
+}
+
+// QueryTypeString は Queries.Typ の名称を返す。
+func (d *DNS) QueryTypeString() string {
+	switch d.Queries.Typ {
+	case DNS_QUERY_TYPE_A:
+		return "A"
+	case DNS_QUERY_TYPE_AAAA:
+		return "AAAA"
+	default:
+		return "-"
+	}
+}
+
+// QueryClassString は Queries.Class の名称を返す。
+func (d *DNS) QueryClassString() string {
+	switch d.Queries.Class {
+	case DNS_QUERY_CLASS_IN:
+		return "IN"
+	default:
+		return "-"
+	}
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (d *DNS) FieldNode() *FieldNode {
+	node := &FieldNode{
+		Name: "DNS",
+		Children: []*FieldNode{
+			{Name: "Transaction ID", Value: fmt.Sprintf("%#x", d.TransactionID)},
+			{Name: "Flags", Value: fmt.Sprintf("%#x (%s)", d.Flags, d.FlagsString())},
+			{Name: "Questions", Value: fmt.Sprintf("%#x (%d)", d.Questions, d.Questions)},
+			{Name: "AnswerRRs", Value: fmt.Sprintf("%#x (%d)", d.AnswerRRs, d.AnswerRRs)},
+			{Name: "AuthorityRRs", Value: fmt.Sprintf("%#x (%d)", d.AuthorityRRs, d.AuthorityRRs)},
+			{Name: "AdditionalRRs", Value: fmt.Sprintf("%#x (%d)", d.AdditionalRRs, d.AdditionalRRs)},
+			{Name: "Queries: Domain", Value: fmt.Sprintf("%#x (%s)", d.Queries.Domain, d.DomainString())},
+			{Name: "Queries: Type", Value: fmt.Sprintf("%#x (%s)", d.Queries.Typ, d.QueryTypeString())},
+			{Name: "Queries: Class", Value: fmt.Sprintf("%#x (%s)", d.Queries.Class, d.QueryClassString())},
+		},
+	}
+
+	for _, answer := range d.Answers {
+		answerNode := &FieldNode{
+			Name: "Answer",
+			Children: []*FieldNode{
+				// Wireshark上ではクエリドメイン名が補完で表示されてるよう。多分、Answer.Name はQuery.Domainのエイリアスなのかな
+				{Name: "Name", Value: fmt.Sprintf("%#x (%s)", answer.Name, d.DomainString())},
+				{Name: "Type", Value: fmt.Sprintf("%#x", answer.Typ)},
+				{Name: "Class", Value: fmt.Sprintf("%#x", answer.Class)},
+				{Name: "TTL", Value: fmt.Sprintf("%#x", answer.Ttl)},
+				{Name: "Data length", Value: fmt.Sprintf("%#x", answer.DataLength)},
+			},
+		}
+		switch answer.Typ {
+		case DNS_QUERY_TYPE_A:
+			answerNode.Children = append(answerNode.Children,
+				&FieldNode{Name: "Address", Value: fmt.Sprintf("%#x (%s)", answer.Address, uint32ToIPv4Str(answer.Address))})
+		case DNS_QUERY_TYPE_AAAA:
+			// TODO: ipv6用のDNSクエリのレスポンスちょっとv4と違ってる、あとで
+		}
+		node.Children = append(node.Children, answerNode)
+	}
+
+	return node
+}

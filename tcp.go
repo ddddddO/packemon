@@ -229,8 +229,8 @@ func (t *TCP) FieldNode() *FieldNode {
 	return &FieldNode{
 		Name: "TCP",
 		Children: []*FieldNode{
-			{Name: "Source Port", Value: fmt.Sprintf("%d", t.SrcPort)},
-			{Name: "Destination Port", Value: fmt.Sprintf("%d", t.DstPort)},
+			{Name: "Source Port", Value: fmt.Sprintf("%#x (%d)", t.SrcPort, t.SrcPort)},
+			{Name: "Destination Port", Value: fmt.Sprintf("%#x (%d)", t.DstPort, t.DstPort)},
 			{Name: "Sequence", Value: fmt.Sprintf("0x%08x", t.Sequence)},
 			{Name: "Acknowledgment", Value: fmt.Sprintf("0x%08x", t.Acknowledgment)},
 			{Name: "Header Length", Value: fmt.Sprintf("0x%02x", t.HeaderLength)},

@@ -396,3 +396,75 @@ func TestScratchHTTPAssembler_Assemble(t *testing.T) {
 		}
 	}
 }
+
+func TestParsedPacket_ipv6TCP(t *testing.T) {
+	// IPv6 上の TCP がパースされること（かつては IPv6 の TCP ケースが無く IPv6 止まりだった）
+	tcp := &TCP{SrcPort: 47000, DstPort: 443, HeaderLength: 0x50}
+	ipv6 := &IPv6{
+		Version: 6, NextHeader: IPv6_NEXT_HEADER_TCP, HopLimit: 64,
+		SrcAddr: make([]byte, 16), DstAddr: make([]byte, 16),
+		Data: tcp.Bytes(),
+	}
+	frame := NewEthernetFrame(
+		HardwareAddr{0x00, 0x15, 0x5d, 0xe2, 0xc6, 0xc6},
+		HardwareAddr{0x00, 0x15, 0x5d, 0x6f, 0x44, 0x33},
+		ETHER_TYPE_IPv6,
+		ipv6.Bytes(),
+	)
+
+	passive := ParsedPacket(frame.Bytes(), true)
+	if passive.IPv6 == nil {
+		t.Fatal("ipv6 should be parsed")
+	}
+	if passive.TCP == nil {
+		t.Fatal("tcp over ipv6 should be parsed")
+	}
+	if passive.TCP.DstPort != 443 {
+		t.Fatalf("dst port: got %d", passive.TCP.DstPort)
+	}
+}
+
+func TestParsedPacket_dot1qARP(t *testing.T) {
+	// VLANタグ付き ARP がパースされること（かつては Dot1Q 内に ARP ケースが無く Ethernet 止まりだった）
+	arp := &ARP{HardwareType: 0x0001, ProtocolType: 0x0800, HardwareAddrLength: 6, ProtocolLength: 4, Operation: 0x0001}
+	frame := &EthernetFrame{
+		Header: &EthernetHeader{
+			Dst:        HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+			Src:        HardwareAddr{0x00, 0x15, 0x5d, 0x6f, 0x44, 0x33},
+			Typ:        ETHER_TYPE_DOT1Q,
+			Dot1QFiels: &EthernetDot1QFields{Dot1QFiels: 0x0001, Type: ETHER_TYPE_ARP},
+		},
+		Data: arp.Bytes(),
+	}
+
+	passive := ParsedPacket(frame.Bytes(), true)
+	if passive.ARP == nil {
+		t.Fatal("arp under dot1q should be parsed")
+	}
+	if passive.ARP.Operation != 0x0001 {
+		t.Fatalf("operation: got 0x%04x", passive.ARP.Operation)
+	}
+}
+
+func TestParsedPacket_failSoft(t *testing.T) {
+	// 上位層のパースに失敗しても、そこまでの層は返ること（fail-soft）
+	ipv4 := NewIPv4(IPv4_PROTO_UDP, 0xc0a80001, 0xc0a80002)
+	ipv4.Data = []byte{0x00} // UDPとしては短すぎるペイロード → ParsedUDP が panic する
+	frame := NewEthernetFrame(
+		HardwareAddr{0x00, 0x15, 0x5d, 0xe2, 0xc6, 0xc6},
+		HardwareAddr{0x00, 0x15, 0x5d, 0x6f, 0x44, 0x33},
+		ETHER_TYPE_IPv4,
+		ipv4.Bytes(),
+	)
+
+	passive := ParsedPacket(frame.Bytes(), true)
+	if passive == nil || passive.EthernetFrame == nil {
+		t.Fatal("ethernet should be returned")
+	}
+	if passive.IPv4 == nil {
+		t.Fatal("ipv4 should be returned even when upper layer parsing fails")
+	}
+	if passive.UDP != nil {
+		t.Fatal("udp should not be parsed from too short payload")
+	}
+}

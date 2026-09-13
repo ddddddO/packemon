@@ -162,7 +162,7 @@ func (i *IPv4) FieldNode() *FieldNode {
 			{Name: "Flags", Value: fmt.Sprintf("0x%02x", i.Flags)},
 			{Name: "Fragment Offset", Value: fmt.Sprintf("%d", i.FragmentOffset)},
 			{Name: "TTL", Value: fmt.Sprintf("%d", i.Ttl)},
-			{Name: "Protocol", Value: fmt.Sprintf("0x%02x", i.Protocol)},
+			{Name: "Protocol", Value: ipProtocolValueString(i.Protocol)},
 			{Name: "Header Checksum", Value: fmt.Sprintf("0x%04x", i.HeaderChecksum)},
 			{Name: "Source Address", Value: i.StrSrcIPAddr()},
 			{Name: "Destination Address", Value: i.StrDstIPAddr()},
@@ -278,4 +278,12 @@ func ipProtocolFromValue(v any) (uint8, error) {
 		}
 	}
 	return uint8FromValue(v)
+}
+
+// ipProtocolValueString は、プロトコル番号を「%#x (名称)」形式で返す（名称が不明なら %#x のみ）。
+func ipProtocolValueString(protocol uint8) string {
+	if name, ok := IPv4Protocols[protocol]; ok {
+		return fmt.Sprintf("%#x (%s)", protocol, name)
+	}
+	return fmt.Sprintf("%#x", protocol)
 }

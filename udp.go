@@ -110,8 +110,8 @@ func (u *UDP) FieldNode() *FieldNode {
 	return &FieldNode{
 		Name: "UDP",
 		Children: []*FieldNode{
-			{Name: "Source Port", Value: fmt.Sprintf("%d", u.SrcPort)},
-			{Name: "Destination Port", Value: fmt.Sprintf("%d", u.DstPort)},
+			{Name: "Source Port", Value: fmt.Sprintf("%#x (%d)", u.SrcPort, u.SrcPort)},
+			{Name: "Destination Port", Value: fmt.Sprintf("%#x (%d)", u.DstPort, u.DstPort)},
 			{Name: "Length", Value: fmt.Sprintf("%d", u.Length)},
 			{Name: "Checksum", Value: fmt.Sprintf("0x%04x", u.Checksum)},
 		},

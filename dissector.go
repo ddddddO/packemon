@@ -48,10 +48,13 @@ func (d *ScratchDissector) Dissect(raw []byte) (ft *FieldTree, err error) {
 		return nil, fmt.Errorf("scratch dissector: failed to parse")
 	}
 
-	return passiveToFieldTree(passive), nil
+	return FieldTreeFromPassive(passive), nil
 }
 
-func passiveToFieldTree(p *Passive) *FieldTree {
+// FieldTreeFromPassive は、スクラッチ実装のパース結果（Passive）を FieldTree へ変換する。
+// Monitor の詳細表示は、パース済みの Passive を保持しているためこの関数を直接使う
+// （raw バイト列からの分解は ScratchDissector.Dissect を使う）。
+func FieldTreeFromPassive(p *Passive) *FieldTree {
 	ft := &FieldTree{}
 
 	if p.EthernetFrame != nil {
@@ -75,17 +78,35 @@ func passiveToFieldTree(p *Passive) *FieldTree {
 	if p.UDP != nil {
 		ft.Nodes = append(ft.Nodes, p.UDP.FieldNode())
 	}
+	if p.TLSClientHello != nil {
+		ft.Nodes = append(ft.Nodes, p.TLSClientHello.FieldNode())
+	}
+	if p.TLSServerHello != nil {
+		ft.Nodes = append(ft.Nodes, p.TLSServerHello.FieldNode())
+	}
+	if p.TLSServerHelloFor1_3 != nil {
+		ft.Nodes = append(ft.Nodes, p.TLSServerHelloFor1_3.FieldNode())
+	}
+	if p.TLSClientKeyExchange != nil {
+		ft.Nodes = append(ft.Nodes, p.TLSClientKeyExchange.FieldNode())
+	}
+	if p.TLSChangeCipherSpecAndEncryptedHandshakeMessage != nil {
+		ft.Nodes = append(ft.Nodes, p.TLSChangeCipherSpecAndEncryptedHandshakeMessage.FieldNode())
+	}
+	if p.TLSApplicationData != nil {
+		ft.Nodes = append(ft.Nodes, p.TLSApplicationData.FieldNode())
+	}
+	if p.TLSEncryptedAlert != nil {
+		ft.Nodes = append(ft.Nodes, p.TLSEncryptedAlert.FieldNode())
+	}
 	if p.DNS != nil {
-		ft.Nodes = append(ft.Nodes, &FieldNode{Name: "DNS"}) // TODO: 詳細フィールド
+		ft.Nodes = append(ft.Nodes, p.DNS.FieldNode())
 	}
-	// TODO: TLS 各メッセージ / HTTP の詳細フィールド
-	if p.TLSClientHello != nil || p.TLSServerHello != nil || p.TLSServerHelloFor1_3 != nil ||
-		p.TLSClientKeyExchange != nil || p.TLSChangeCipherSpecAndEncryptedHandshakeMessage != nil ||
-		p.TLSApplicationData != nil || p.TLSEncryptedAlert != nil {
-		ft.Nodes = append(ft.Nodes, &FieldNode{Name: "TLS"})
+	if p.HTTP != nil {
+		ft.Nodes = append(ft.Nodes, p.HTTP.FieldNode())
 	}
-	if p.HTTP != nil || p.HTTPRes != nil {
-		ft.Nodes = append(ft.Nodes, &FieldNode{Name: "HTTP"})
+	if p.HTTPRes != nil {
+		ft.Nodes = append(ft.Nodes, p.HTTPRes.FieldNode())
 	}
 
 	return ft

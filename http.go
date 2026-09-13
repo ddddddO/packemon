@@ -32,26 +32,39 @@ func ParsedHTTPRequest(payload []byte) *HTTP {
 		return nil
 	}
 
-	line := payload[0 : lineLength+1]
-	split := bytes.Split(line, []byte{0x20}) // 半角スペース
-	if len(split) >= 3 {
-		http := &HTTP{
-			Method:  string(split[0]),
-			Uri:     string(split[1]),
-			Version: string(split[2]),
-		}
-
-		hostLineLength := bytes.Index(payload[lineLength+2:], []byte{0x0d, 0x0a})
-		if hostLineLength == -1 {
-			return http
-		}
-		host := bytes.TrimPrefix(payload[lineLength+2:lineLength+2+hostLineLength], []byte{0x48, 0x6f, 0x73, 0x74, 0x3a}) // "Host:"
-		http.Host = strings.TrimSpace(string(host))
-
-		return http
+	split := bytes.Split(payload[:lineLength], []byte{0x20}) // 半角スペース
+	if len(split) < 3 {
+		return nil
+	}
+	http := &HTTP{
+		Method:  string(split[0]),
+		Uri:     string(split[1]),
+		Version: string(split[2]),
 	}
 
-	return nil
+	// ヘッダ行のうち、HTTP 構造体が保持する（= Bytes が書き出す）ものを拾う。
+	// これにより「Assemble したバイト列を ParsedHTTPRequest で構造体へ戻す」往復が
+	// ロスレスになる（TestAssembleThenParseRoundtrip_allProtocols で保証）
+	for _, line := range bytes.Split(payload[lineLength+2:], []byte{0x0d, 0x0a}) {
+		if len(line) == 0 {
+			break // 空行 = ヘッダの終わり
+		}
+		name, value, found := bytes.Cut(line, []byte{':'})
+		if !found {
+			continue
+		}
+		v := strings.TrimSpace(string(value))
+		switch string(bytes.ToLower(name)) {
+		case "host":
+			http.Host = v
+		case "user-agent":
+			http.UserAgent = v
+		case "accept":
+			http.Accept = v
+		}
+	}
+
+	return http
 }
 
 func NewHTTP() *HTTP {
@@ -162,4 +175,78 @@ func ParsedHTTPResponse(payload []byte) *HTTPResponse {
 
 func (h *HTTPResponse) Len() int {
 	return h.len
+}
+
+// ScratchHTTPAssembler は、スクラッチ実装（HTTP.Bytes）による Assembler。
+type ScratchHTTPAssembler struct{}
+
+var _ Assembler = (*ScratchHTTPAssembler)(nil)
+
+func (s *ScratchHTTPAssembler) Fields() []FieldSpec {
+	return []FieldSpec{
+		{Key: "method", Label: "Method", Kind: FieldKindText, Default: "GET"},
+		{Key: "uri", Label: "Uri", Kind: FieldKindText, Default: "/"},
+		{Key: "version", Label: "Version", Kind: FieldKindText, Default: "HTTP/1.1"},
+		{Key: "host", Label: "Host", Kind: FieldKindText, Default: "github.com"},
+		{Key: "user_agent", Label: "UserAgent", Kind: FieldKindText, Default: "packemon"},
+		{Key: "accept", Label: "Accept", Kind: FieldKindText, Default: "*/*"},
+	}
+}
+
+func (s *ScratchHTTPAssembler) Assemble(values map[string]any, _ []byte) ([]byte, error) {
+	// HTTP はこのツールの扱いでは最上位レイヤのため payload は使わない
+	http, err := s.AssembleHTTP(values)
+	if err != nil {
+		return nil, err
+	}
+	return http.Bytes(), nil
+}
+
+// AssembleHTTP は values から HTTP 構造体を組み立てる。
+// TUI の動的フォームが、既存の送信経路（sender の packets）へ構造体を渡すために使う。
+func (s *ScratchHTTPAssembler) AssembleHTTP(values map[string]any) (*HTTP, error) {
+	http := &HTTP{}
+	var err error
+	if http.Method, err = stringFromValue(values["method"]); err != nil {
+		return nil, fmt.Errorf("method: %w", err)
+	}
+	if http.Uri, err = stringFromValue(values["uri"]); err != nil {
+		return nil, fmt.Errorf("uri: %w", err)
+	}
+	if http.Version, err = stringFromValue(values["version"]); err != nil {
+		return nil, fmt.Errorf("version: %w", err)
+	}
+	if http.Host, err = stringFromValue(values["host"]); err != nil {
+		return nil, fmt.Errorf("host: %w", err)
+	}
+	if http.UserAgent, err = stringFromValue(values["user_agent"]); err != nil {
+		return nil, fmt.Errorf("user_agent: %w", err)
+	}
+	if http.Accept, err = stringFromValue(values["accept"]); err != nil {
+		return nil, fmt.Errorf("accept: %w", err)
+	}
+	return http, nil
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (h *HTTP) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "HTTP",
+		Children: []*FieldNode{
+			{Name: "Method", Value: h.Method},
+			{Name: "Uri", Value: h.Uri},
+			{Name: "Version", Value: h.Version},
+			{Name: "Host", Value: h.Host},
+		},
+	}
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (hr *HTTPResponse) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "HTTP Response",
+		Children: []*FieldNode{
+			{Name: "Status Line", Value: hr.StatusLine},
+		},
+	}
 }

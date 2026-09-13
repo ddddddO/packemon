@@ -104,3 +104,69 @@ func createUDPAddr(ipBytes []byte, port uint16) (*net.UDPAddr, error) {
 		Port: int(port),
 	}, nil
 }
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (u *UDP) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "UDP",
+		Children: []*FieldNode{
+			{Name: "Source Port", Value: fmt.Sprintf("%#x (%d)", u.SrcPort, u.SrcPort)},
+			{Name: "Destination Port", Value: fmt.Sprintf("%#x (%d)", u.DstPort, u.DstPort)},
+			{Name: "Length", Value: fmt.Sprintf("%d", u.Length)},
+			{Name: "Checksum", Value: fmt.Sprintf("0x%04x", u.Checksum)},
+		},
+	}
+}
+
+// ScratchUDPAssembler は、スクラッチ実装（UDP.Bytes）による Assembler。
+type ScratchUDPAssembler struct{}
+
+var _ Assembler = (*ScratchUDPAssembler)(nil)
+
+func (s *ScratchUDPAssembler) Fields() []FieldSpec {
+	return []FieldSpec{
+		{Key: "src_port", Label: "Source Port", Kind: FieldKindText, Default: "47000"},
+		{Key: "dst_port", Label: "Destination Port", Kind: FieldKindText, Default: "53"},
+		{Key: "length", Label: "Length", Kind: FieldKindHex, Default: "0x0030"},
+		{Key: "calc_length", Label: "Automatically calculate length ?", Kind: FieldKindCheckbox, Default: "true"},
+		{Key: "checksum", Label: "Checksum", Kind: FieldKindHex, Default: "0x0000"},
+	}
+}
+
+func (s *ScratchUDPAssembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
+	udp, err := s.AssembleUDP(values)
+	if err != nil {
+		return nil, err
+	}
+	udp.Data = payload
+
+	// 自動計算のオン/オフ（オフにすれば「わざと不正な値」も送れる）
+	if calc, err := boolFromValue(values["calc_length"]); err != nil {
+		return nil, fmt.Errorf("calc_length: %w", err)
+	} else if calc {
+		udp.Len()
+	}
+
+	return udp.Bytes(), nil
+}
+
+// AssembleUDP は values から UDP 構造体を組み立てる（自動計算は行わず生値のまま）。
+// TUI の動的フォームが、既存の送信経路（sender の packets、自動計算やL3連結はそちらの責務）へ
+// 構造体を渡すために使う。
+func (s *ScratchUDPAssembler) AssembleUDP(values map[string]any) (*UDP, error) {
+	udp := &UDP{}
+	var err error
+	if udp.SrcPort, err = uint16FromValue(values["src_port"]); err != nil {
+		return nil, fmt.Errorf("src_port: %w", err)
+	}
+	if udp.DstPort, err = uint16FromValue(values["dst_port"]); err != nil {
+		return nil, fmt.Errorf("dst_port: %w", err)
+	}
+	if udp.Length, err = uint16FromValue(values["length"]); err != nil {
+		return nil, fmt.Errorf("length: %w", err)
+	}
+	if udp.Checksum, err = uint16FromValue(values["checksum"]); err != nil {
+		return nil, fmt.Errorf("checksum: %w", err)
+	}
+	return udp, nil
+}

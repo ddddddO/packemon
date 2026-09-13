@@ -223,3 +223,90 @@ func createTCPAddr(ipBytes []byte, port uint16) (*net.TCPAddr, error) {
 		Port: int(port),
 	}, nil
 }
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (t *TCP) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "TCP",
+		Children: []*FieldNode{
+			{Name: "Source Port", Value: fmt.Sprintf("%#x (%d)", t.SrcPort, t.SrcPort)},
+			{Name: "Destination Port", Value: fmt.Sprintf("%#x (%d)", t.DstPort, t.DstPort)},
+			{Name: "Sequence", Value: fmt.Sprintf("0x%08x", t.Sequence)},
+			{Name: "Acknowledgment", Value: fmt.Sprintf("0x%08x", t.Acknowledgment)},
+			{Name: "Header Length", Value: fmt.Sprintf("0x%02x", t.HeaderLength)},
+			{Name: "Flags", Value: fmt.Sprintf("0x%02x (%s)", uint8(t.Flags), t.Flags.String())},
+			{Name: "Window", Value: fmt.Sprintf("0x%04x", t.Window)},
+			{Name: "Checksum", Value: fmt.Sprintf("0x%04x", t.Checksum)},
+			{Name: "Urgent Pointer", Value: fmt.Sprintf("0x%04x", t.UrgentPointer)},
+		},
+	}
+}
+
+// ScratchTCPAssembler は、スクラッチ実装（TCP.Bytes）による Assembler。
+// ※ Checksum の自動計算は擬似ヘッダ（IPv4/IPv6 の情報）が必要なためこの層では行わない。
+//
+//	スタック連結時の再計算は上位（sender 側）の責務とする。 TODO: スタック連結の仕組みで扱う
+type ScratchTCPAssembler struct{}
+
+var _ Assembler = (*ScratchTCPAssembler)(nil)
+
+func (s *ScratchTCPAssembler) Fields() []FieldSpec {
+	return []FieldSpec{
+		{Key: "src_port", Label: "Source Port", Kind: FieldKindText, Default: "47000"},
+		{Key: "dst_port", Label: "Destination Port", Kind: FieldKindText, Default: "80"},
+		{Key: "sequence", Label: "Sequence", Kind: FieldKindHex, Default: "0x1f6e9499"},
+		{Key: "acknowledgment", Label: "Acknowledgment", Kind: FieldKindHex, Default: "0x00000000"},
+		{Key: "header_length", Label: "Header Length", Kind: FieldKindHex, Default: "0x50"},
+		{Key: "flags", Label: "Flags", Kind: FieldKindHex, Default: "0x02"},
+		{Key: "window", Label: "Window", Kind: FieldKindHex, Default: "0xfaf0"},
+		{Key: "checksum", Label: "Checksum", Kind: FieldKindHex, Default: "0x0000"},
+		{Key: "urgent_pointer", Label: "Urgent Pointer", Kind: FieldKindHex, Default: "0x0000"},
+	}
+}
+
+func (s *ScratchTCPAssembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
+	tcp, err := s.AssembleTCP(values)
+	if err != nil {
+		return nil, err
+	}
+	tcp.Data = payload
+	return tcp.Bytes(), nil
+}
+
+// AssembleTCP は values から TCP 構造体を組み立てる（自動計算は行わず生値のまま）。
+// TUI の動的フォームが、既存の送信経路（sender の packets、checksum計算・L3連結・3way handshake は
+// そちらの責務）へ構造体を渡すために使う。
+func (s *ScratchTCPAssembler) AssembleTCP(values map[string]any) (*TCP, error) {
+	tcp := &TCP{}
+	var err error
+	if tcp.SrcPort, err = uint16FromValue(values["src_port"]); err != nil {
+		return nil, fmt.Errorf("src_port: %w", err)
+	}
+	if tcp.DstPort, err = uint16FromValue(values["dst_port"]); err != nil {
+		return nil, fmt.Errorf("dst_port: %w", err)
+	}
+	if tcp.Sequence, err = uint32FromValue(values["sequence"]); err != nil {
+		return nil, fmt.Errorf("sequence: %w", err)
+	}
+	if tcp.Acknowledgment, err = uint32FromValue(values["acknowledgment"]); err != nil {
+		return nil, fmt.Errorf("acknowledgment: %w", err)
+	}
+	if tcp.HeaderLength, err = uint8FromValue(values["header_length"]); err != nil {
+		return nil, fmt.Errorf("header_length: %w", err)
+	}
+	flags, err := uint8FromValue(values["flags"])
+	if err != nil {
+		return nil, fmt.Errorf("flags: %w", err)
+	}
+	tcp.Flags = TCPFlags(flags)
+	if tcp.Window, err = uint16FromValue(values["window"]); err != nil {
+		return nil, fmt.Errorf("window: %w", err)
+	}
+	if tcp.Checksum, err = uint16FromValue(values["checksum"]); err != nil {
+		return nil, fmt.Errorf("checksum: %w", err)
+	}
+	if tcp.UrgentPointer, err = uint16FromValue(values["urgent_pointer"]); err != nil {
+		return nil, fmt.Errorf("urgent_pointer: %w", err)
+	}
+	return tcp, nil
+}

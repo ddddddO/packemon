@@ -1491,3 +1491,138 @@ func (t *TLSEncryptedAlert) Bytes() []byte {
 	buf.Write(t.AlertMessage)
 	return buf.Bytes()
 }
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (rl *TLSRecordLayer) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "Record Layer",
+		Children: []*FieldNode{
+			{Name: "Content Type", Value: fmt.Sprintf("%#x", rl.ContentType)},
+			{Name: "Version", Value: fmt.Sprintf("%#x", rl.Version)},
+			{Name: "Length", Value: fmt.Sprintf("%#x", rl.Length)},
+		},
+	}
+}
+
+// tlsHandshakeProtocolFieldNode は Client Hello / Server Hello 共通の Handshake Protocol ノードを組み立てる。
+// isFromServer が true のときは Cipher Suite / Compression Method を単数表記にする（既存の表示に合わせる）。
+func tlsHandshakeProtocolFieldNode(name string, hp *TLSHandshakeProtocol, isFromServer bool) *FieldNode {
+	node := &FieldNode{
+		Name: name,
+		Children: []*FieldNode{
+			{Name: "Handshake Type", Value: fmt.Sprintf("%#x", hp.HandshakeType)},
+			{Name: "Length", Value: fmt.Sprintf("%#x", hp.Length)},
+			{Name: "Version", Value: fmt.Sprintf("%#x", hp.Version)},
+			{Name: "Random", Value: fmt.Sprintf("%#x", hp.Random)},
+			{Name: "Session ID Length", Value: fmt.Sprintf("%#x", hp.SessionIDLength)},
+			{Name: "Session ID", Value: fmt.Sprintf("%#x", hp.SessionID)},
+		},
+	}
+	if isFromServer {
+		node.Children = append(node.Children,
+			&FieldNode{Name: "Cipher Suite", Value: fmt.Sprintf("%#x", hp.CipherSuites)},
+			&FieldNode{Name: "Compression Method", Value: fmt.Sprintf("%#x", hp.CompressionMethods)},
+		)
+	} else {
+		node.Children = append(node.Children,
+			&FieldNode{Name: "Cipher Suites Length", Value: fmt.Sprintf("%#x", hp.CipherSuitesLength)},
+			&FieldNode{Name: "Cipher Suites", Value: fmt.Sprintf("%#x", hp.CipherSuites)},
+			&FieldNode{Name: "Compression Methods Length", Value: fmt.Sprintf("%#x", hp.CompressionMethodsLength)},
+			&FieldNode{Name: "Compression Methods", Value: fmt.Sprintf("%#x", hp.CompressionMethods)},
+		)
+	}
+	if hp.ExtensionsLength != nil {
+		node.Children = append(node.Children,
+			&FieldNode{Name: "Extensions Length", Value: fmt.Sprintf("%#x", hp.ExtensionsLength)})
+	}
+	for i, e := range hp.Extentions {
+		node.Children = append(node.Children, &FieldNode{
+			Name: fmt.Sprintf("Extension %d", i),
+			Children: []*FieldNode{
+				{Name: "Type", Value: fmt.Sprintf("%#x", e.Type)},
+				{Name: "Length", Value: fmt.Sprintf("%#x", e.Length)},
+				{Name: "Data", Value: fmt.Sprintf("%#x", e.Data)},
+			},
+		})
+	}
+	return node
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (t *TLSClientHello) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "TLS Client Hello",
+		Children: []*FieldNode{
+			t.RecordLayer.FieldNode(),
+			tlsHandshakeProtocolFieldNode("Handshake Protocol - Client Hello", t.HandshakeProtocol, false),
+		},
+	}
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+// TODO: Certificate / ServerHelloDone の表示（既存の表示も ServerHello のみだった）
+func (t *TLSServerHello) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "TLS Server Hello",
+		Children: []*FieldNode{
+			t.ServerHello.RecordLayer.FieldNode(),
+			tlsHandshakeProtocolFieldNode("Handshake Protocol - Server Hello", t.ServerHello.HandshakeProtocol, true),
+		},
+	}
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (t *TLSServerHelloFor1_3) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "TLS Server Hello (TLSv1.3)",
+		Children: []*FieldNode{
+			t.ServerHello.RecordLayer.FieldNode(),
+			tlsHandshakeProtocolFieldNode("Handshake Protocol - Server Hello", t.ServerHello.HandshakeProtocol, true),
+		},
+	}
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (t *TLSClientKeyExchange) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "TLS Client Key Exchange",
+		Children: []*FieldNode{
+			{Name: "Client Key Exchange", Value: fmt.Sprintf("%#x", t.ClientKeyExchange.Bytes())},
+			{Name: "Change Cipher Spec Protocol", Value: fmt.Sprintf("%#x", t.ChangeCipherSpecProtocol.Bytes())},
+			{Name: "Encrypted Handshake Message", Value: fmt.Sprintf("%#x", t.EncryptedHandshakeMessage)},
+		},
+	}
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (t *TLSChangeCipherSpecAndEncryptedHandshakeMessage) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "TLS Change Cipher Spec & Encrypted Handshake Message",
+		Children: []*FieldNode{
+			{Name: "Change Cipher Spec Protocol", Value: fmt.Sprintf("%#x", t.ChangeCipherSpecProtocol.Bytes())},
+			{Name: "Encrypted Handshake Message", Value: fmt.Sprintf("%#x", t.EncryptedHandshakeMessage.Bytes())},
+		},
+	}
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (t *TLSApplicationData) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "TLS Application Data",
+		Children: []*FieldNode{
+			t.RecordLayer.FieldNode(),
+			{Name: "Encrypted Application Data", Value: fmt.Sprintf("%#x", t.EncryptedApplicationData)},
+		},
+	}
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (t *TLSEncryptedAlert) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "TLS Encrypted Alert",
+		Children: []*FieldNode{
+			t.RecordLayer.FieldNode(),
+			{Name: "Alert Message", Value: fmt.Sprintf("%#x", t.AlertMessage)},
+		},
+	}
+}

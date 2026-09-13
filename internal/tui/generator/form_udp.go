@@ -2,7 +2,6 @@ package generator
 
 import (
 	"context"
-	"encoding/binary"
 
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
@@ -11,75 +10,40 @@ import (
 var checkedCalcUDPLength = true
 var checkedCalcUDPChecksum = true
 
+// udpForm は UDP の入力フォームを返す。
+// Assembler の Fields 定義から動的に生成する。
+// フォーム値は apply（sender.applyForms 経由、どのレイヤの送信でも直前に実行される）で
+// sender の packets へ反映され、L3連結・checksum計算は既存の送信経路（sendL4）が担う。
 func (g *generator) udpForm() *tview.Form {
-	udpForm := tview.NewForm().
-		AddTextView("UDP", "This section generates UDP.", 60, 3, true, false).
-		AddInputField("Source Port", DEFAULT_UDP_PORT_SOURCE, 5, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) <= 5 {
-				n, err := packemon.StrIntToUint16(textToCheck)
-				if err != nil {
-					return false
-				}
-				g.sender.packets.udp.SrcPort = n
-				return true
-			}
-			return false
-		}, nil).
-		AddInputField("Destination Port", DEFAULT_UDP_PORT_DESTINATION, 5, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) <= 5 {
-				n, err := packemon.StrIntToUint16(textToCheck)
-				if err != nil {
-					return false
-				}
-				g.sender.packets.udp.DstPort = n
-				return true
-			}
-			return false
-		}, nil).
-		AddCheckbox("Automatically calculate length ?", checkedCalcUDPLength, func(checked bool) {
-			checkedCalcUDPLength = checked
-		}).
-		AddInputField("Length", DEFAULT_UDP_LENGTH, 6, func(textToCheck string, lastChar rune) bool {
-			if checkedCalcUDPLength {
-				return false
-			}
+	// Assembler インターフェースにのみ依存する（バックエンド差し替え可能）
+	var assembler packemon.Assembler = &packemon.ScratchUDPAssembler{}
+	udpForm, collectValues := buildDynamicForm(assembler, "UDP", "This section generates UDP.", nil)
 
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
+	g.sender.registerApplyForm("UDP", func() error {
+		values := collectValues()
+		// sender.packets は構造体を保持するため、Assembler が返すバイト列をパースして
+		// 構造体へ戻す（バックエンドに依らず共通の変換。往復のロスレス性は
+		// TestAssembleThenParseRoundtrip_allProtocols で保証）。
+		// calc フラグ有効時は Assemble が payload=nil 前提の計算値を焼き込むが、
+		// 送信時に下のフラグ転記に基づき既存経路が再計算するため送信パケットは変わらない
+		b, err := assembler.Assemble(values, nil)
+		if err != nil {
+			return err
+		}
+		// length の自動計算は送信時に既存経路（sendL4）が行うため、フラグへ転記する
+		calc, err := boolFromValues(values, "calc_length")
+		if err != nil {
+			return err
+		}
+		checkedCalcUDPLength = calc
+		g.sender.packets.udp = packemon.ParsedUDP(b)
+		return nil
+	})
 
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.udp.Length = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
+	udpForm.
 		AddCheckbox("Automatically calculate checksum ?", checkedCalcUDPChecksum, func(checked bool) {
 			checkedCalcUDPChecksum = checked
 		}).
-		AddInputField("Checksum", DEFAULT_UDP_CHECKSUM, 6, func(textToCheck string, lastChar rune) bool {
-			if checkedCalcUDPChecksum {
-				return false
-			}
-
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.udp.Checksum = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
 		AddButton("Send!", func() {
 			if err := g.sender.sendLayer4(context.TODO()); err != nil {
 				g.addErrPage(err)

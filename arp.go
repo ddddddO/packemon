@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	"github.com/gopacket/gopacket"
+	"github.com/gopacket/gopacket/layers"
 )
 
 const ARP_HARDWARE_TYPE_THERNET = 0x0001
@@ -170,4 +173,94 @@ func (s *ScratchARPAssembler) AssembleARP(values map[string]any) (*ARP, error) {
 		return nil, fmt.Errorf("target_ip: %w", err)
 	}
 	return arp, nil
+}
+
+// GopacketARPAssembler は、gopacket（SerializeLayers）による ARP の Assembler。
+// フィールド定義（Fields）はスクラッチ版と共通で、TUI からはバックエンドとして差し替え可能。
+type GopacketARPAssembler struct{}
+
+var _ Assembler = (*GopacketARPAssembler)(nil)
+
+func (a *GopacketARPAssembler) Fields() []FieldSpec {
+	// values のキー・入力形式はスクラッチ版と互換（バックエンド差し替えのため）
+	return (&ScratchARPAssembler{}).Fields()
+}
+
+func (a *GopacketARPAssembler) Assemble(values map[string]any, _ []byte) ([]byte, error) {
+	// ARP は上位レイヤを持たないため payload は使わない
+	hardwareType, err := uint16FromValue(values["hardware_type"])
+	if err != nil {
+		return nil, fmt.Errorf("hardware_type: %w", err)
+	}
+	protocolType, err := uint16FromValue(values["protocol_type"])
+	if err != nil {
+		return nil, fmt.Errorf("protocol_type: %w", err)
+	}
+	hardwareSize, err := uint8FromValue(values["hardware_size"])
+	if err != nil {
+		return nil, fmt.Errorf("hardware_size: %w", err)
+	}
+	protocolSize, err := uint8FromValue(values["protocol_size"])
+	if err != nil {
+		return nil, fmt.Errorf("protocol_size: %w", err)
+	}
+	operation, err := uint16FromValue(values["operation"])
+	if err != nil {
+		return nil, fmt.Errorf("operation: %w", err)
+	}
+	senderMac, err := hardwareAddrFromValue(values["sender_mac"])
+	if err != nil {
+		return nil, fmt.Errorf("sender_mac: %w", err)
+	}
+	senderIP, err := ipv4AddrFromValue(values["sender_ip"])
+	if err != nil {
+		return nil, fmt.Errorf("sender_ip: %w", err)
+	}
+	targetMac, err := hardwareAddrFromValue(values["target_mac"])
+	if err != nil {
+		return nil, fmt.Errorf("target_mac: %w", err)
+	}
+	targetIP, err := ipv4AddrFromValue(values["target_ip"])
+	if err != nil {
+		return nil, fmt.Errorf("target_ip: %w", err)
+	}
+
+	arp := &layers.ARP{
+		AddrType:          layers.LinkType(hardwareType),
+		Protocol:          layers.EthernetType(protocolType),
+		HwAddressSize:     hardwareSize,
+		ProtAddressSize:   protocolSize,
+		Operation:         operation,
+		SourceHwAddress:   senderMac[:],
+		SourceProtAddress: uint32ToIPv4Bytes(senderIP),
+		DstHwAddress:      targetMac[:],
+		DstProtAddress:    uint32ToIPv4Bytes(targetIP),
+	}
+
+	buf := gopacket.NewSerializeBuffer()
+	// 任意の値をそのまま送れるよう、長さの自動補正はしない
+	opts := gopacket.SerializeOptions{FixLengths: false, ComputeChecksums: false}
+	if err := gopacket.SerializeLayers(buf, opts, arp); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+// gopacketARPFieldNode は、gopacket でパースした ARP の表示ツリー。
+// 表示項目・フォーマットはスクラッチ版（ARP.FieldNode）と揃える。
+func gopacketARPFieldNode(arp *layers.ARP) *FieldNode {
+	return &FieldNode{
+		Name: "ARP",
+		Children: []*FieldNode{
+			{Name: "Hardware Type", Value: fmt.Sprintf("0x%04x", uint16(arp.AddrType))},
+			{Name: "Protocol Type", Value: fmt.Sprintf("0x%04x", uint16(arp.Protocol))},
+			{Name: "Hardware Size", Value: fmt.Sprintf("0x%02x", arp.HwAddressSize)},
+			{Name: "Protocol Size", Value: fmt.Sprintf("0x%02x", arp.ProtAddressSize)},
+			{Name: "Operation Code", Value: fmt.Sprintf("0x%04x", arp.Operation)},
+			{Name: "Sender Mac Addr", Value: fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", arp.SourceHwAddress[0], arp.SourceHwAddress[1], arp.SourceHwAddress[2], arp.SourceHwAddress[3], arp.SourceHwAddress[4], arp.SourceHwAddress[5])},
+			{Name: "Sender IP Addr", Value: fmt.Sprintf("%d.%d.%d.%d", arp.SourceProtAddress[0], arp.SourceProtAddress[1], arp.SourceProtAddress[2], arp.SourceProtAddress[3])},
+			{Name: "Target Mac Addr", Value: fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", arp.DstHwAddress[0], arp.DstHwAddress[1], arp.DstHwAddress[2], arp.DstHwAddress[3], arp.DstHwAddress[4], arp.DstHwAddress[5])},
+			{Name: "Target IP Addr", Value: fmt.Sprintf("%d.%d.%d.%d", arp.DstProtAddress[0], arp.DstProtAddress[1], arp.DstProtAddress[2], arp.DstProtAddress[3])},
+		},
+	}
 }

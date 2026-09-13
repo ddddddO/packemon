@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	"github.com/gopacket/gopacket"
+	"github.com/gopacket/gopacket/layers"
 )
 
 func NewEthernetFrame(dst HardwareAddr, src HardwareAddr, typ uint16, payload []byte) *EthernetFrame {
@@ -190,4 +193,90 @@ func etherTypeFromValue(v any) (uint16, error) {
 		}
 	}
 	return uint16FromValue(v)
+}
+
+// GopacketEthernetAssembler は、gopacket（SerializeLayers）による Ethernet の Assembler。
+// フィールド定義（Fields）はスクラッチ版と共通で、TUI からはバックエンドとして差し替え可能。
+type GopacketEthernetAssembler struct{}
+
+var _ Assembler = (*GopacketEthernetAssembler)(nil)
+
+func (a *GopacketEthernetAssembler) Fields() []FieldSpec {
+	// values のキー・入力形式はスクラッチ版と互換（バックエンド差し替えのため）
+	return (&ScratchEthernetAssembler{}).Fields()
+}
+
+func (a *GopacketEthernetAssembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
+	dst, err := hardwareAddrFromValue(values["dst"])
+	if err != nil {
+		return nil, fmt.Errorf("dst: %w", err)
+	}
+	src, err := hardwareAddrFromValue(values["src"])
+	if err != nil {
+		return nil, fmt.Errorf("src: %w", err)
+	}
+	typ, err := etherTypeFromValue(values["ether_type"])
+	if err != nil {
+		return nil, fmt.Errorf("ether_type: %w", err)
+	}
+
+	eth := &layers.Ethernet{
+		DstMAC:       dst[:],
+		SrcMAC:       src[:],
+		EthernetType: layers.EthernetType(typ),
+	}
+
+	headerLen := 14
+	serializeLayers := []gopacket.SerializableLayer{eth}
+	if typ == ETHER_TYPE_DOT1Q {
+		dot1qFields := uint16(0x0000)
+		if v, ok := values["dot1q_fields"]; ok && v != nil {
+			if dot1qFields, err = uint16FromValue(v); err != nil {
+				return nil, fmt.Errorf("dot1q_fields: %w", err)
+			}
+		}
+		dot1qType := uint16(0x0800)
+		if v, ok := values["dot1q_type"]; ok && v != nil {
+			if dot1qType, err = uint16FromValue(v); err != nil {
+				return nil, fmt.Errorf("dot1q_type: %w", err)
+			}
+		}
+		serializeLayers = append(serializeLayers, &layers.Dot1Q{
+			Priority:       uint8(dot1qFields >> 13), // PCP: 上位3bit
+			DropEligible:   dot1qFields&0x1000 != 0,  // CFI/DEI: 1bit
+			VLANIdentifier: dot1qFields & 0x0fff,     // VLAN ID: 下位12bit
+			Type:           layers.EthernetType(dot1qType),
+		})
+		headerLen += 4
+	}
+	serializeLayers = append(serializeLayers, gopacket.Payload(payload))
+
+	buf := gopacket.NewSerializeBuffer()
+	// 任意の値をそのまま送れるよう、長さ・チェックサムの自動補正はしない
+	opts := gopacket.SerializeOptions{FixLengths: false, ComputeChecksums: false}
+	if err := gopacket.SerializeLayers(buf, opts, serializeLayers...); err != nil {
+		return nil, err
+	}
+
+	// gopacket の layers.Ethernet は最小フレーム長（60バイト、FCS除く）まで無条件で
+	// ゼロパディングする。スクラッチ版はパディングせずカーネルに任せる方針のため、
+	// バックエンド間で送信バイト列が変わらないようパディングを取り除く。
+	assembled := buf.Bytes()
+	if want := headerLen + len(payload); len(assembled) > want {
+		assembled = assembled[:want]
+	}
+	return assembled, nil
+}
+
+// gopacketEthernetFieldNode は、gopacket でパースした Ethernet ヘッダの表示ツリー。
+// 表示項目・フォーマットはスクラッチ版（EthernetHeader.FieldNode）と揃える。
+func gopacketEthernetFieldNode(eth *layers.Ethernet) *FieldNode {
+	return &FieldNode{
+		Name: "Ethernet",
+		Children: []*FieldNode{
+			{Name: "Destination", Value: eth.DstMAC.String()},
+			{Name: "Source", Value: eth.SrcMAC.String()},
+			{Name: "Type", Value: fmt.Sprintf("0x%04x (%s)", uint16(eth.EthernetType), eth.EthernetType)},
+		},
+	}
 }

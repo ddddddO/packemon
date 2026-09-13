@@ -10,11 +10,13 @@ import (
 )
 
 // ethernetForm は Ethernet の入力フォームを返す。
-// Assembler（ScratchEthernetAssembler）の Fields 定義から動的に生成する。
+// Assembler の Fields 定義から動的に生成する。
 // フォーム値は apply（sender.applyForms 経由、どのレイヤの送信でも直前に実行される）で
 // sender の packets へ反映される。
 func (g *generator) ethernetForm() *tview.Form {
-	assembler := &packemon.ScratchEthernetAssembler{}
+	// Assembler インターフェースにのみ依存する（バックエンド差し替え可能）
+	var assembler packemon.Assembler = &packemon.ScratchEthernetAssembler{}
+	// var assembler packemon.Assembler = &packemon.GopacketEthernetAssembler{}
 	// 自機/デフォルトルートの MAC は起動時に DEFAULT_* に設定される（cmd/packemon/main.go, init.go）
 	ethernetForm, collectValues := buildDynamicForm(assembler, "Ethernet", "This section generates the Ethernet header.", map[string]string{
 		"dst": DEFAULT_MAC_DESTINATION,
@@ -22,11 +24,13 @@ func (g *generator) ethernetForm() *tview.Form {
 	})
 
 	g.sender.registerApplyForm("Ethernet", func() error {
-		header, err := assembler.AssembleEthernetHeader(collectValues())
+		// sender.packets は構造体（*packemon.EthernetHeader）を保持するため、
+		// Assembler が返すバイト列をパースして構造体へ戻す（バックエンドに依らず共通の変換）
+		b, err := assembler.Assemble(collectValues(), nil)
 		if err != nil {
 			return err
 		}
-		g.sender.packets.ethernet = header
+		g.sender.packets.ethernet = packemon.ParsedEthernetFrame(b).Header
 		return nil
 	})
 

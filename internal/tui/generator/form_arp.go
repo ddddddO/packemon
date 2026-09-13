@@ -12,7 +12,9 @@ import (
 // フォーム値は apply（sender.applyForms 経由、どのレイヤの送信でも直前に実行される）で
 // sender の packets へ反映され、Ethernet フレームへの連結は既存の送信経路（sendL3）が担う。
 func (g *generator) arpForm() *tview.Form {
-	assembler := &packemon.ScratchARPAssembler{}
+	// Assembler インターフェースにのみ依存する（バックエンド差し替え可能）
+	var assembler packemon.Assembler = &packemon.ScratchARPAssembler{}
+	// var assembler packemon.Assembler = &packemon.GopacketARPAssembler{}
 	// 自機の MAC/IP・デフォルトルートの IP は起動時に DEFAULT_* に設定される（cmd/packemon/main.go, init.go）。
 	// これらを初期値として注入する（デフォルトのまま Send! すれば応答が返る ARP リクエストになる）
 	arpForm, collectValues := buildDynamicForm(assembler, "ARP", "This section generates ARP.", map[string]string{
@@ -23,11 +25,13 @@ func (g *generator) arpForm() *tview.Form {
 	})
 
 	g.sender.registerApplyForm("ARP", func() error {
-		arp, err := assembler.AssembleARP(collectValues())
+		// sender.packets は構造体（*packemon.ARP）を保持するため、
+		// Assembler が返すバイト列をパースして構造体へ戻す（バックエンドに依らず共通の変換）
+		b, err := assembler.Assemble(collectValues(), nil)
 		if err != nil {
 			return err
 		}
-		g.sender.packets.arp = arp
+		g.sender.packets.arp = packemon.ParsedARP(b)
 		return nil
 	})
 

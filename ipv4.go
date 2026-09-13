@@ -149,6 +149,11 @@ func uint32ToIPv4Str(addr uint32) string {
 	return fmt.Sprintf("%d.%d.%d.%d", byte(addr>>24), byte(addr>>16), byte(addr>>8), byte(addr))
 }
 
+// uint32ToIPv4Bytes は uint32 表現の IPv4 アドレスを 4 バイト列（ビッグエンディアン）へ変換する。
+func uint32ToIPv4Bytes(addr uint32) []byte {
+	return []byte{byte(addr >> 24), byte(addr >> 16), byte(addr >> 8), byte(addr)}
+}
+
 // FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
 func (i *IPv4) FieldNode() *FieldNode {
 	return &FieldNode{

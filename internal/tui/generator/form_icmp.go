@@ -11,16 +11,22 @@ var checkedCalcICMPChecksum = true
 var checkedCalcICMPTimestamp = false
 
 // icmpForm は ICMP の入力フォームを返す。
-// Assembler（ScratchICMPAssembler）の Fields 定義から動的に生成する。
+// Assembler の Fields 定義から動的に生成する。
 // フォーム値は apply（sender.applyForms 経由、どのレイヤの送信でも直前に実行される）で
 // sender の packets へ反映され、L3連結・checksum計算は既存の送信経路（sendL4）が担う。
 func (g *generator) icmpForm() *tview.Form {
-	assembler := &packemon.ScratchICMPAssembler{}
+	// Assembler インターフェースにのみ依存する（バックエンド差し替え可能）
+	var assembler packemon.Assembler = &packemon.ScratchICMPAssembler{}
 	icmpForm, collectValues := buildDynamicForm(assembler, "ICMP", "This section generates ICMP.", nil)
 
 	g.sender.registerApplyForm("ICMP", func() error {
 		values := collectValues()
-		icmp, err := assembler.AssembleICMP(values)
+		// sender.packets は構造体を保持するため、Assembler が返すバイト列をパースして
+		// 構造体へ戻す（バックエンドに依らず共通の変換。往復のロスレス性は
+		// TestAssembleThenParseRoundtrip_allProtocols で保証）。
+		// calc フラグ有効時は Assemble が payload=nil 前提の計算値を焼き込むが、
+		// 送信時に下のフラグ転記に基づき既存経路が再計算するため送信パケットは変わらない
+		b, err := assembler.Assemble(values, nil)
 		if err != nil {
 			return err
 		}
@@ -30,7 +36,7 @@ func (g *generator) icmpForm() *tview.Form {
 			return err
 		}
 		checkedCalcICMPChecksum = calc
-		g.sender.packets.icmpv4 = icmp
+		g.sender.packets.icmpv4 = packemon.ParsedICMP(b)
 		return nil
 	})
 

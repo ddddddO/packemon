@@ -8,19 +8,23 @@ import (
 )
 
 // httpForm は HTTP の入力フォームを返す。
-// Assembler（ScratchHTTPAssembler）の Fields 定義から動的に生成する。
+// Assembler の Fields 定義から動的に生成する。
 // フォーム値は apply（sender.applyForms 経由、どのレイヤの送信でも直前に実行される）で
 // sender の packets へ反映され、下位レイヤ連結は既存の送信経路（sendL7）が担う。
 func (g *generator) httpForm(ctx context.Context) *tview.Form {
-	assembler := &packemon.ScratchHTTPAssembler{}
+	// Assembler インターフェースにのみ依存する（バックエンド差し替え可能）
+	var assembler packemon.Assembler = &packemon.ScratchHTTPAssembler{}
 	httpForm, collectValues := buildDynamicForm(assembler, "HTTP", "This section generates HTTP.", nil)
 
 	g.sender.registerApplyForm("HTTP", func() error {
-		http, err := assembler.AssembleHTTP(collectValues())
+		// sender.packets は構造体を保持するため、Assembler が返すバイト列をパースして
+		// 構造体へ戻す（バックエンドに依らず共通の変換。往復のロスレス性は
+		// TestAssembleThenParseRoundtrip_allProtocols で保証）
+		b, err := assembler.Assemble(collectValues(), nil)
 		if err != nil {
 			return err
 		}
-		g.sender.packets.http = http
+		g.sender.packets.http = packemon.ParsedHTTPRequest(b)
 		return nil
 	})
 

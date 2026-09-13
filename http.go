@@ -32,26 +32,39 @@ func ParsedHTTPRequest(payload []byte) *HTTP {
 		return nil
 	}
 
-	line := payload[0 : lineLength+1]
-	split := bytes.Split(line, []byte{0x20}) // 半角スペース
-	if len(split) >= 3 {
-		http := &HTTP{
-			Method:  string(split[0]),
-			Uri:     string(split[1]),
-			Version: string(split[2]),
-		}
-
-		hostLineLength := bytes.Index(payload[lineLength+2:], []byte{0x0d, 0x0a})
-		if hostLineLength == -1 {
-			return http
-		}
-		host := bytes.TrimPrefix(payload[lineLength+2:lineLength+2+hostLineLength], []byte{0x48, 0x6f, 0x73, 0x74, 0x3a}) // "Host:"
-		http.Host = strings.TrimSpace(string(host))
-
-		return http
+	split := bytes.Split(payload[:lineLength], []byte{0x20}) // 半角スペース
+	if len(split) < 3 {
+		return nil
+	}
+	http := &HTTP{
+		Method:  string(split[0]),
+		Uri:     string(split[1]),
+		Version: string(split[2]),
 	}
 
-	return nil
+	// ヘッダ行のうち、HTTP 構造体が保持する（= Bytes が書き出す）ものを拾う。
+	// これにより「Assemble したバイト列を ParsedHTTPRequest で構造体へ戻す」往復が
+	// ロスレスになる（TestAssembleThenParseRoundtrip_allProtocols で保証）
+	for _, line := range bytes.Split(payload[lineLength+2:], []byte{0x0d, 0x0a}) {
+		if len(line) == 0 {
+			break // 空行 = ヘッダの終わり
+		}
+		name, value, found := bytes.Cut(line, []byte{':'})
+		if !found {
+			continue
+		}
+		v := strings.TrimSpace(string(value))
+		switch string(bytes.ToLower(name)) {
+		case "host":
+			http.Host = v
+		case "user-agent":
+			http.UserAgent = v
+		case "accept":
+			http.Accept = v
+		}
+	}
+
+	return http
 }
 
 func NewHTTP() *HTTP {

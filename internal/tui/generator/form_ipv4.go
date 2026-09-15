@@ -6,14 +6,15 @@ import (
 	"strings"
 
 	"github.com/ddddddO/packemon"
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 var checkedCalcIPv4TotalLength = true
 var checkedCalcIPv4Checksum = true
 
-func (g *generator) ipv4Form() *tview.Form {
-	ipv4Form := tview.NewForm().
+func (g *generator) ipv4Form() tview.Primitive {
+	top := tview.NewForm().
 		AddTextView("IPv4 Header", "This section generates IPv4.", 60, 3, true, false).
 		AddInputField("Version", "0x04", 4, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 4 {
@@ -92,7 +93,9 @@ func (g *generator) ipv4Form() *tview.Form {
 			g.sender.packets.ipv4.Identification = binary.BigEndian.Uint16(b)
 
 			return true
-		}, nil).
+		}, nil)
+
+	bottom := tview.NewForm().
 		AddInputField("Flags", DEFAULT_IP_FLAGS, 4, func(textToCheck string, lastChar rune) bool {
 			if len(textToCheck) < 4 {
 				return true
@@ -209,5 +212,26 @@ func (g *generator) ipv4Form() *tview.Form {
 			g.app.Stop()
 		})
 
-	return ipv4Form
+	pages := tview.NewPages().
+		AddPage("top", top, true, true).
+		AddPage("bottom", bottom, true, false)
+
+		// Tab で切り替え
+	pages.SetInputCapture(func(ev *tcell.EventKey) *tcell.EventKey {
+		switch ev.Key() {
+		case tcell.KeyTab:
+			name, _ := pages.GetFrontPage()
+			if name == "top" {
+				pages.SwitchToPage("bottom")
+				g.app.SetFocus(bottom)
+			} else {
+				pages.SwitchToPage("top")
+				g.app.SetFocus(top)
+			}
+			return nil
+		}
+		return ev
+	})
+
+	return pages
 }

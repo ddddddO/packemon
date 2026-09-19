@@ -9,7 +9,7 @@ import (
 
 func (s *sender) sendL7OverTLS13(
 	ctx context.Context,
-	l7Packet []byte,
+	upperLayerPacket []byte,
 	selectedL4 string,
 	selectedL3 string,
 	doTCP3wayHandshake bool,
@@ -29,14 +29,14 @@ func (s *sender) sendL7OverTLS13(
 						s.packets.ethernet,
 						s.packets.ipv4,
 						s.packets.tcp,
-						l7Packet,
+						upperLayerPacket,
 					)
 				} else {
 					return packemon.EstablishTCPTLSv1_3AndSendPayload(
 						ctx,
 						s.packets.ipv4,
 						s.packets.tcp,
-						l7Packet,
+						upperLayerPacket,
 					)
 				}
 			case "IPv6":

@@ -17,46 +17,46 @@ func (s *sender) sendL7OverTLS13(
 ) error {
 	switch selectedL4 {
 	case "TCP":
-		if doTCP3wayHandshake {
-			switch selectedL3 {
-			case "":
-				return fmt.Errorf("not implemented")
-			case "IPv4":
-				if doCustomOfTLSv13 {
-					return packemon.EstablishTCPTLSv1_3AndSendPayload_CustomImpl(
-						ctx,
-						DEFAULT_NW_INTERFACE,
-						s.packets.ethernet,
-						s.packets.ipv4,
-						s.packets.tcp,
-						upperLayerPacket,
-					)
-				} else {
-					return packemon.EstablishTCPTLSv1_3AndSendPayload(
-						ctx,
-						s.packets.ipv4,
-						s.packets.tcp,
-						upperLayerPacket,
-					)
-				}
-			case "IPv6":
-				return fmt.Errorf("not implemtented")
-				// if doCustomOfTLSv13 {}
-				// return packemon.EstablishTCPTLSv1_2AndSendPayloadForIPv6(
-				// 	ctx,
-				// 	DEFAULT_NW_INTERFACE,
-				// 	s.packets.ethernet,
-				// 	s.packets.ipv6,
-				// 	s.packets.tcp,
-				// 	l7Packet,
-				// )
-			case "ARP":
-				return fmt.Errorf("unsupported under protocol: %s", selectedL3)
-			default:
-				return fmt.Errorf("unsupported under protocol: %s", selectedL3)
-			}
-		} else {
+		if !doTCP3wayHandshake {
 			return fmt.Errorf("require tcp 3way handshake")
+		}
+
+		switch selectedL3 {
+		case "":
+			return fmt.Errorf("not implemented")
+		case "IPv4":
+			if doCustomOfTLSv13 {
+				return packemon.EstablishTCPTLSv1_3AndSendPayload_CustomImpl(
+					ctx,
+					DEFAULT_NW_INTERFACE,
+					s.packets.ethernet,
+					s.packets.ipv4,
+					s.packets.tcp,
+					upperLayerPacket,
+				)
+			} else {
+				return packemon.EstablishTCPTLSv1_3AndSendPayload(
+					ctx,
+					s.packets.ipv4,
+					s.packets.tcp,
+					upperLayerPacket,
+				)
+			}
+		case "IPv6":
+			return fmt.Errorf("not implemtented")
+			// if doCustomOfTLSv13 {}
+			// return packemon.EstablishTCPTLSv1_2AndSendPayloadForIPv6(
+			// 	ctx,
+			// 	DEFAULT_NW_INTERFACE,
+			// 	s.packets.ethernet,
+			// 	s.packets.ipv6,
+			// 	s.packets.tcp,
+			// 	l7Packet,
+			// )
+		case "ARP":
+			return fmt.Errorf("unsupported under protocol: %s", selectedL3)
+		default:
+			return fmt.Errorf("unsupported under protocol: %s", selectedL3)
 		}
 	}
 

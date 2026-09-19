@@ -71,18 +71,18 @@ func TestAssembleThenParseRoundtrip_allProtocols(t *testing.T) {
 		}
 	})
 
-	t.Run("ICMP", func(t *testing.T) {
-		a := &ScratchICMPAssembler{}
+	t.Run("ICMPv4", func(t *testing.T) {
+		a := &ScratchICMPv4Assembler{}
 		values := defaultValuesForTest(a, map[string]any{"calc_checksum": false})
-		want, err := a.AssembleICMP(values)
+		want, err := a.AssembleICMPv4(values)
 		if err != nil {
-			t.Fatalf("AssembleICMP: %v", err)
+			t.Fatalf("AssembleICMPv4: %v", err)
 		}
 		b, err := a.Assemble(values, nil)
 		if err != nil {
 			t.Fatalf("Assemble: %v", err)
 		}
-		got := ParsedICMP(b)
+		got := ParsedICMPv4(b)
 		if !bytes.Equal(want.Bytes(), got.Bytes()) {
 			t.Fatalf("roundtrip mismatch\nwant: %x\ngot : %x", want.Bytes(), got.Bytes())
 		}

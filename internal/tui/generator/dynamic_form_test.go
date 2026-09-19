@@ -58,7 +58,7 @@ func TestBuildDynamicForm_allAssemblers(t *testing.T) {
 		"ARP":      &packemon.ScratchARPAssembler{},
 		"IPv4":     &packemon.ScratchIPv4Assembler{},
 		"IPv6":     &packemon.ScratchIPv6Assembler{},
-		"ICMP":     &packemon.ScratchICMPAssembler{},
+		"ICMPv4":   &packemon.ScratchICMPv4Assembler{},
 		"TCP":      &packemon.ScratchTCPAssembler{},
 		"UDP":      &packemon.ScratchUDPAssembler{},
 		"DNS":      &packemon.ScratchDNSAssembler{},
@@ -169,7 +169,7 @@ func TestBuildDynamicForm_defaultOverrides(t *testing.T) {
 	}
 }
 
-func TestSendLayer4_dynamicICMPForm(t *testing.T) {
+func TestSendLayer4_dynamicICMPv4Form(t *testing.T) {
 	// 動的フォーム（apply登録）→ 既存送信経路（sendL4: L3連結・checksum計算）の統合確認
 	var sent *packemon.EthernetFrame
 	s := newSender(
@@ -179,19 +179,19 @@ func TestSendLayer4_dynamicICMPForm(t *testing.T) {
 				Src: packemon.HardwareAddr{0x00, 0x15, 0x5d, 0x6f, 0x44, 0x33},
 				Typ: packemon.ETHER_TYPE_IPv4,
 			},
-			ipv4: packemon.NewIPv4(packemon.IPv4_PROTO_ICMP, 0xc0a80001, 0xc0a80002),
+			ipv4: packemon.NewIPv4(packemon.IPv4_PROTO_ICMPv4, 0xc0a80001, 0xc0a80002),
 		},
 		func(ef *packemon.EthernetFrame) error {
 			sent = ef
 			return nil
 		},
 	)
-	s.selectedProtocolByLayer["L4"] = "ICMP"
+	s.selectedProtocolByLayer["L4"] = "ICMPv4"
 
-	assembler := &packemon.ScratchICMPAssembler{}
-	_, collectValues := buildDynamicForm(assembler, "ICMP", "", nil)
-	s.registerApplyForm("ICMP", func() error {
-		icmp, err := assembler.AssembleICMP(collectValues())
+	assembler := &packemon.ScratchICMPv4Assembler{}
+	_, collectValues := buildDynamicForm(assembler, "ICMPv4", "", nil)
+	s.registerApplyForm("ICMPv4", func() error {
+		icmp, err := assembler.AssembleICMPv4(collectValues())
 		if err != nil {
 			return err
 		}
@@ -206,15 +206,15 @@ func TestSendLayer4_dynamicICMPForm(t *testing.T) {
 		t.Fatal("sendFn was not called")
 	}
 
-	// 送信されたフレームが IPv4 + ICMP として正しいこと（checksum は既存経路で計算済み）
+	// 送信されたフレームが IPv4 + ICMPv4 として正しいこと（checksum は既存経路で計算済み）
 	ip := packemon.ParsedIPv4(sent.Data)
-	if ip.Protocol != packemon.IPv4_PROTO_ICMP {
+	if ip.Protocol != packemon.IPv4_PROTO_ICMPv4 {
 		t.Fatalf("protocol: got 0x%02x", ip.Protocol)
 	}
 	if ip.HeaderChecksum == 0 {
 		t.Fatal("ipv4 checksum should be calculated by send path")
 	}
-	icmp := packemon.ParsedICMP(ip.Data)
+	icmp := packemon.ParsedICMPv4(ip.Data)
 	if icmp.Typ != 0x08 { // echo request
 		t.Fatalf("icmp type: got 0x%02x", icmp.Typ)
 	}
@@ -224,20 +224,20 @@ func TestSendLayer4_dynamicICMPForm(t *testing.T) {
 }
 
 func TestBuildDynamicForm_selectOrHex(t *testing.T) {
-	// IPv4 の Protocol: 選択肢（ICMP/UDP/TCP）と16進数の自由入力の両立
+	// IPv4 の Protocol: 選択肢（ICMPv4/UDP/TCP）と16進数の自由入力の両立
 	assembler := &packemon.ScratchIPv4Assembler{}
 
 	t.Run("デフォルトは選択肢名で収集され名称変換される", func(t *testing.T) {
 		_, collectValues := buildDynamicForm(assembler, "IPv4", "", nil)
 		values := collectValues()
-		if values["protocol"] != "ICMP" {
+		if values["protocol"] != "ICMPv4" {
 			t.Fatalf("protocol: got %v", values["protocol"])
 		}
 		ip, err := assembler.AssembleIPv4(values)
 		if err != nil {
 			t.Fatalf("assemble: %v", err)
 		}
-		if ip.Protocol != packemon.IPv4_PROTO_ICMP {
+		if ip.Protocol != packemon.IPv4_PROTO_ICMPv4 {
 			t.Fatalf("protocol number: got 0x%02x", ip.Protocol)
 		}
 	})

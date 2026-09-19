@@ -137,8 +137,9 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 				return fmt.Errorf("not implemented under protocol: %s", selectedL4)
 			}
 		case "TLSv1.2":
-			// TODO:
-			return fmt.Errorf("not implemetende under protocol: %s", selectedL5_6)
+			return s.sendL7OverTLS12(ctx, s.packets.dns.BytesForTCP(), selectedL4, selectedL3, doTCP3wayHandshake, doCustomOfTLSv12)
+		case "TLSv1.3":
+			return s.sendL7OverTLS13(ctx, s.packets.dns.BytesForTCP(), selectedL4, selectedL3, doTCP3wayHandshake, doCustomOfTLSv13)
 		default:
 			return fmt.Errorf("unsupported under protocol: %s", selectedL5_6)
 		}
@@ -226,10 +227,11 @@ func (s *sender) sendL7(ctx context.Context, selectedL7, selectedL5_6, selectedL
 				return fmt.Errorf("not implemented under protocol: %s", selectedL4)
 			}
 		case "TLSv1.2":
-			return s.sendL7OverTLS12(ctx, selectedL4, selectedL3, doTCP3wayHandshake, doCustomOfTLSv12)
+			return s.sendL7OverTLS12(ctx, s.packets.http.Bytes(), selectedL4, selectedL3, doTCP3wayHandshake, doCustomOfTLSv12)
 		case "TLSv1.3":
-			return s.sendL7OverTLS13(ctx, selectedL4, selectedL3, doTCP3wayHandshake, doCustomOfTLSv13)
+			return s.sendL7OverTLS13(ctx, s.packets.http.Bytes(), selectedL4, selectedL3, doTCP3wayHandshake, doCustomOfTLSv13)
 		case "QUIC":
+			// TODO: sendL7QuicがHTTP専用になってる
 			return s.sendL7Quic(ctx, selectedL4, selectedL3)
 		}
 		return fmt.Errorf("not implemtented")

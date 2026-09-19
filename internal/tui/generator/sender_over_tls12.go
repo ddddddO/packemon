@@ -9,6 +9,7 @@ import (
 
 func (s *sender) sendL7OverTLS12(
 	ctx context.Context,
+	l7Packet []byte,
 	selectedL4 string,
 	selectedL3 string,
 	doTCP3wayHandshake bool,
@@ -28,14 +29,14 @@ func (s *sender) sendL7OverTLS12(
 						s.packets.ethernet,
 						s.packets.ipv4,
 						s.packets.tcp,
-						s.packets.http.Bytes(),
+						l7Packet,
 					)
 				} else {
 					return packemon.EstablishTCPTLSv1_2AndSendPayload(
 						ctx,
 						s.packets.ipv4,
 						s.packets.tcp,
-						s.packets.http.Bytes(),
+						l7Packet,
 					)
 				}
 			case "IPv6":
@@ -46,14 +47,14 @@ func (s *sender) sendL7OverTLS12(
 						s.packets.ethernet,
 						s.packets.ipv6,
 						s.packets.tcp,
-						s.packets.http.Bytes(),
+						l7Packet,
 					)
 				} else {
 					return packemon.EstablishTCPTLSv1_2AndSendPayloadForIPv6(
 						ctx,
 						s.packets.ipv6,
 						s.packets.tcp,
-						s.packets.http.Bytes(),
+						l7Packet,
 					)
 				}
 			case "ARP":

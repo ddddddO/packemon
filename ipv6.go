@@ -138,7 +138,7 @@ func (s *ScratchIPv6Assembler) Fields() []FieldSpec {
 		{Key: "flow_label", Label: "Flow Label", Kind: FieldKindHex, Default: "0x00000"},
 		{Key: "payload_length", Label: "Payload Length", Kind: FieldKindHex, Default: "0x0000"},
 		{Key: "calc_payload_length", Label: "Automatically calculate payload length ?", Kind: FieldKindCheckbox, Default: "true"},
-		{Key: "next_header", Label: "Next Header", Kind: FieldKindSelectOrHex, Default: "ICMPv6", Options: []string{"ICMPv6", "UDP", "TCP"}},
+		{Key: "next_header", Label: "Next Header", Kind: FieldKindSelectOrHex, Default: "ICMPv4", Options: []string{"ICMPv4", "UDP", "TCP"}},
 		{Key: "hop_limit", Label: "Hop Limit", Kind: FieldKindHex, Default: "0x40"},
 		{Key: "src", Label: "Source IP Addr", Kind: FieldKindText, Default: "::1"},
 		{Key: "dst", Label: "Destination IP Addr", Kind: FieldKindText, Default: "::1"},

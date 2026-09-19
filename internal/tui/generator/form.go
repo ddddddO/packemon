@@ -44,7 +44,7 @@ var (
 	DEFAULT_IP_FLAGS           = "0x40"
 	DEFAULT_IP_FRAGMENT_OFFSET = "0x0000"
 	DEFAULT_IP_TTL             = "0x80"
-	DEFAULT_IP_PROTOCOL        = "ICMP"
+	DEFAULT_IP_PROTOCOL        = "ICMPv4"
 	DEFAULT_IP_HEADER_CHECKSUM = "0x0000"
 	DEFAULT_IP_SOURCE          = ""
 	DEFAULT_IP_DESTINATION     = ""
@@ -58,11 +58,11 @@ var (
 	DEFAULT_IPv6_SOURCE         = ""
 	DEFAULT_IPv6_DESTINATION    = ""
 
-	DEFAULT_ICMP_TYPE       = "0x08"
-	DEFAULT_ICMP_CODE       = "0x00"
-	DEFAULT_ICMP_CHECKSUM   = "0x0000"
-	DEFAULT_ICMP_IDENTIFIER = "0x34a1"
-	DEFAULT_ICMP_SEQUENCE   = "0x0001"
+	DEFAULT_ICMPv4_TYPE       = "0x08"
+	DEFAULT_ICMPv4_CODE       = "0x00"
+	DEFAULT_ICMPv4_CHECKSUM   = "0x0000"
+	DEFAULT_ICMPv4_IDENTIFIER = "0x34a1"
+	DEFAULT_ICMPv4_SEQUENCE   = "0x0001"
 
 	DEFAULT_UDP_PORT_SOURCE      = "47000"
 	DEFAULT_UDP_PORT_DESTINATION = "53"
@@ -128,7 +128,7 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 	udpForm := g.udpForm()
 	udpForm.SetBorder(true).SetTitle(" UDP ").SetTitleAlign(tview.AlignLeft)
 	icmpForm := g.icmpForm()
-	icmpForm.SetBorder(true).SetTitle(" ICMP ").SetTitleAlign(tview.AlignLeft)
+	icmpForm.SetBorder(true).SetTitle(" ICMPv4 ").SetTitleAlign(tview.AlignLeft)
 
 	// L3
 	ipv6Form := g.ipv6Form()
@@ -150,7 +150,7 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 		AddPage("QUIC", quicForm, true, true).
 		AddPage("UDP", udpForm, true, true).
 		AddPage("TCP", tcpForm, true, true).
-		AddPage("ICMP", icmpForm, true, true).
+		AddPage("ICMPv4", icmpForm, true, true).
 		AddPage("IPv6", ipv6Form, true, true).
 		AddPage("IPv4", ipv4Form, true, true).
 		AddPage("ARP", arpForm, true, true).
@@ -189,7 +189,7 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 	})
 	l5_6Protocols.SetCurrentOption(0)
 
-	l4s := []string{"", "ICMP", "TCP", "UDP"}
+	l4s := []string{"", "ICMPv4", "TCP", "UDP"}
 	l4Protocols := tview.NewDropDown()
 	l4Protocols.SetTitle("Lγ").SetBorder(true)
 	l4Protocols.SetOptions(l4s, func(text string, index int) {
@@ -295,7 +295,7 @@ type packets struct {
 	arp      *packemon.ARP
 	ipv4     *packemon.IPv4
 	ipv6     *packemon.IPv6
-	icmpv4   *packemon.ICMP
+	icmpv4   *packemon.ICMPv4
 	tcp      *packemon.TCP
 	udp      *packemon.UDP
 	dns      *packemon.DNS
@@ -416,23 +416,23 @@ func defaultPackets() (*packets, error) {
 	}
 	tcp.Flags = packemon.TCPFlags(tcpFlags)
 
-	icmpType, err := strHexToUint8(DEFAULT_ICMP_TYPE)
+	icmpType, err := strHexToUint8(DEFAULT_ICMPv4_TYPE)
 	if err != nil {
 		return nil, err
 	}
-	icmpCode, err := strHexToUint8(DEFAULT_ICMP_CODE)
+	icmpCode, err := strHexToUint8(DEFAULT_ICMPv4_CODE)
 	if err != nil {
 		return nil, err
 	}
-	icmpIdentifier, err := packemon.StrHexToBytes2(DEFAULT_ICMP_IDENTIFIER)
+	icmpIdentifier, err := packemon.StrHexToBytes2(DEFAULT_ICMPv4_IDENTIFIER)
 	if err != nil {
 		return nil, err
 	}
-	icmpSequence, err := packemon.StrHexToBytes2(DEFAULT_ICMP_SEQUENCE)
+	icmpSequence, err := packemon.StrHexToBytes2(DEFAULT_ICMPv4_SEQUENCE)
 	if err != nil {
 		return nil, err
 	}
-	icmp := &packemon.ICMP{
+	icmp := &packemon.ICMPv4{
 		Typ:        icmpType,
 		Code:       icmpCode,
 		Identifier: binary.BigEndian.Uint16(icmpIdentifier),

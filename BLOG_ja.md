@@ -51,7 +51,7 @@ https://github.com/ddddddO/packemon
 - TCP/IPモデルの各層をユーザーの任意の入力でパケットを生成して送信（イメージの左）
 - 送受信したパケットをTCP/IPモデルの各層でパースしてそれを画面に表示（イメージの右）
 
-ができるというものです。ただ、対応しているプロトコルは現状少なく、各プロトコル実装もまだまだなレベルが多いです（Ethernet/ARP/IPv4/IPv6/ICMP/TCP/UDP/TLSv1.2/DNS/HTTP）。
+ができるというものです。ただ、対応しているプロトコルは現状少なく、各プロトコル実装もまだまだなレベルが多いです（Ethernet/ARP/IPv4/IPv6/ICMPv4/TCP/UDP/TLSv1.2/DNS/HTTP）。
 
 :::message
 2025/05/24 macOS/Windows にも対応しました🎉

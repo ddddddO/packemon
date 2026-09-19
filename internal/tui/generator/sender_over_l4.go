@@ -11,8 +11,8 @@ func (s *sender) sendOverL4(
 	upperLayerPacketForTCP []byte,
 	selectedL4 string,
 	selectedL3 string,
-	checkedCalcICMPTimestamp bool,
-	checkedCalcICMPChecksum bool,
+	checkedCalcICMPv4Timestamp bool,
+	checkedCalcICMPv4Checksum bool,
 	checkedCalcIPv4TotalLength bool,
 	checkedCalcIPv4Checksum bool,
 	checkedCalcUDPChecksum bool,
@@ -22,8 +22,8 @@ func (s *sender) sendOverL4(
 	checkedCalcTCPChecksum bool,
 ) error {
 	switch selectedL4 {
-	case "ICMP":
-		return s.sendOverICMPv4(ctx, upperLayerPacket, selectedL3, checkedCalcICMPTimestamp, checkedCalcICMPChecksum, checkedCalcIPv4TotalLength, checkedCalcIPv4Checksum)
+	case "ICMPv4":
+		return s.sendOverICMPv4(ctx, upperLayerPacket, selectedL3, checkedCalcICMPv4Timestamp, checkedCalcICMPv4Checksum, checkedCalcIPv4TotalLength, checkedCalcIPv4Checksum)
 	case "UDP":
 		return s.sendOverUDP(ctx, upperLayerPacket, selectedL3, checkedCalcUDPChecksum, checkedCalcUDPLength, checkedCalcIPv4TotalLength, checkedCalcIPv4Checksum, checkedCalcIPv6PayloadLength)
 	case "TCP":

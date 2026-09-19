@@ -21,7 +21,7 @@
 #define ETH_P_IPv6 0x86dd
 #define ETH_P_ARP 0x0806
 
-#define IP_P_ICMP 0x01
+#define IP_P_ICMPv4 0x01
 #define IP_P_TCP 0x06
 #define IP_P_UDP 0x17
 
@@ -144,8 +144,8 @@ int control_egress(struct __sk_buff *skb)
         bpf_printk("  src addr: %x", bpf_ntohl(iph->saddr));
         bpf_printk("  dst addr: %x", bpf_ntohl(iph->daddr));
 
-        if (iph->protocol == IP_P_ICMP) {
-            bpf_printk("ICMP");
+        if (iph->protocol == IP_P_ICMPv4) {
+            bpf_printk("ICMPv4");
             return TC_ACT_OK;
         }
         if (iph->protocol == IP_P_UDP) {

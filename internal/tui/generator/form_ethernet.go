@@ -2,7 +2,6 @@ package generator
 
 import (
 	"context"
-	"encoding/binary"
 	"fmt"
 	"strings"
 
@@ -10,9 +9,47 @@ import (
 	"github.com/rivo/tview"
 )
 
-var underIPv6 = false
+// ethernetForm は Ethernet の入力フォームを返す。
+// Assembler の Fields 定義から動的に生成する。
+// フォーム値は apply（sender.applyForms 経由、どのレイヤの送信でも直前に実行される）で
+// sender の packets へ反映される。
+func (g *generator) ethernetForm() *tview.Form {
+	// Assembler インターフェースにのみ依存する（バックエンド差し替え可能）
+	var assembler packemon.Assembler = &packemon.ScratchEthernetAssembler{}
+	// var assembler packemon.Assembler = &packemon.GopacketEthernetAssembler{}
+	// 自機/デフォルトルートの MAC は起動時に DEFAULT_* に設定される（cmd/packemon/main.go, init.go）
+	ethernetForm, collectValues := buildDynamicForm(assembler, "Ethernet", "This section generates the Ethernet header.", map[string]string{
+		"dst": DEFAULT_MAC_DESTINATION,
+		"src": DEFAULT_MAC_SOURCE,
+	})
 
-// MACValidationResult contains the result of MAC address validation
+	g.sender.registerApplyForm("Ethernet", func() error {
+		// sender.packets は構造体（*packemon.EthernetHeader）を保持するため、
+		// Assembler が返すバイト列をパースして構造体へ戻す（バックエンドに依らず共通の変換）
+		b, err := assembler.Assemble(collectValues(), nil)
+		if err != nil {
+			return err
+		}
+		g.sender.packets.ethernet = packemon.ParsedEthernetFrame(b).Header
+		return nil
+	})
+
+	ethernetForm.
+		AddButton("Send!", func() {
+			if err := g.sender.sendLayer2(context.TODO()); err != nil {
+				g.addErrPage(err)
+			}
+		}).
+		AddButton("Quit", func() {
+			g.app.Stop()
+		})
+
+	return ethernetForm
+}
+
+// 以下は旧手書きフォームで使っていた MAC 入力バリデーション。
+// 既存テスト（form_ethernet_test.go）の資産があるため残している。
+// TODO: 動的フォームの入力中バリデーションに接続するか検討
 type MACValidationResult struct {
 	Address    packemon.HardwareAddr
 	HasAddress bool // indicates whether Address contains a valid parsed address
@@ -85,119 +122,4 @@ func validateAndParseMACAddress(input string) MACValidationResult {
 	return MACValidationResult{
 		Valid: true, // Allow continued typing
 	}
-}
-
-func (g *generator) ethernetForm() *tview.Form {
-	// Status labels for MAC address validation feedback
-	dstMACStatus := tview.NewTextView().
-		SetSize(1, 20).
-		SetDynamicColors(true).
-		SetText("")
-
-	srcMACStatus := tview.NewTextView().
-		SetSize(1, 20).
-		SetDynamicColors(true).
-		SetText("")
-
-	ethernetForm := tview.NewForm().
-		AddTextView("Ethernet Header", "This section generates Ethernet.", 60, 3, true, false).
-		AddInputField("Destination Mac Addr", DEFAULT_MAC_DESTINATION, 20, func(textToCheck string, lastChar rune) bool {
-			// Support hex (0x), colon-separated, and dash-separated formats
-			result := validateAndParseMACAddress(textToCheck)
-
-			// Update status message
-			if result.Error != "" {
-				dstMACStatus.SetText(fmt.Sprintf("[red]%s[white]", result.Error))
-			} else if result.HasAddress {
-				dstMACStatus.SetText("[green]Valid MAC address[white]")
-				g.sender.packets.ethernet.Dst = result.Address
-			} else {
-				dstMACStatus.SetText("")
-			}
-
-			return result.Valid
-		}, nil).
-		AddFormItem(dstMACStatus).
-		AddInputField("Source Mac Addr", DEFAULT_MAC_SOURCE, 20, func(textToCheck string, lastChar rune) bool {
-			// Support hex (0x), colon-separated, and dash-separated formats
-			result := validateAndParseMACAddress(textToCheck)
-
-			// Update status message
-			if result.Error != "" {
-				srcMACStatus.SetText(fmt.Sprintf("[red]%s[white]", result.Error))
-			} else if result.HasAddress {
-				srcMACStatus.SetText("[green]Valid MAC address[white]")
-				g.sender.packets.ethernet.Src = result.Address
-			} else {
-				srcMACStatus.SetText("")
-			}
-
-			return result.Valid
-		}, nil).
-		AddFormItem(srcMACStatus).
-		// TODO: 自由にフレーム作れるとするなら、ここもhexで受け付けるようにして、IP or ARPヘッダフォームへの切り替えも自由にできた方がいいかも
-		AddDropDown("Ether Type", []string{"IPv4", "IPv6", "ARP", "Dot1Q"}, 0, func(selected string, _ int) {
-			switch selected {
-			case "IPv4":
-				g.sender.packets.ethernet.Typ = packemon.ETHER_TYPE_IPv4
-				underIPv6 = false
-			case "IPv6":
-				g.sender.packets.ethernet.Typ = packemon.ETHER_TYPE_IPv6
-				underIPv6 = true
-			case "ARP":
-				g.sender.packets.ethernet.Typ = packemon.ETHER_TYPE_ARP
-				underIPv6 = false
-			case "Dot1Q":
-				g.sender.packets.ethernet.Typ = packemon.ETHER_TYPE_DOT1Q
-				underIPv6 = false
-			}
-		}).
-		AddInputField("PCP/CFI/VLANID(EtherType=Dot1Q is required)", DEFAULT_ETHER_DOT1Q_FIELDS, 6, func(textToCheck string, lastChar rune) bool {
-			if g.sender.packets.ethernet.Typ != packemon.ETHER_TYPE_DOT1Q {
-				return false
-			}
-
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.ethernet.Dot1QFiels.Dot1QFiels = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
-		AddInputField("Type(EtherType=Dot1Q is required)", DEFAULT_ETHER_DOT1Q_TYPE, 6, func(textToCheck string, lastChar rune) bool {
-			if g.sender.packets.ethernet.Typ != packemon.ETHER_TYPE_DOT1Q {
-				return false
-			}
-
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.ethernet.Dot1QFiels.Type = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
-		AddButton("Send!", func() {
-			if err := g.sender.sendLayer2(context.TODO()); err != nil {
-				g.addErrPage(err)
-			}
-		}).
-		AddButton("Quit", func() {
-			g.app.Stop()
-		})
-
-	return ethernetForm
 }

@@ -2,7 +2,6 @@ package generator
 
 import (
 	"context"
-	"encoding/binary"
 
 	"github.com/ddddddO/packemon"
 	"github.com/rivo/tview"
@@ -11,146 +10,34 @@ import (
 var doTCP3wayHandshake = false
 var checkedCalcTCPChecksum = true
 
+// tcpForm は TCP の入力フォームを返す。
+// Assembler の Fields 定義から動的に生成する。
+// フォーム値は apply（sender.applyForms 経由、どのレイヤの送信でも直前に実行される）で
+// sender の packets へ反映され、L3連結・checksum計算・3way handshake は既存の送信経路が担う。
 func (g *generator) tcpForm() *tview.Form {
-	tcpForm := tview.NewForm().
-		AddTextView("TCP", "This section generates TCP.", 60, 3, true, false).
+	// Assembler インターフェースにのみ依存する（バックエンド差し替え可能）
+	var assembler packemon.Assembler = &packemon.ScratchTCPAssembler{}
+	tcpForm, collectValues := buildDynamicForm(assembler, "TCP", "This section generates TCP.", nil)
+
+	g.sender.registerApplyForm("TCP", func() error {
+		// sender.packets は構造体を保持するため、Assembler が返すバイト列をパースして
+		// 構造体へ戻す（バックエンドに依らず共通の変換。往復のロスレス性は
+		// TestAssembleThenParseRoundtrip_allProtocols で保証）
+		b, err := assembler.Assemble(collectValues(), nil)
+		if err != nil {
+			return err
+		}
+		g.sender.packets.tcp = packemon.ParsedTCP(b)
+		return nil
+	})
+
+	tcpForm.
 		AddCheckbox("Do TCP 3way handshake ?", doTCP3wayHandshake, func(checked bool) {
 			doTCP3wayHandshake = checked
 		}).
-		AddInputField("Source Port", DEFAULT_TCP_PORT_SOURCE, 5, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) <= 5 {
-				n, err := packemon.StrIntToUint16(textToCheck)
-				if err != nil {
-					return false
-				}
-				g.sender.packets.tcp.SrcPort = n
-				return true
-			}
-			return false
-		}, nil).
-		AddInputField("Destination Port", DEFAULT_TCP_PORT_DESTINATION, 5, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) <= 5 {
-				n, err := packemon.StrIntToUint16(textToCheck)
-				if err != nil {
-					return false
-				}
-				g.sender.packets.tcp.DstPort = n
-				return true
-			}
-			return false
-		}, nil).
-		AddInputField("Sequence", DEFAULT_TCP_SEQUENCE, 10, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 10 {
-				return true
-			} else if len(textToCheck) > 10 {
-				return false
-			}
-
-			b, err := strHexToBytes3(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.tcp.Sequence = binary.BigEndian.Uint32(b)
-
-			return true
-		}, nil).
-		AddInputField("Acknowledgment", DEFAULT_TCP_ACKNOWLEDGMENT, 10, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 10 {
-				return true
-			} else if len(textToCheck) > 10 {
-				return false
-			}
-
-			b, err := strHexToBytes3(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.tcp.Acknowledgment = binary.BigEndian.Uint32(b)
-
-			return true
-		}, nil).
-		AddInputField("Data Offset", DEFAULT_TCP_HEADER_LENGTH, 6, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes3(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.tcp.HeaderLength = b
-
-			return true
-		}, nil).
-		AddInputField("Flags", DEFAULT_TCP_FLAGS, 4, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 4 {
-				return true
-			} else if len(textToCheck) > 4 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes3(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.tcp.Flags = packemon.TCPFlags(b)
-
-			return true
-		}, nil).
-		AddInputField("Window Size", DEFAULT_TCP_WINDOW, 6, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.tcp.Window = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
 		AddCheckbox("Automatically calculate checksum ?", checkedCalcTCPChecksum, func(checked bool) {
 			checkedCalcTCPChecksum = checked
 		}).
-		AddInputField("Checksum", DEFAULT_TCP_CHECKSUM, 6, func(textToCheck string, lastChar rune) bool {
-			if checkedCalcTCPChecksum {
-				return false
-			}
-
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.tcp.Checksum = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
-		AddInputField("Urgent Pointer", DEFAULT_TCP_URGENT_POINTER, 6, func(textToCheck string, lastChar rune) bool {
-			if len(textToCheck) < 6 {
-				return true
-			} else if len(textToCheck) > 6 {
-				return false
-			}
-
-			b, err := packemon.StrHexToBytes2(textToCheck)
-			if err != nil {
-				return false
-			}
-			g.sender.packets.tcp.UrgentPointer = binary.BigEndian.Uint16(b)
-
-			return true
-		}, nil).
 		AddButton("Send!", func() {
 			if err := g.sender.sendLayer4(context.TODO()); err != nil {
 				g.addErrPage(err)

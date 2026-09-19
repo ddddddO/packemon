@@ -3,6 +3,7 @@ package packemon
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"net"
 )
 
@@ -106,4 +107,90 @@ func (i *IPv6) PseudoHeader(upperLayerLength uint32) []byte {
 	WriteUint32(buf, upperLayerLength)
 	WriteUint32(buf, uint32(i.NextHeader))
 	return buf.Bytes()
+}
+
+// FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
+func (i *IPv6) FieldNode() *FieldNode {
+	return &FieldNode{
+		Name: "IPv6",
+		Children: []*FieldNode{
+			{Name: "Version", Value: fmt.Sprintf("%d", i.Version)},
+			{Name: "Traffic Class", Value: fmt.Sprintf("0x%02x", i.TrafficClass)},
+			{Name: "Flow Label", Value: fmt.Sprintf("0x%05x", i.FlowLabel)},
+			{Name: "Payload Length", Value: fmt.Sprintf("%d", i.PayloadLength)},
+			{Name: "Next Header", Value: ipProtocolValueString(i.NextHeader)},
+			{Name: "Hop Limit", Value: fmt.Sprintf("%d", i.HopLimit)},
+			{Name: "Source Address", Value: i.StrSrcIPAddr()},
+			{Name: "Destination Address", Value: i.StrDstIPAddr()},
+		},
+	}
+}
+
+// ScratchIPv6Assembler は、スクラッチ実装（IPv6.Bytes）による Assembler。
+type ScratchIPv6Assembler struct{}
+
+var _ Assembler = (*ScratchIPv6Assembler)(nil)
+
+func (s *ScratchIPv6Assembler) Fields() []FieldSpec {
+	return []FieldSpec{
+		{Key: "version", Label: "Version", Kind: FieldKindHex, Default: "0x06"},
+		{Key: "traffic_class", Label: "Traffic Class", Kind: FieldKindHex, Default: "0x00"},
+		{Key: "flow_label", Label: "Flow Label", Kind: FieldKindHex, Default: "0x00000"},
+		{Key: "payload_length", Label: "Payload Length", Kind: FieldKindHex, Default: "0x0000"},
+		{Key: "calc_payload_length", Label: "Automatically calculate payload length ?", Kind: FieldKindCheckbox, Default: "true"},
+		{Key: "next_header", Label: "Next Header", Kind: FieldKindSelectOrHex, Default: "ICMPv6", Options: []string{"ICMPv6", "UDP", "TCP"}},
+		{Key: "hop_limit", Label: "Hop Limit", Kind: FieldKindHex, Default: "0x40"},
+		{Key: "src", Label: "Source IP Addr", Kind: FieldKindText, Default: "::1"},
+		{Key: "dst", Label: "Destination IP Addr", Kind: FieldKindText, Default: "::1"},
+	}
+}
+
+func (s *ScratchIPv6Assembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
+	ip, err := s.AssembleIPv6(values)
+	if err != nil {
+		return nil, err
+	}
+	ip.Data = payload
+
+	// 自動計算のオン/オフ（オフにすれば「わざと不正な値」も送れる）
+	if calc, err := boolFromValue(values["calc_payload_length"]); err != nil {
+		return nil, fmt.Errorf("calc_payload_length: %w", err)
+	} else if calc {
+		ip.PayloadLength = uint16(len(payload))
+	}
+
+	return ip.Bytes(), nil
+}
+
+// AssembleIPv6 は values から IPv6 構造体を組み立てる（自動計算は行わず生値のまま）。
+// TUI の動的フォームが、既存の送信経路（sender の packets、自動計算やL4連結はそちらの責務）へ
+// 構造体を渡すために使う。
+func (s *ScratchIPv6Assembler) AssembleIPv6(values map[string]any) (*IPv6, error) {
+	ip := &IPv6{}
+	var err error
+	if ip.Version, err = uint8FromValue(values["version"]); err != nil {
+		return nil, fmt.Errorf("version: %w", err)
+	}
+	if ip.TrafficClass, err = uint8FromValue(values["traffic_class"]); err != nil {
+		return nil, fmt.Errorf("traffic_class: %w", err)
+	}
+	if ip.FlowLabel, err = uint32FromValue(values["flow_label"]); err != nil {
+		return nil, fmt.Errorf("flow_label: %w", err)
+	}
+	if ip.PayloadLength, err = uint16FromValue(values["payload_length"]); err != nil {
+		return nil, fmt.Errorf("payload_length: %w", err)
+	}
+	if ip.NextHeader, err = ipProtocolFromValue(values["next_header"]); err != nil {
+		return nil, fmt.Errorf("next_header: %w", err)
+	}
+	if ip.HopLimit, err = uint8FromValue(values["hop_limit"]); err != nil {
+		return nil, fmt.Errorf("hop_limit: %w", err)
+	}
+	if ip.SrcAddr, err = ipv6AddrFromValue(values["src"]); err != nil {
+		return nil, fmt.Errorf("src: %w", err)
+	}
+	if ip.DstAddr, err = ipv6AddrFromValue(values["dst"]); err != nil {
+		return nil, fmt.Errorf("dst: %w", err)
+	}
+	return ip, nil
 }

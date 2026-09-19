@@ -146,8 +146,8 @@ func TestScratchIPv4Assembler_Assemble_calcOffで不正な値のまま送れる(
 	}
 }
 
-func TestScratchICMPAssembler_Assemble(t *testing.T) {
-	assembler := &ScratchICMPAssembler{}
+func TestScratchICMPv4Assembler_Assemble(t *testing.T) {
+	assembler := &ScratchICMPv4Assembler{}
 
 	got, err := assembler.Assemble(map[string]any{
 		"type": "0x08", "code": "0x00",
@@ -158,8 +158,8 @@ func TestScratchICMPAssembler_Assemble(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// 既存実装（NewICMP: 同じ値でchecksum自動計算）と同一バイト列になること
-	want := NewICMP().Bytes()
+	// 既存実装（NewICMPv4: 同じ値でchecksum自動計算）と同一バイト列になること
+	want := NewICMPv4().Bytes()
 	if !bytes.Equal(got, want) {
 		t.Fatalf("assembled bytes mismatch\n got: %x\nwant: %x", got, want)
 	}
@@ -243,7 +243,7 @@ func TestAssembler_Fields(t *testing.T) {
 		"arp":      &ScratchARPAssembler{},
 		"ipv4":     &ScratchIPv4Assembler{},
 		"ipv6":     &ScratchIPv6Assembler{},
-		"icmp":     &ScratchICMPAssembler{},
+		"icmpv4":   &ScratchICMPv4Assembler{},
 		"tcp":      &ScratchTCPAssembler{},
 		"udp":      &ScratchUDPAssembler{},
 		"dns":      &ScratchDNSAssembler{},
@@ -265,9 +265,9 @@ func TestAssembler_Fields(t *testing.T) {
 }
 
 func TestScratchDissector_Dissect(t *testing.T) {
-	// Ethernet + IPv4 + ICMP のフレームを既存実装で組み立てて、Dissector で分解できること
-	ipv4 := NewIPv4(IPv4_PROTO_ICMP, 0xc0a80001, 0xc0a80002) // 192.168.0.1 -> 192.168.0.2
-	ipv4.Data = NewICMP().Bytes()
+	// Ethernet + IPv4 + ICMPv4 のフレームを既存実装で組み立てて、Dissector で分解できること
+	ipv4 := NewIPv4(IPv4_PROTO_ICMPv4, 0xc0a80001, 0xc0a80002) // 192.168.0.1 -> 192.168.0.2
+	ipv4.Data = NewICMPv4().Bytes()
 	frame := NewEthernetFrame(
 		HardwareAddr{0x00, 0x15, 0x5d, 0xe2, 0xc6, 0xc6},
 		HardwareAddr{0x00, 0x15, 0x5d, 0x6f, 0x44, 0x33},
@@ -300,11 +300,11 @@ func TestScratchDissector_Dissect(t *testing.T) {
 	assertChildValue(t, ip, "Source Address", "192.168.0.1")
 	assertChildValue(t, ip, "Destination Address", "192.168.0.2")
 
-	icmp, ok := nodeByName["ICMP"]
+	icmpv4, ok := nodeByName["ICMPv4"]
 	if !ok {
-		t.Fatalf("ICMP node not found: %+v", ft.Nodes)
+		t.Fatalf("ICMPv4 node not found: %+v", ft.Nodes)
 	}
-	assertChildValue(t, icmp, "Type", "0x08")
+	assertChildValue(t, icmpv4, "Type", "0x08")
 }
 
 func TestScratchDissector_Dissect_shortFrame(t *testing.T) {

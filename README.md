@@ -341,7 +341,7 @@ $ sudo packemon monitor
 Packemon serves as an educational tool for understanding network protocols by allowing hands-on experimentation. You can generate custom packets at different OSI layers and observe their behavior, making it ideal for learning TCP/IP fundamentals.
 
 ### Protocol Development and Testing
-The tool supports testing custom protocol implementations across multiple layers including Ethernet, ARP, IPv4/IPv6, ICMP, TCP/UDP, TLS, DNS, and HTTP. This makes it valuable for developers working on network protocol stacks or testing protocol compliance.
+The tool supports testing custom protocol implementations across multiple layers including Ethernet, ARP, IPv4/IPv6, ICMPv4, TCP/UDP, TLS, DNS, and HTTP. This makes it valuable for developers working on network protocol stacks or testing protocol compliance.
 
 ### Network Troubleshooting and Analysis
 Packemon provides packet monitoring capabilities similar to Wireshark, allowing you to capture and analyze network traffic in real-time. You can filter packets, examine protocol details, and export captured data to pcapng format for further analysis.
@@ -412,7 +412,7 @@ This is a method for identifying which hosts (devices) are operational on a netw
 ||Description|How to do it in Pakemon (Generator)|
 |--|--|--|
 |ARP Scan|On a local network, broadcast an ARP request to identify the host that responds. Verify the association between the IP address and MAC address.|Currently, Packemon does not support specifying IP address ranges for requests, so you have to specify each one individually...<br><br>- `Lα` > `Ethernet` > `Destination Mac Addr` > `0xffffffffffff`<br>- `Lα` > `Ethernet` > `Ether Type` > `ARP`<br>- `Lβ` > `ARP` > `Hardware Type` > `0x0001`<br>- `Lβ` > `ARP` > `Protocol Type` > `0x0800`<br>- `Lβ` > `ARP` > `Hardware Size` > `0x06`<br>- `Lβ` > `ARP` > `Protocol Size` > `0x04`<br>- `Lβ` > `ARP` > `Operation Code` > `0x0001`<br>- `Lβ` > `ARP` > `Target Mac Addr` > `0x000000000000`<br>- `Lβ` > `ARP` > `Target IP Addr` > (Target IP Addr)<br>- `Lβ` > `ARP` > Click on `Send!`|
-|Ping Sweep|Send ICMP echo requests to multiple IP addresses on the network to identify the hosts that return echo replies. This is a simple and widely used technique.|Currently, Packemon does not support specifying IP address ranges for requests, so you have to specify each one individually...<br><br>- `Lα` > `Ethernet` > `Ether Type` > `IPv4`<br>- `Lβ` > `IPv4` > `Protocol` > `ICMP`<br>- `Lβ` > `IPv4` > `Destination IP Addr` > (Target IP Addr)<br>- `Lγ` > `ICMP` > `Type` > `0x08`<br>- `Lγ` > `ICMP` > Click on `Send!`|
+|Ping Sweep|Send ICMPv4 echo requests to multiple IP addresses on the network to identify the hosts that return echo replies. This is a simple and widely used technique.|Currently, Packemon does not support specifying IP address ranges for requests, so you have to specify each one individually...<br><br>- `Lα` > `Ethernet` > `Ether Type` > `IPv4`<br>- `Lβ` > `IPv4` > `Protocol` > `ICMPv4`<br>- `Lβ` > `IPv4` > `Destination IP Addr` > (Target IP Addr)<br>- `Lγ` > `ICMPv4` > `Type` > `0x08`<br>- `Lγ` > `ICMPv4` > Click on `Send!`|
 
 </details>
 
@@ -427,7 +427,7 @@ This is a method for identifying which ports are open (which services are runnin
 |--|--|--|
 |TCP Connect Scan|This is the most basic scanning method, which verifies whether a port is open by performing a complete TCP three-way handshake (SYN -> SYN/ACK -> ACK).|- `Lα` > `Ethernet` > `Ether Type` > `IPv4`<br>- `Lβ` > `IPv4` > `Protocol` > `TCP`<br>- `Lβ` > `IPv4` > `Destination IP Addr` > (Target IP Addr)<br>- `Lγ` > `TCP` > `Do TCP 3way handshake ?` > (Check!)<br>- `Lγ` > `TCP` > `Destination Port` > (Target Port)<br>- `Lγ` > `TCP` > Click on `Send!`|
 |SYN Scan (Half-open Scan)|This technique checks port availability without completing the TCP handshake. It sends a SYN packet; if a SYN/ACK packet is returned, the port is deemed open. It then sends a RST packet to reset the connection. Because it leaves minimal traces in logs, it is also called a stealth scan.|When using Packemon on Linux, since it drops RST packets, I only wrote the procedure for sending Syn packets.<br><br>- `Lα` > `Ethernet` > `Ether Type` > `IPv4`<br>- `Lβ` > `IPv4` > `Protocol` > `TCP`<br>- `Lβ` > `IPv4` > `Destination IP Addr` > (Target IP Addr)<br>- `Lγ` > `TCP` > `Do TCP 3way handshake ?` > (No Check!)<br>- `Lγ` > `TCP` > `Flags` > `0x02`<br>- `Lγ` > `TCP` > `Destination Port` > (Target Port)<br>- `Lγ` > `TCP` > Click on `Send!`|
-|UDP Scan|Because it uses the connectionless UDP protocol, it is well-suited for verifying whether a UDP port is open or closed. It sends a UDP packet and determines that the port is open if there is no ICMP Port Unreachable (Type 3, Code 3) response.|- `Lα` > `Ethernet` > `Ether Type` > `IPv4`<br>- `Lβ` > `IPv4` > `Protocol` > `UDP`<br>- `Lβ` > `IPv4` > `Destination IP Addr` > (Target IP Addr)<br>- `Lγ` > `UDP` > `Destination Port` > (Target Port)<br>- `Lγ` > `UDP` > Click on `Send!`|
+|UDP Scan|Because it uses the connectionless UDP protocol, it is well-suited for verifying whether a UDP port is open or closed. It sends a UDP packet and determines that the port is open if there is no ICMPv4 Port Unreachable (Type 3, Code 3) response.|- `Lα` > `Ethernet` > `Ether Type` > `IPv4`<br>- `Lβ` > `IPv4` > `Protocol` > `UDP`<br>- `Lβ` > `IPv4` > `Destination IP Addr` > (Target IP Addr)<br>- `Lγ` > `UDP` > `Destination Port` > (Target Port)<br>- `Lγ` > `UDP` > Click on `Send!`|
 
 </details>
 
@@ -505,8 +505,8 @@ thanks!
 
 - WSL2のDebianで動作した。
 
-- 任意の Ethernet ヘッダ / IPv4 ヘッダ / ARP / ICMP を楽に作れてフレームを送信できる
-- 以下はtmuxで3分割した画面に各種ヘッダのフォーム画面を表示している。そして ICMP echo request を送信し、 echo reply が返ってきていることを Wireshark で確認した様子
+- 任意の Ethernet ヘッダ / IPv4 ヘッダ / ARP / ICMPv4 を楽に作れてフレームを送信できる
+- 以下はtmuxで3分割した画面に各種ヘッダのフォーム画面を表示している。そして ICMPv4 echo request を送信し、 echo reply が返ってきていることを Wireshark で確認した様子
   ![](./assets/tui_ether_ip_icmp.png)
   ![](./assets/tui_send_icmp_result1.png)
   ![](./assets/tui_send_icmp_result2.png)

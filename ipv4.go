@@ -46,15 +46,15 @@ func NewIPv4(protocol uint8, srcAddr uint32, dstAddr uint32) *IPv4 {
 }
 
 const (
-	IPv4_PROTO_ICMP uint8 = 0x01
-	IPv4_PROTO_TCP  uint8 = 0x06
-	IPv4_PROTO_UDP  uint8 = 0x11
+	IPv4_PROTO_ICMPv4 uint8 = 0x01
+	IPv4_PROTO_TCP    uint8 = 0x06
+	IPv4_PROTO_UDP    uint8 = 0x11
 )
 
 var IPv4Protocols = map[uint8]string{
-	IPv4_PROTO_ICMP: "ICMP",
-	IPv4_PROTO_TCP:  "TCP",
-	IPv4_PROTO_UDP:  "UDP",
+	IPv4_PROTO_ICMPv4: "ICMPv4",
+	IPv4_PROTO_TCP:    "TCP",
+	IPv4_PROTO_UDP:    "UDP",
 }
 
 func ParsedIPv4(payload []byte) *IPv4 {
@@ -191,7 +191,7 @@ func (s *ScratchIPv4Assembler) Fields() []FieldSpec {
 		{Key: "flags", Label: "Flags", Kind: FieldKindHex, Default: "0x40"},
 		{Key: "fragment_offset", Label: "Fragment Offset", Kind: FieldKindHex, Default: "0x0000"},
 		{Key: "ttl", Label: "TTL", Kind: FieldKindHex, Default: "0x80"},
-		{Key: "protocol", Label: "Protocol", Kind: FieldKindSelectOrHex, Default: "ICMP", Options: []string{"ICMP", "UDP", "TCP"}},
+		{Key: "protocol", Label: "Protocol", Kind: FieldKindSelectOrHex, Default: "ICMPv4", Options: []string{"ICMPv4", "UDP", "TCP"}},
 		{Key: "checksum", Label: "Header Checksum", Kind: FieldKindHex, Default: "0x0000"},
 		{Key: "calc_checksum", Label: "Automatically calculate checksum ?", Kind: FieldKindCheckbox, Default: "true"},
 		{Key: "src", Label: "Source IP Addr", Kind: FieldKindText, Default: "0.0.0.0"},
@@ -267,13 +267,13 @@ func (s *ScratchIPv4Assembler) AssembleIPv4(values map[string]any) (*IPv4, error
 	return ip, nil
 }
 
-// ipProtocolFromValue は、プロトコル名（"ICMP" 等。TUI の選択肢）、"0x01" 等の文字列、
+// ipProtocolFromValue は、プロトコル名（"ICMPv4" 等。TUI の選択肢）、"0x01" 等の文字列、
 // または uint8 そのものを受け付ける。
 func ipProtocolFromValue(v any) (uint8, error) {
 	if s, ok := v.(string); ok {
 		switch s {
-		case "ICMP":
-			return IPv4_PROTO_ICMP, nil
+		case "ICMPv4":
+			return IPv4_PROTO_ICMPv4, nil
 		case "UDP":
 			return IPv4_PROTO_UDP, nil
 		case "TCP":

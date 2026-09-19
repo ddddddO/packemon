@@ -69,8 +69,8 @@ func FieldTreeFromPassive(p *Passive) *FieldTree {
 	if p.IPv6 != nil {
 		ft.Nodes = append(ft.Nodes, p.IPv6.FieldNode())
 	}
-	if p.ICMP != nil {
-		ft.Nodes = append(ft.Nodes, p.ICMP.FieldNode())
+	if p.ICMPv4 != nil {
+		ft.Nodes = append(ft.Nodes, p.ICMPv4.FieldNode())
 	}
 	if p.TCP != nil {
 		ft.Nodes = append(ft.Nodes, p.TCP.FieldNode())

@@ -396,8 +396,8 @@ func debugMode(wantSend bool, protocol string, netIf *packemon.NetworkInterface,
 		switch protocol {
 		case "arp":
 			return debugNetIf.SendARPrequest()
-		case "icmp":
-			return debugNetIf.SendICMPechoRequest(dstMacAddr)
+		case "icmpv4":
+			return debugNetIf.SendICMPv4echoRequest(dstMacAddr)
 		case "tcp":
 			return debugNetIf.SendTCPsyn(dstMacAddr)
 		case "dns":

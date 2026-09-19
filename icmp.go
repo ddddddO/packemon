@@ -9,7 +9,7 @@ import (
 
 // https://www.infraexpert.com/study/tcpip4.html
 // https://inc0x0.com/icmp-ip-packets-ping-manually-create-and-send-icmp-ip-packets/
-type ICMP struct {
+type ICMPv4 struct {
 	Typ        uint8
 	Code       uint8
 	Checksum   uint16
@@ -19,11 +19,11 @@ type ICMP struct {
 }
 
 const (
-	ICMP_TYPE_REQUEST = 0x08
+	ICMPv4_TYPE_REQUEST = 0x08
 )
 
-func ParsedICMP(payload []byte) *ICMP {
-	return &ICMP{
+func ParsedICMPv4(payload []byte) *ICMPv4 {
+	return &ICMPv4{
 		Typ:        payload[0],
 		Code:       payload[1],
 		Checksum:   binary.BigEndian.Uint16(payload[2:4]),
@@ -34,9 +34,9 @@ func ParsedICMP(payload []byte) *ICMP {
 }
 
 // icmp request
-func NewICMP() *ICMP {
-	icmp := &ICMP{
-		Typ:        ICMP_TYPE_REQUEST,
+func NewICMPv4() *ICMPv4 {
+	icmpv4 := &ICMPv4{
+		Typ:        ICMPv4_TYPE_REQUEST,
 		Code:       0,
 		Identifier: 0x34a1,
 		Sequence:   0x0001,
@@ -44,16 +44,16 @@ func NewICMP() *ICMP {
 
 	// pingのecho requestのpacketを観察すると以下で良さそう
 	// タイムスタンプ要求以外で必要ではないよう
-	// icmp.Data = icmp.TimestampForTypeTimestampRequest()
+	// icmpv4.Data = icmpv4.TimestampForTypeTimestampRequest()
 
-	icmp.CalculateChecksum()
+	icmpv4.CalculateChecksum()
 
-	return icmp
+	return icmpv4
 }
 
 // icmpのタイムスタンプ要求で必要みたい
 // Linuxで、sudo hping3 1.1.1.1 --icmp --icmptype 13 でタイムスタンプ要求のパケット確認できる
-func (*ICMP) TimestampForTypeTimestampRequest() []byte {
+func (*ICMPv4) TimestampForTypeTimestampRequest() []byte {
 	originalTimestamp := time.Now().Unix()
 	receiveTimestamp := 0x00000000
 	transmitTimestamp := 0x00000000
@@ -65,7 +65,7 @@ func (*ICMP) TimestampForTypeTimestampRequest() []byte {
 }
 
 // copy from https://cs.opensource.google/go/x/net/+/master:icmp/message.go
-func (i *ICMP) CalculateChecksum() {
+func (i *ICMPv4) CalculateChecksum() {
 	b := i.Bytes()
 	csumcv := len(b) - 1 // checksum coverage
 	s := uint32(0)
@@ -83,7 +83,7 @@ func (i *ICMP) CalculateChecksum() {
 	i.Checksum = binary.BigEndian.Uint16(ret)
 }
 
-func (i *ICMP) Bytes() []byte {
+func (i *ICMPv4) Bytes() []byte {
 	buf := &bytes.Buffer{}
 	buf.WriteByte(i.Typ)
 	buf.WriteByte(i.Code)
@@ -95,9 +95,9 @@ func (i *ICMP) Bytes() []byte {
 }
 
 // FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
-func (i *ICMP) FieldNode() *FieldNode {
+func (i *ICMPv4) FieldNode() *FieldNode {
 	return &FieldNode{
-		Name: "ICMP",
+		Name: "ICMPv4",
 		Children: []*FieldNode{
 			{Name: "Type", Value: fmt.Sprintf("0x%02x", i.Typ)},
 			{Name: "Code", Value: fmt.Sprintf("0x%02x", i.Code)},
@@ -108,12 +108,12 @@ func (i *ICMP) FieldNode() *FieldNode {
 	}
 }
 
-// ScratchICMPAssembler は、スクラッチ実装（ICMP.Bytes）による Assembler。
-type ScratchICMPAssembler struct{}
+// ScratchICMPv4Assembler は、スクラッチ実装（ICMPv4.Bytes）による Assembler。
+type ScratchICMPv4Assembler struct{}
 
-var _ Assembler = (*ScratchICMPAssembler)(nil)
+var _ Assembler = (*ScratchICMPv4Assembler)(nil)
 
-func (s *ScratchICMPAssembler) Fields() []FieldSpec {
+func (s *ScratchICMPv4Assembler) Fields() []FieldSpec {
 	return []FieldSpec{
 		{Key: "type", Label: "Type", Kind: FieldKindHex, Default: "0x08"},
 		{Key: "code", Label: "Code", Kind: FieldKindHex, Default: "0x00"},
@@ -124,44 +124,44 @@ func (s *ScratchICMPAssembler) Fields() []FieldSpec {
 	}
 }
 
-func (s *ScratchICMPAssembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
-	icmp, err := s.AssembleICMP(values)
+func (s *ScratchICMPv4Assembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
+	icmpv4, err := s.AssembleICMPv4(values)
 	if err != nil {
 		return nil, err
 	}
-	icmp.Data = payload
+	icmpv4.Data = payload
 
 	// 自動計算のオン/オフ（オフにすれば「わざと不正な値」も送れる）
 	if calc, err := boolFromValue(values["calc_checksum"]); err != nil {
 		return nil, fmt.Errorf("calc_checksum: %w", err)
 	} else if calc {
-		icmp.Checksum = 0x0
-		icmp.CalculateChecksum()
+		icmpv4.Checksum = 0x0
+		icmpv4.CalculateChecksum()
 	}
 
-	return icmp.Bytes(), nil
+	return icmpv4.Bytes(), nil
 }
 
-// AssembleICMP は values から ICMP 構造体を組み立てる（自動計算は行わず生値のまま）。
+// AssembleICMPv4 は values から ICMPv4 構造体を組み立てる（自動計算は行わず生値のまま）。
 // TUI の動的フォームが、既存の送信経路（sender の packets、自動計算やL3連結はそちらの責務）へ
 // 構造体を渡すために使う。
-func (s *ScratchICMPAssembler) AssembleICMP(values map[string]any) (*ICMP, error) {
-	icmp := &ICMP{}
+func (s *ScratchICMPv4Assembler) AssembleICMPv4(values map[string]any) (*ICMPv4, error) {
+	icmpv4 := &ICMPv4{}
 	var err error
-	if icmp.Typ, err = uint8FromValue(values["type"]); err != nil {
+	if icmpv4.Typ, err = uint8FromValue(values["type"]); err != nil {
 		return nil, fmt.Errorf("type: %w", err)
 	}
-	if icmp.Code, err = uint8FromValue(values["code"]); err != nil {
+	if icmpv4.Code, err = uint8FromValue(values["code"]); err != nil {
 		return nil, fmt.Errorf("code: %w", err)
 	}
-	if icmp.Checksum, err = uint16FromValue(values["checksum"]); err != nil {
+	if icmpv4.Checksum, err = uint16FromValue(values["checksum"]); err != nil {
 		return nil, fmt.Errorf("checksum: %w", err)
 	}
-	if icmp.Identifier, err = uint16FromValue(values["identifier"]); err != nil {
+	if icmpv4.Identifier, err = uint16FromValue(values["identifier"]); err != nil {
 		return nil, fmt.Errorf("identifier: %w", err)
 	}
-	if icmp.Sequence, err = uint16FromValue(values["sequence"]); err != nil {
+	if icmpv4.Sequence, err = uint16FromValue(values["sequence"]); err != nil {
 		return nil, fmt.Errorf("sequence: %w", err)
 	}
-	return icmp, nil
+	return icmpv4, nil
 }

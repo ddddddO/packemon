@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/cilium/ebpf v0.22.0
 	github.com/gdamore/tcell/v2 v2.13.10
-	github.com/gopacket/gopacket v1.7.1
+	github.com/gopacket/gopacket v1.7.2
 	github.com/quic-go/quic-go v0.62.0
 	github.com/rivo/tview v0.42.0
 	github.com/urfave/cli/v3 v3.11.0

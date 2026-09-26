@@ -60,7 +60,7 @@ var IPv4Protocols = map[uint8]string{
 func ParsedIPv4(payload []byte) *IPv4 {
 	return &IPv4{
 		Version:        payload[0] >> 4,
-		Ihl:            payload[0],
+		Ihl:            payload[0] & 0x0f,
 		Tos:            payload[1],
 		TotalLength:    binary.BigEndian.Uint16(payload[2:4]),
 		Identification: binary.BigEndian.Uint16(payload[4:6]),

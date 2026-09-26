@@ -11,7 +11,8 @@ type HexadecimalDump struct {
 	*packemon.ARP
 	*packemon.IPv4
 	*packemon.IPv6
-	*packemon.ICMPv4
+	*packemon.ICMPv4EchoOrEchoReply
+	*packemon.ICMPv4DestinationUnreachable
 	*packemon.TCP
 	*packemon.UDP
 	*packemon.TLSClientHello
@@ -60,8 +61,15 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 	const udpHeaderLength = 8
 	loopForL4View := 1 + loopForL3View
 	switch {
-	case h.ICMPv4 != nil:
-		loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4", h.ICMPv4.Bytes())
+	case h.ICMPv4EchoOrEchoReply != nil:
+		switch h.ICMPv4EchoOrEchoReply.Header.Typ {
+		case packemon.ICMPv4_TYPE_ECHO_MESSAGE:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo Message", h.ICMPv4EchoOrEchoReply.Bytes())
+		case packemon.ICMPv4_TYPE_ECHO_REPLY_MESSAGE:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo Reply Message", h.ICMPv4EchoOrEchoReply.Bytes())
+		default:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo or Echo Reply", h.ICMPv4EchoOrEchoReply.Bytes())
+		}
 	case h.TCP != nil:
 		loopForL4View = viewHexadecimalDump(table, loopForL4View, "TCP", h.TCP.Bytes()[0:h.TCP.HeaderLength/4])
 	case h.UDP != nil:

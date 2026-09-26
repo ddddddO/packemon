@@ -1,6 +1,7 @@
 package packemon
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net"
 	"strconv"
@@ -126,6 +127,21 @@ func uint32FromValue(v any) (uint32, error) {
 		return uint32(n), nil
 	default:
 		return 0, fmt.Errorf("unsupported type: %T", v)
+	}
+}
+
+func bytesFromValue(v any) ([]byte, error) {
+	switch value := v.(type) {
+	case []byte:
+		return value, nil
+	case string:
+		trimed := strings.TrimPrefix(strings.TrimPrefix(value, "0x"), "0X")
+		if len(trimed)%2 != 0 {
+			trimed = "0" + trimed
+		}
+		return hex.DecodeString(trimed)
+	default:
+		return nil, fmt.Errorf("unsupported type: %T", v)
 	}
 }
 

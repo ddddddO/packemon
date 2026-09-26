@@ -16,17 +16,22 @@ func (s *sender) sendOverICMPv4(
 	checkedCalcIPv4TotalLength bool,
 	checkedCalcIPv4Checksum bool,
 ) error {
-	s.packets.icmpv4.Data = []byte{}
+	// このブロックは ICMPv4 の Data部の入力仕様
+	// データ部へは以下の優先順位で埋まる
+	//   1: ICMPv4 フォームで、タイムスタンプ付加有効時タイムスタンプ格納
+	//   2: ICMPv4 が選択され上位レイヤで送信された場合に上位レイヤのペイロード格納
+	//   3: ICMPv4 フォームで、Data フォームに入力された値を格納
 	if checkedCalcICMPv4Timestamp {
 		s.packets.icmpv4.Data = s.packets.icmpv4.TimestampForTypeTimestampRequest()
 	} else {
-		// TODO: 動作確認がまだだし、フォームでcheckedCalcICMPv4Timestampがoffの時に上位レイヤのデータが入るという説明がないので足した方がいい
-		//       いやもう少し考えた方が良いかも。上位レイヤ有りかつcheckedCalcICMPv4Timestampがonで、両方格納とか...？
-		s.packets.icmpv4.Data = upperLayerPacket
+		if len(upperLayerPacket) > 0 {
+			s.packets.icmpv4.Data = upperLayerPacket
+		}
 	}
+
 	if checkedCalcICMPv4Checksum {
 		// 前回Send分が残ってると計算誤るため
-		s.packets.icmpv4.Checksum = 0x0
+		s.packets.icmpv4.Header.Checksum = 0x0
 		s.packets.icmpv4.CalculateChecksum()
 	}
 

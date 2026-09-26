@@ -13,7 +13,8 @@ type Passive struct {
 	DNS                                             *DNS
 	TCP                                             *TCP
 	UDP                                             *UDP
-	ICMPv4                                          *ICMPv4
+	ICMPv4EchoOrEchoReply                           *ICMPv4EchoOrEchoReply
+	ICMPv4DestinationUnreachable                    *ICMPv4DestinationUnreachable
 	IPv4                                            *IPv4
 	IPv6                                            *IPv6
 	ARP                                             *ARP
@@ -34,7 +35,7 @@ func (p *Passive) HighLayerProto() string {
 	if p.IPv6 != nil {
 		proto = "IPv6"
 	}
-	if p.ICMPv4 != nil {
+	if p.ICMPv4EchoOrEchoReply != nil || p.ICMPv4DestinationUnreachable != nil {
 		proto = "ICMPv4"
 	}
 	if p.UDP != nil {

@@ -117,6 +117,7 @@ func (i *ICMPv4EchoOrEchoReply) FieldNode() *FieldNode {
 			{Name: "Checksum", Value: fmt.Sprintf("0x%04x", i.Header.Checksum)},
 			{Name: "Identifier", Value: fmt.Sprintf("0x%04x", i.Identifier)},
 			{Name: "Sequence", Value: fmt.Sprintf("0x%04x", i.Sequence)},
+			{Name: "Data", Value: fmt.Sprintf("0x%x", i.Data)},
 		},
 	}
 }

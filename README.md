@@ -51,7 +51,18 @@ The rightmost image shows how the packet list is filtered.
 - [x] ARP
 - [x] IPv4
 - [x] IPv6
-- [x] ICMPv4
+- [ ] ICMPv4
+  - [x] Echo Message / Echo Reply Message
+  - [ ] Destination Unreachable Message
+  - [ ] Source Quench Message
+  - [ ] Redirect Message
+  - [ ] Router Advertisement Message
+  - [ ] Router Solicitation Message
+  - [ ] Time Exceeded Message
+  - [ ] Parameter Problem Message
+  - [ ] Timestamp Message / Timestamp Reply Message
+  - [ ] Information Request Message / Information Reply Message
+  - [ ] Address Mask Request Message / Address Mask Reply Message
 - [ ] ICMPv6
 - [x] TCP
 - [x] UDP
@@ -138,7 +149,22 @@ The rightmost image shows how the packet list is filtered.
 - [x] ARP
 - [x] IPv4 (WIP)
 - [x] IPv6 (WIP)
-- [x] ICMPv4 (WIP)
+- [ ] ICMPv4 (WIP)
+  - [x] Echo Message
+  - [x] Echo Reply Message
+  - [x] Destination Unreachable Message
+  - [ ] Source Quench Message
+  - [ ] Redirect Message
+  - [ ] Router Advertisement Message
+  - [ ] Router Solicitation Message
+  - [ ] Time Exceeded Message
+  - [ ] Parameter Problem Message
+  - [ ] Timestamp Message
+  - [ ] Timestamp Reply Message
+  - [ ] Information Request Message
+  - [ ] Information Reply Message
+  - [ ] Address Mask Request Message
+  - [ ] Address Mask Reply Message
 - [ ] ICMPv6
 - [x] TCP (WIP)
 - [x] UDP

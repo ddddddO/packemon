@@ -12,6 +12,7 @@ type HexadecimalDump struct {
 	*packemon.IPv4
 	*packemon.IPv6
 	*packemon.ICMPv4EchoOrEchoReply
+	*packemon.ICMPv4DestinationUnreachable
 	*packemon.TCP
 	*packemon.UDP
 	*packemon.TLSClientHello

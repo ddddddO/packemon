@@ -82,7 +82,14 @@ func parsedPassiveIPv4(ethernetFrame *EthernetFrame, shouldParseFull bool) (pass
 
 	switch ipv4.Protocol {
 	case IPv4_PROTO_ICMPv4:
-		passive.ICMPv4EchoOrEchoReply = ParsedICMPv4EchoOrEchoReply(ipv4.Data)
+		if len(ipv4.Data) > 0 {
+			switch ipv4.Data[0] {
+			case ICMPv4_TYPE_ECHO_MESSAGE, ICMPv4_TYPE_ECHO_REPLY_MESSAGE:
+				passive.ICMPv4EchoOrEchoReply = ParsedICMPv4EchoOrEchoReply(ipv4.Data)
+			case ICMPv4_TYPE_DESTINATION_UNREACHABLE:
+				passive.ICMPv4DestinationUnreachable = ParsedICMPv4DestinationUnreachable(ipv4.Data)
+			}
+		}
 	case IPv4_PROTO_TCP:
 		parsedPassiveTCPLayer(passive, ipv4.Data, shouldParseFull)
 	case IPv4_PROTO_UDP:

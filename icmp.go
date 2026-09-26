@@ -25,6 +25,15 @@ type ICMPv4EchoOrEchoReply struct {
 	Data       []byte
 }
 
+type ICMPv4DestinationUnreachable struct {
+	Header     *ICMPHeader
+	Unused     uint32
+	OriginalIP *IPv4
+
+	// memo: Echo or Echo Reply 以外の送信で DestinationUnreachable が返ってくるパターンがあれば以下の型指定はダメなので、型を指定するのではなく↑のIPv4のデータ部をパース処理するところに委ねる
+	// OriginalICMP *ICMPv4EchoOrEchoReply
+}
+
 const (
 	ICMPv4_TYPE_ECHO_MESSAGE            = 0x08
 	ICMPv4_TYPE_ECHO_REPLY_MESSAGE      = 0x00
@@ -41,6 +50,18 @@ func ParsedICMPv4EchoOrEchoReply(payload []byte) *ICMPv4EchoOrEchoReply {
 		Identifier: binary.BigEndian.Uint16(payload[4:6]),
 		Sequence:   binary.BigEndian.Uint16(payload[6:8]),
 		Data:       payload[8:],
+	}
+}
+
+func ParsedICMPv4DestinationUnreachable(payload []byte) *ICMPv4DestinationUnreachable {
+	return &ICMPv4DestinationUnreachable{
+		Header: &ICMPHeader{
+			Typ:      payload[0],
+			Code:     payload[1],
+			Checksum: binary.BigEndian.Uint16(payload[2:4]),
+		},
+		Unused:     binary.BigEndian.Uint32(payload[4:8]),
+		OriginalIP: ParsedIPv4(payload[8:]),
 	}
 }
 
@@ -123,6 +144,46 @@ func (i *ICMPv4EchoOrEchoReply) FieldNode() *FieldNode {
 		Name:     "ICMPv4",
 		Children: children,
 	}
+}
+
+func (i *ICMPv4DestinationUnreachable) FieldNode() *FieldNode {
+	node := &FieldNode{
+		Name: "ICMPv4",
+		Children: []*FieldNode{
+			{Name: "Type", Value: fmt.Sprintf("0x%02x", i.Header.Typ)},
+			{Name: "Code", Value: fmt.Sprintf("0x%02x", i.Header.Code)},
+			{Name: "Checksum", Value: fmt.Sprintf("0x%04x", i.Header.Checksum)},
+			{Name: "Unused", Value: fmt.Sprintf("0x%x", i.Unused)},
+		},
+	}
+
+	// 例えば、Echo Message -> Destination Unreachable が返ってきた時の Echo Messageの内容とそのIPパケットがOriginalに入ってくる
+	original := &FieldNode{
+		Name: "Original",
+	}
+	if i.OriginalIP != nil {
+		original.Children = append(original.Children, i.OriginalIP.FieldNode())
+	}
+	var originalICMP *FieldNode
+	if len(i.OriginalIP.Data) > 0 {
+		// TODO: ここに足してく。全部が必要かは不明だけど
+		switch i.OriginalIP.Data[0] {
+		case ICMPv4_TYPE_ECHO_MESSAGE, ICMPv4_TYPE_ECHO_REPLY_MESSAGE:
+			parsed := ParsedICMPv4EchoOrEchoReply(i.OriginalIP.Data)
+			originalICMP = parsed.FieldNode()
+		case ICMPv4_TYPE_DESTINATION_UNREACHABLE:
+			parsed := ParsedICMPv4DestinationUnreachable(i.OriginalIP.Data)
+			originalICMP = parsed.FieldNode()
+		}
+	}
+	if originalICMP != nil {
+		original.Children = append(original.Children, originalICMP)
+	}
+
+	if len(original.Children) > 0 {
+		node.Children = append(node.Children, original)
+	}
+	return node
 }
 
 // ScratchICMPv4EchoOrEchoReplyAssembler は、スクラッチ実装（ICMPv4EchoOrEchoReply.Bytes）による Assembler。

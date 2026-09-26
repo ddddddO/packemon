@@ -81,6 +81,10 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 		viewers = append(viewers, &FieldNodeView{passive.ICMPv4EchoOrEchoReply.FieldNode()})
 		hexdump.ICMPv4EchoOrEchoReply = passive.ICMPv4EchoOrEchoReply
 	}
+	if passive.ICMPv4DestinationUnreachable != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv4DestinationUnreachable.FieldNode()})
+		hexdump.ICMPv4DestinationUnreachable = passive.ICMPv4DestinationUnreachable
+	}
 	if passive.TCP != nil {
 		viewers = append(viewers, &FieldNodeView{passive.TCP.FieldNode()})
 		hexdump.TCP = passive.TCP

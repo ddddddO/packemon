@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// https://ja.wikipedia.org/wiki/Internet_Control_Message_Protocol
+
+// ICMPv4,v6 で共通のヘッダー
 type ICMPHeader struct {
 	Typ      uint8
 	Code     uint8
@@ -15,7 +18,7 @@ type ICMPHeader struct {
 
 // https://www.infraexpert.com/study/tcpip4.html
 // https://inc0x0.com/icmp-ip-packets-ping-manually-create-and-send-icmp-ip-packets/
-type ICMPv4 struct {
+type ICMPv4EchoOrEchoReply struct {
 	Header     *ICMPHeader
 	Identifier uint16
 	Sequence   uint16
@@ -23,12 +26,13 @@ type ICMPv4 struct {
 }
 
 const (
-	ICMPv4_TYPE_REQUEST                 = 0x08
+	ICMPv4_TYPE_ECHO_MESSAGE            = 0x08
+	ICMPv4_TYPE_ECHO_REPLY_MESSAGE      = 0x00
 	ICMPv4_TYPE_DESTINATION_UNREACHABLE = 0x03
 )
 
-func ParsedICMPv4(payload []byte) *ICMPv4 {
-	return &ICMPv4{
+func ParsedICMPv4(payload []byte) *ICMPv4EchoOrEchoReply {
+	return &ICMPv4EchoOrEchoReply{
 		Header: &ICMPHeader{
 			Typ:      payload[0],
 			Code:     payload[1],
@@ -41,10 +45,10 @@ func ParsedICMPv4(payload []byte) *ICMPv4 {
 }
 
 // icmp request
-func NewICMPv4() *ICMPv4 {
-	icmpv4 := &ICMPv4{
+func NewICMPv4() *ICMPv4EchoOrEchoReply {
+	icmpv4 := &ICMPv4EchoOrEchoReply{
 		Header: &ICMPHeader{
-			Typ:  ICMPv4_TYPE_REQUEST,
+			Typ:  ICMPv4_TYPE_ECHO_MESSAGE,
 			Code: 0,
 		},
 		Identifier: 0x34a1,
@@ -62,7 +66,7 @@ func NewICMPv4() *ICMPv4 {
 
 // icmpのタイムスタンプ要求で必要みたい
 // Linuxで、sudo hping3 1.1.1.1 --icmp --icmptype 13 でタイムスタンプ要求のパケット確認できる
-func (*ICMPv4) TimestampForTypeTimestampRequest() []byte {
+func (*ICMPv4EchoOrEchoReply) TimestampForTypeTimestampRequest() []byte {
 	originalTimestamp := time.Now().Unix()
 	receiveTimestamp := 0x00000000
 	transmitTimestamp := 0x00000000
@@ -74,7 +78,7 @@ func (*ICMPv4) TimestampForTypeTimestampRequest() []byte {
 }
 
 // copy from https://cs.opensource.google/go/x/net/+/master:icmp/message.go
-func (i *ICMPv4) CalculateChecksum() {
+func (i *ICMPv4EchoOrEchoReply) CalculateChecksum() {
 	b := i.Bytes()
 	csumcv := len(b) - 1 // checksum coverage
 	s := uint32(0)
@@ -92,7 +96,7 @@ func (i *ICMPv4) CalculateChecksum() {
 	i.Header.Checksum = binary.BigEndian.Uint16(ret)
 }
 
-func (i *ICMPv4) Bytes() []byte {
+func (i *ICMPv4EchoOrEchoReply) Bytes() []byte {
 	buf := &bytes.Buffer{}
 	buf.WriteByte(i.Header.Typ)
 	buf.WriteByte(i.Header.Code)
@@ -104,7 +108,7 @@ func (i *ICMPv4) Bytes() []byte {
 }
 
 // FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
-func (i *ICMPv4) FieldNode() *FieldNode {
+func (i *ICMPv4EchoOrEchoReply) FieldNode() *FieldNode {
 	return &FieldNode{
 		Name: "ICMPv4",
 		Children: []*FieldNode{
@@ -154,8 +158,8 @@ func (s *ScratchICMPv4Assembler) Assemble(values map[string]any, payload []byte)
 // AssembleICMPv4 は values から ICMPv4 構造体を組み立てる（自動計算は行わず生値のまま）。
 // TUI の動的フォームが、既存の送信経路（sender の packets、自動計算やL3連結はそちらの責務）へ
 // 構造体を渡すために使う。
-func (s *ScratchICMPv4Assembler) AssembleICMPv4(values map[string]any) (*ICMPv4, error) {
-	icmpv4 := &ICMPv4{Header: &ICMPHeader{}}
+func (s *ScratchICMPv4Assembler) AssembleICMPv4(values map[string]any) (*ICMPv4EchoOrEchoReply, error) {
+	icmpv4 := &ICMPv4EchoOrEchoReply{Header: &ICMPHeader{}}
 	var err error
 	if icmpv4.Header.Typ, err = uint8FromValue(values["type"]); err != nil {
 		return nil, fmt.Errorf("type: %w", err)

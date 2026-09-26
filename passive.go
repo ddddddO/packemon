@@ -13,7 +13,7 @@ type Passive struct {
 	DNS                                             *DNS
 	TCP                                             *TCP
 	UDP                                             *UDP
-	ICMPv4                                          *ICMPv4
+	ICMPv4                                          *ICMPv4EchoOrEchoReply
 	IPv4                                            *IPv4
 	IPv6                                            *IPv6
 	ARP                                             *ARP

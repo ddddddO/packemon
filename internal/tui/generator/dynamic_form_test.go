@@ -215,10 +215,10 @@ func TestSendLayer4_dynamicICMPv4Form(t *testing.T) {
 		t.Fatal("ipv4 checksum should be calculated by send path")
 	}
 	icmp := packemon.ParsedICMPv4(ip.Data)
-	if icmp.Typ != 0x08 { // echo request
-		t.Fatalf("icmp type: got 0x%02x", icmp.Typ)
+	if icmp.Header.Typ != 0x08 { // echo request
+		t.Fatalf("icmp type: got 0x%02x", icmp.Header.Typ)
 	}
-	if icmp.Checksum == 0 {
+	if icmp.Header.Checksum == 0 {
 		t.Fatal("icmp checksum should be calculated by send path")
 	}
 }

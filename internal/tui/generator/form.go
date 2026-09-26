@@ -295,7 +295,7 @@ type packets struct {
 	arp      *packemon.ARP
 	ipv4     *packemon.IPv4
 	ipv6     *packemon.IPv6
-	icmpv4   *packemon.ICMPv4
+	icmpv4   *packemon.ICMPv4EchoOrEchoReply
 	tcp      *packemon.TCP
 	udp      *packemon.UDP
 	dns      *packemon.DNS
@@ -432,7 +432,7 @@ func defaultPackets() (*packets, error) {
 	if err != nil {
 		return nil, err
 	}
-	icmp := &packemon.ICMPv4{
+	icmp := &packemon.ICMPv4EchoOrEchoReply{
 		Header: &packemon.ICMPHeader{
 			Typ:  icmpType,
 			Code: icmpCode,

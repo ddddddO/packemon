@@ -147,7 +147,7 @@ func TestScratchIPv4Assembler_Assemble_calcOffで不正な値のまま送れる(
 }
 
 func TestScratchICMPv4Assembler_Assemble(t *testing.T) {
-	assembler := &ScratchICMPv4Assembler{}
+	assembler := &ScratchICMPv4EchoOrEchoReplyAssembler{}
 
 	got, err := assembler.Assemble(map[string]any{
 		"type": "0x08", "code": "0x00",
@@ -159,7 +159,7 @@ func TestScratchICMPv4Assembler_Assemble(t *testing.T) {
 	}
 
 	// 既存実装（NewICMPv4: 同じ値でchecksum自動計算）と同一バイト列になること
-	want := NewICMPv4().Bytes()
+	want := NewICMPv4EchoOrEchoReply().Bytes()
 	if !bytes.Equal(got, want) {
 		t.Fatalf("assembled bytes mismatch\n got: %x\nwant: %x", got, want)
 	}
@@ -243,7 +243,7 @@ func TestAssembler_Fields(t *testing.T) {
 		"arp":      &ScratchARPAssembler{},
 		"ipv4":     &ScratchIPv4Assembler{},
 		"ipv6":     &ScratchIPv6Assembler{},
-		"icmpv4":   &ScratchICMPv4Assembler{},
+		"icmpv4":   &ScratchICMPv4EchoOrEchoReplyAssembler{},
 		"tcp":      &ScratchTCPAssembler{},
 		"udp":      &ScratchUDPAssembler{},
 		"dns":      &ScratchDNSAssembler{},
@@ -267,7 +267,7 @@ func TestAssembler_Fields(t *testing.T) {
 func TestScratchDissector_Dissect(t *testing.T) {
 	// Ethernet + IPv4 + ICMPv4 のフレームを既存実装で組み立てて、Dissector で分解できること
 	ipv4 := NewIPv4(IPv4_PROTO_ICMPv4, 0xc0a80001, 0xc0a80002) // 192.168.0.1 -> 192.168.0.2
-	ipv4.Data = NewICMPv4().Bytes()
+	ipv4.Data = NewICMPv4EchoOrEchoReply().Bytes()
 	frame := NewEthernetFrame(
 		HardwareAddr{0x00, 0x15, 0x5d, 0xe2, 0xc6, 0xc6},
 		HardwareAddr{0x00, 0x15, 0x5d, 0x6f, 0x44, 0x33},

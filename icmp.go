@@ -31,7 +31,7 @@ const (
 	ICMPv4_TYPE_DESTINATION_UNREACHABLE = 0x03
 )
 
-func ParsedICMPv4(payload []byte) *ICMPv4EchoOrEchoReply {
+func ParsedICMPv4EchoOrEchoReply(payload []byte) *ICMPv4EchoOrEchoReply {
 	return &ICMPv4EchoOrEchoReply{
 		Header: &ICMPHeader{
 			Typ:      payload[0],
@@ -44,8 +44,7 @@ func ParsedICMPv4(payload []byte) *ICMPv4EchoOrEchoReply {
 	}
 }
 
-// icmp request
-func NewICMPv4() *ICMPv4EchoOrEchoReply {
+func NewICMPv4EchoOrEchoReply() *ICMPv4EchoOrEchoReply {
 	icmpv4 := &ICMPv4EchoOrEchoReply{
 		Header: &ICMPHeader{
 			Typ:  ICMPv4_TYPE_ECHO_MESSAGE,
@@ -109,25 +108,29 @@ func (i *ICMPv4EchoOrEchoReply) Bytes() []byte {
 
 // FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
 func (i *ICMPv4EchoOrEchoReply) FieldNode() *FieldNode {
+	children := []*FieldNode{
+		{Name: "Type", Value: fmt.Sprintf("0x%02x", i.Header.Typ)},
+		{Name: "Code", Value: fmt.Sprintf("0x%02x", i.Header.Code)},
+		{Name: "Checksum", Value: fmt.Sprintf("0x%04x", i.Header.Checksum)},
+		{Name: "Identifier", Value: fmt.Sprintf("0x%04x", i.Identifier)},
+		{Name: "Sequence", Value: fmt.Sprintf("0x%04x", i.Sequence)},
+	}
+	if len(i.Data) > 0 {
+		children = append(children, &FieldNode{Name: "Data", Value: fmt.Sprintf("0x%x", i.Data)})
+	}
+
 	return &FieldNode{
-		Name: "ICMPv4",
-		Children: []*FieldNode{
-			{Name: "Type", Value: fmt.Sprintf("0x%02x", i.Header.Typ)},
-			{Name: "Code", Value: fmt.Sprintf("0x%02x", i.Header.Code)},
-			{Name: "Checksum", Value: fmt.Sprintf("0x%04x", i.Header.Checksum)},
-			{Name: "Identifier", Value: fmt.Sprintf("0x%04x", i.Identifier)},
-			{Name: "Sequence", Value: fmt.Sprintf("0x%04x", i.Sequence)},
-			{Name: "Data", Value: fmt.Sprintf("0x%x", i.Data)},
-		},
+		Name:     "ICMPv4",
+		Children: children,
 	}
 }
 
-// ScratchICMPv4Assembler は、スクラッチ実装（ICMPv4.Bytes）による Assembler。
-type ScratchICMPv4Assembler struct{}
+// ScratchICMPv4EchoOrEchoReplyAssembler は、スクラッチ実装（ICMPv4EchoOrEchoReply.Bytes）による Assembler。
+type ScratchICMPv4EchoOrEchoReplyAssembler struct{}
 
-var _ Assembler = (*ScratchICMPv4Assembler)(nil)
+var _ Assembler = (*ScratchICMPv4EchoOrEchoReplyAssembler)(nil)
 
-func (s *ScratchICMPv4Assembler) Fields() []FieldSpec {
+func (s *ScratchICMPv4EchoOrEchoReplyAssembler) Fields() []FieldSpec {
 	return []FieldSpec{
 		{Key: "type", Label: "Type", Kind: FieldKindHex, Default: "0x08"},
 		{Key: "code", Label: "Code", Kind: FieldKindHex, Default: "0x00"},
@@ -135,15 +138,17 @@ func (s *ScratchICMPv4Assembler) Fields() []FieldSpec {
 		{Key: "calc_checksum", Label: "Automatically calculate checksum ?", Kind: FieldKindCheckbox, Default: "true"},
 		{Key: "identifier", Label: "Identifier", Kind: FieldKindHex, Default: "0x34a1"},
 		{Key: "sequence", Label: "Sequence", Kind: FieldKindHex, Default: "0x0001"},
+		{Key: "data", Label: "Data", Kind: FieldKindHex, Default: ""},
 	}
 }
 
-func (s *ScratchICMPv4Assembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
+func (s *ScratchICMPv4EchoOrEchoReplyAssembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
 	icmpv4, err := s.AssembleICMPv4(values)
 	if err != nil {
 		return nil, err
 	}
-	icmpv4.Data = payload
+	// データ部に任意入力できるようにしたためコメントアウト
+	// icmpv4.Data = payload
 
 	// 自動計算のオン/オフ（オフにすれば「わざと不正な値」も送れる）
 	if calc, err := boolFromValue(values["calc_checksum"]); err != nil {
@@ -159,7 +164,7 @@ func (s *ScratchICMPv4Assembler) Assemble(values map[string]any, payload []byte)
 // AssembleICMPv4 は values から ICMPv4 構造体を組み立てる（自動計算は行わず生値のまま）。
 // TUI の動的フォームが、既存の送信経路（sender の packets、自動計算やL3連結はそちらの責務）へ
 // 構造体を渡すために使う。
-func (s *ScratchICMPv4Assembler) AssembleICMPv4(values map[string]any) (*ICMPv4EchoOrEchoReply, error) {
+func (s *ScratchICMPv4EchoOrEchoReplyAssembler) AssembleICMPv4(values map[string]any) (*ICMPv4EchoOrEchoReply, error) {
 	icmpv4 := &ICMPv4EchoOrEchoReply{Header: &ICMPHeader{}}
 	var err error
 	if icmpv4.Header.Typ, err = uint8FromValue(values["type"]); err != nil {
@@ -176,6 +181,9 @@ func (s *ScratchICMPv4Assembler) AssembleICMPv4(values map[string]any) (*ICMPv4E
 	}
 	if icmpv4.Sequence, err = uint16FromValue(values["sequence"]); err != nil {
 		return nil, fmt.Errorf("sequence: %w", err)
+	}
+	if icmpv4.Data, err = bytesFromValue(values["data"]); err != nil {
+		return nil, fmt.Errorf("data: %w", err)
 	}
 	return icmpv4, nil
 }

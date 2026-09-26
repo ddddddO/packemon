@@ -58,7 +58,7 @@ func TestBuildDynamicForm_allAssemblers(t *testing.T) {
 		"ARP":      &packemon.ScratchARPAssembler{},
 		"IPv4":     &packemon.ScratchIPv4Assembler{},
 		"IPv6":     &packemon.ScratchIPv6Assembler{},
-		"ICMPv4":   &packemon.ScratchICMPv4Assembler{},
+		"ICMPv4":   &packemon.ScratchICMPv4EchoOrEchoReplyAssembler{},
 		"TCP":      &packemon.ScratchTCPAssembler{},
 		"UDP":      &packemon.ScratchUDPAssembler{},
 		"DNS":      &packemon.ScratchDNSAssembler{},
@@ -188,7 +188,7 @@ func TestSendLayer4_dynamicICMPv4Form(t *testing.T) {
 	)
 	s.selectedProtocolByLayer["L4"] = "ICMPv4"
 
-	assembler := &packemon.ScratchICMPv4Assembler{}
+	assembler := &packemon.ScratchICMPv4EchoOrEchoReplyAssembler{}
 	_, collectValues := buildDynamicForm(assembler, "ICMPv4", "", nil)
 	s.registerApplyForm("ICMPv4", func() error {
 		icmp, err := assembler.AssembleICMPv4(collectValues())
@@ -214,7 +214,7 @@ func TestSendLayer4_dynamicICMPv4Form(t *testing.T) {
 	if ip.HeaderChecksum == 0 {
 		t.Fatal("ipv4 checksum should be calculated by send path")
 	}
-	icmp := packemon.ParsedICMPv4(ip.Data)
+	icmp := packemon.ParsedICMPv4EchoOrEchoReply(ip.Data)
 	if icmp.Header.Typ != 0x08 { // echo request
 		t.Fatalf("icmp type: got 0x%02x", icmp.Header.Typ)
 	}

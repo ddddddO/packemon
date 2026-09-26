@@ -82,7 +82,7 @@ func parsedPassiveIPv4(ethernetFrame *EthernetFrame, shouldParseFull bool) (pass
 
 	switch ipv4.Protocol {
 	case IPv4_PROTO_ICMPv4:
-		passive.ICMPv4 = ParsedICMPv4(ipv4.Data)
+		passive.ICMPv4EchoOrEchoReply = ParsedICMPv4EchoOrEchoReply(ipv4.Data)
 	case IPv4_PROTO_TCP:
 		parsedPassiveTCPLayer(passive, ipv4.Data, shouldParseFull)
 	case IPv4_PROTO_UDP:

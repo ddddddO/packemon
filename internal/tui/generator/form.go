@@ -433,8 +433,10 @@ func defaultPackets() (*packets, error) {
 		return nil, err
 	}
 	icmp := &packemon.ICMPv4{
-		Typ:        icmpType,
-		Code:       icmpCode,
+		Header: &packemon.ICMPHeader{
+			Typ:  icmpType,
+			Code: icmpCode,
+		},
 		Identifier: binary.BigEndian.Uint16(icmpIdentifier),
 		Sequence:   binary.BigEndian.Uint16(icmpSequence),
 	}

@@ -26,7 +26,7 @@ func (s *sender) sendOverICMPv4(
 	}
 	if checkedCalcICMPv4Checksum {
 		// 前回Send分が残ってると計算誤るため
-		s.packets.icmpv4.Checksum = 0x0
+		s.packets.icmpv4.Header.Checksum = 0x0
 		s.packets.icmpv4.CalculateChecksum()
 	}
 

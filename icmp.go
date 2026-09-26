@@ -7,26 +7,33 @@ import (
 	"time"
 )
 
+type ICMPHeader struct {
+	Typ      uint8
+	Code     uint8
+	Checksum uint16
+}
+
 // https://www.infraexpert.com/study/tcpip4.html
 // https://inc0x0.com/icmp-ip-packets-ping-manually-create-and-send-icmp-ip-packets/
 type ICMPv4 struct {
-	Typ        uint8
-	Code       uint8
-	Checksum   uint16
+	Header     *ICMPHeader
 	Identifier uint16
 	Sequence   uint16
 	Data       []byte
 }
 
 const (
-	ICMPv4_TYPE_REQUEST = 0x08
+	ICMPv4_TYPE_REQUEST                 = 0x08
+	ICMPv4_TYPE_DESTINATION_UNREACHABLE = 0x03
 )
 
 func ParsedICMPv4(payload []byte) *ICMPv4 {
 	return &ICMPv4{
-		Typ:        payload[0],
-		Code:       payload[1],
-		Checksum:   binary.BigEndian.Uint16(payload[2:4]),
+		Header: &ICMPHeader{
+			Typ:      payload[0],
+			Code:     payload[1],
+			Checksum: binary.BigEndian.Uint16(payload[2:4]),
+		},
 		Identifier: binary.BigEndian.Uint16(payload[4:6]),
 		Sequence:   binary.BigEndian.Uint16(payload[6:8]),
 		Data:       payload[8:],
@@ -36,8 +43,10 @@ func ParsedICMPv4(payload []byte) *ICMPv4 {
 // icmp request
 func NewICMPv4() *ICMPv4 {
 	icmpv4 := &ICMPv4{
-		Typ:        ICMPv4_TYPE_REQUEST,
-		Code:       0,
+		Header: &ICMPHeader{
+			Typ:  ICMPv4_TYPE_REQUEST,
+			Code: 0,
+		},
 		Identifier: 0x34a1,
 		Sequence:   0x0001,
 	}
@@ -80,14 +89,14 @@ func (i *ICMPv4) CalculateChecksum() {
 
 	ret := make([]byte, 2)
 	binary.LittleEndian.PutUint16(ret, ^uint16(s))
-	i.Checksum = binary.BigEndian.Uint16(ret)
+	i.Header.Checksum = binary.BigEndian.Uint16(ret)
 }
 
 func (i *ICMPv4) Bytes() []byte {
 	buf := &bytes.Buffer{}
-	buf.WriteByte(i.Typ)
-	buf.WriteByte(i.Code)
-	WriteUint16(buf, i.Checksum)
+	buf.WriteByte(i.Header.Typ)
+	buf.WriteByte(i.Header.Code)
+	WriteUint16(buf, i.Header.Checksum)
 	WriteUint16(buf, i.Identifier)
 	WriteUint16(buf, i.Sequence)
 	buf.Write(i.Data)
@@ -99,9 +108,9 @@ func (i *ICMPv4) FieldNode() *FieldNode {
 	return &FieldNode{
 		Name: "ICMPv4",
 		Children: []*FieldNode{
-			{Name: "Type", Value: fmt.Sprintf("0x%02x", i.Typ)},
-			{Name: "Code", Value: fmt.Sprintf("0x%02x", i.Code)},
-			{Name: "Checksum", Value: fmt.Sprintf("0x%04x", i.Checksum)},
+			{Name: "Type", Value: fmt.Sprintf("0x%02x", i.Header.Typ)},
+			{Name: "Code", Value: fmt.Sprintf("0x%02x", i.Header.Code)},
+			{Name: "Checksum", Value: fmt.Sprintf("0x%04x", i.Header.Checksum)},
 			{Name: "Identifier", Value: fmt.Sprintf("0x%04x", i.Identifier)},
 			{Name: "Sequence", Value: fmt.Sprintf("0x%04x", i.Sequence)},
 		},
@@ -135,7 +144,7 @@ func (s *ScratchICMPv4Assembler) Assemble(values map[string]any, payload []byte)
 	if calc, err := boolFromValue(values["calc_checksum"]); err != nil {
 		return nil, fmt.Errorf("calc_checksum: %w", err)
 	} else if calc {
-		icmpv4.Checksum = 0x0
+		icmpv4.Header.Checksum = 0x0
 		icmpv4.CalculateChecksum()
 	}
 
@@ -146,15 +155,15 @@ func (s *ScratchICMPv4Assembler) Assemble(values map[string]any, payload []byte)
 // TUI の動的フォームが、既存の送信経路（sender の packets、自動計算やL3連結はそちらの責務）へ
 // 構造体を渡すために使う。
 func (s *ScratchICMPv4Assembler) AssembleICMPv4(values map[string]any) (*ICMPv4, error) {
-	icmpv4 := &ICMPv4{}
+	icmpv4 := &ICMPv4{Header: &ICMPHeader{}}
 	var err error
-	if icmpv4.Typ, err = uint8FromValue(values["type"]); err != nil {
+	if icmpv4.Header.Typ, err = uint8FromValue(values["type"]); err != nil {
 		return nil, fmt.Errorf("type: %w", err)
 	}
-	if icmpv4.Code, err = uint8FromValue(values["code"]); err != nil {
+	if icmpv4.Header.Code, err = uint8FromValue(values["code"]); err != nil {
 		return nil, fmt.Errorf("code: %w", err)
 	}
-	if icmpv4.Checksum, err = uint16FromValue(values["checksum"]); err != nil {
+	if icmpv4.Header.Checksum, err = uint16FromValue(values["checksum"]); err != nil {
 		return nil, fmt.Errorf("checksum: %w", err)
 	}
 	if icmpv4.Identifier, err = uint16FromValue(values["identifier"]); err != nil {

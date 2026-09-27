@@ -52,17 +52,17 @@ The rightmost image shows how the packet list is filtered.
 - [x] IPv4
 - [x] IPv6
 - [ ] ICMPv4
-  - [x] Echo Message / Echo Reply Message
-  - [ ] Destination Unreachable Message
-  - [ ] Source Quench Message
-  - [ ] Redirect Message
-  - [ ] Router Advertisement Message
-  - [ ] Router Solicitation Message
-  - [ ] Time Exceeded Message
-  - [ ] Parameter Problem Message
-  - [ ] Timestamp Message / Timestamp Reply Message
-  - [ ] Information Request Message / Information Reply Message
-  - [ ] Address Mask Request Message / Address Mask Reply Message
+  - [x] Echo / Echo Reply
+  - [ ] Destination Unreachable
+  - [ ] Source Quench
+  - [ ] Redirect
+  - [ ] Router Advertisement
+  - [ ] Router Solicitation
+  - [ ] Time Exceeded
+  - [ ] Parameter Problem
+  - [ ] Timestamp / Timestamp Reply
+  - [ ] Information Request / Information Reply
+  - [ ] Address Mask Request / Address Mask Reply
 - [ ] ICMPv6
 - [x] TCP
 - [x] UDP
@@ -150,21 +150,21 @@ The rightmost image shows how the packet list is filtered.
 - [x] IPv4 (WIP)
 - [x] IPv6 (WIP)
 - [ ] ICMPv4 (WIP)
-  - [x] Echo Message
-  - [x] Echo Reply Message
-  - [x] Destination Unreachable Message
-  - [ ] Source Quench Message
-  - [ ] Redirect Message
-  - [ ] Router Advertisement Message
-  - [ ] Router Solicitation Message
-  - [ ] Time Exceeded Message
-  - [ ] Parameter Problem Message
-  - [ ] Timestamp Message
-  - [ ] Timestamp Reply Message
-  - [ ] Information Request Message
-  - [ ] Information Reply Message
-  - [ ] Address Mask Request Message
-  - [ ] Address Mask Reply Message
+  - [x] Echo
+  - [x] Echo Reply
+  - [x] Destination Unreachable
+  - [x] Source Quench
+  - [ ] Redirect
+  - [ ] Router Advertisement
+  - [ ] Router Solicitation
+  - [x] Time Exceeded
+  - [x] Parameter Problem
+  - [ ] Timestamp
+  - [ ] Timestamp Reply
+  - [ ] Information Request
+  - [ ] Information Reply
+  - [ ] Address Mask Request
+  - [ ] Address Mask Reply
 - [ ] ICMPv6
 - [x] TCP (WIP)
 - [x] UDP

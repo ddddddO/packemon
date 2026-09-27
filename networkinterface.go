@@ -84,10 +84,12 @@ func parsedPassiveIPv4(ethernetFrame *EthernetFrame, shouldParseFull bool) (pass
 	case IPv4_PROTO_ICMPv4:
 		if len(ipv4.Data) > 0 {
 			switch ipv4.Data[0] {
-			case ICMPv4_TYPE_ECHO_MESSAGE, ICMPv4_TYPE_ECHO_REPLY_MESSAGE:
-				passive.ICMPv4EchoOrEchoReply = ParsedICMPv4EchoOrEchoReply(ipv4.Data)
-			case ICMPv4_TYPE_DESTINATION_UNREACHABLE:
-				passive.ICMPv4DestinationUnreachable = ParsedICMPv4DestinationUnreachable(ipv4.Data)
+			case ICMPv4_TYPE_ECHO, ICMPv4_TYPE_ECHO_REPLY:
+				passive.ICMPv4Echo = ParsedICMPv4Echo(ipv4.Data)
+			case ICMPv4_TYPE_DESTINATION_UNREACHABLE, ICMPv4_TYPE_TIME_EXCEEDED, ICMPv4_TYPE_SOURCE_QUENCH:
+				passive.ICMPv4Error = ParsedICMPv4Error(ipv4.Data)
+			case ICMPv4_TYPE_PARAMETER_PROBLEM:
+				passive.ICMPv4ParameterProblem = ParsedICMPv4ParameterProblem(ipv4.Data)
 			}
 		}
 	case IPv4_PROTO_TCP:

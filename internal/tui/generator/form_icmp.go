@@ -16,7 +16,7 @@ var checkedCalcICMPv4Timestamp = false
 // sender の packets へ反映され、L3連結・checksum計算は既存の送信経路（sendL4）が担う。
 func (g *generator) icmpForm() *tview.Form {
 	// Assembler インターフェースにのみ依存する（バックエンド差し替え可能）
-	var assembler packemon.Assembler = &packemon.ScratchICMPv4EchoOrEchoReplyAssembler{}
+	var assembler packemon.Assembler = &packemon.ScratchICMPv4EchoAssembler{}
 	icmpForm, collectValues := buildDynamicForm(assembler, "ICMPv4", "This section generates ICMPv4 Echo Or Echo Reply.", nil)
 
 	g.sender.registerApplyForm("ICMPv4", func() error {
@@ -36,7 +36,7 @@ func (g *generator) icmpForm() *tview.Form {
 			return err
 		}
 		checkedCalcICMPv4Checksum = calc
-		g.sender.packets.icmpv4 = packemon.ParsedICMPv4EchoOrEchoReply(b)
+		g.sender.packets.icmpv4 = packemon.ParsedICMPv4Echo(b)
 		return nil
 	})
 

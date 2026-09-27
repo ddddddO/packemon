@@ -69,11 +69,14 @@ func FieldTreeFromPassive(p *Passive) *FieldTree {
 	if p.IPv6 != nil {
 		ft.Nodes = append(ft.Nodes, p.IPv6.FieldNode())
 	}
-	if p.ICMPv4EchoOrEchoReply != nil {
-		ft.Nodes = append(ft.Nodes, p.ICMPv4EchoOrEchoReply.FieldNode())
+	if p.ICMPv4Echo != nil {
+		ft.Nodes = append(ft.Nodes, p.ICMPv4Echo.FieldNode())
 	}
-	if p.ICMPv4DestinationUnreachable != nil {
-		ft.Nodes = append(ft.Nodes, p.ICMPv4DestinationUnreachable.FieldNode())
+	if p.ICMPv4Error != nil {
+		ft.Nodes = append(ft.Nodes, p.ICMPv4Error.FieldNode())
+	}
+	if p.ICMPv4ParameterProblem != nil {
+		ft.Nodes = append(ft.Nodes, p.ICMPv4ParameterProblem.FieldNode())
 	}
 	if p.TCP != nil {
 		ft.Nodes = append(ft.Nodes, p.TCP.FieldNode())

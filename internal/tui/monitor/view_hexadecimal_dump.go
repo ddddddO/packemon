@@ -11,8 +11,9 @@ type HexadecimalDump struct {
 	*packemon.ARP
 	*packemon.IPv4
 	*packemon.IPv6
-	*packemon.ICMPv4EchoOrEchoReply
-	*packemon.ICMPv4DestinationUnreachable
+	*packemon.ICMPv4Echo
+	*packemon.ICMPv4Error
+	*packemon.ICMPv4ParameterProblem
 	*packemon.TCP
 	*packemon.UDP
 	*packemon.TLSClientHello
@@ -61,14 +62,34 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 	const udpHeaderLength = 8
 	loopForL4View := 1 + loopForL3View
 	switch {
-	case h.ICMPv4EchoOrEchoReply != nil:
-		switch h.ICMPv4EchoOrEchoReply.Header.Typ {
-		case packemon.ICMPv4_TYPE_ECHO_MESSAGE:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo Message", h.ICMPv4EchoOrEchoReply.Bytes())
-		case packemon.ICMPv4_TYPE_ECHO_REPLY_MESSAGE:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo Reply Message", h.ICMPv4EchoOrEchoReply.Bytes())
+	case h.ICMPv4Echo != nil:
+		switch h.ICMPv4Echo.Header.Typ {
+		case packemon.ICMPv4_TYPE_ECHO:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_ECHO_REPLY:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo Reply", h.ICMPv4Echo.Bytes())
 		default:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo or Echo Reply", h.ICMPv4EchoOrEchoReply.Bytes())
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo or Echo Reply", h.ICMPv4Echo.Bytes())
+		}
+	case h.ICMPv4Error != nil:
+		switch h.ICMPv4Error.Header.Typ {
+		case packemon.ICMPv4_TYPE_DESTINATION_UNREACHABLE:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Destination Unreachable", h.ICMPv4Error.Bytes())
+		case packemon.ICMPv4_TYPE_TIME_EXCEEDED:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Time Exceeded", h.ICMPv4Error.Bytes())
+		case packemon.ICMPv4_TYPE_SOURCE_QUENCH:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Source Quench", h.ICMPv4Error.Bytes())
+		default:
+			// 定義なし。なんらかのICMPのエラーだけど多分変なパケットの時
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Something Error", h.ICMPv4Error.Bytes())
+		}
+	case h.ICMPv4ParameterProblem != nil:
+		switch h.ICMPv4ParameterProblem.Header.Typ {
+		case packemon.ICMPv4_TYPE_PARAMETER_PROBLEM:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Parameter Problem", h.ICMPv4ParameterProblem.Bytes())
+		default:
+			// 定義なし。なんらかのICMPのエラーだけど多分変なパケットの時
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Something Error", h.ICMPv4ParameterProblem.Bytes())
 		}
 	case h.TCP != nil:
 		loopForL4View = viewHexadecimalDump(table, loopForL4View, "TCP", h.TCP.Bytes()[0:h.TCP.HeaderLength/4])

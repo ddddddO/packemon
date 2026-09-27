@@ -16,16 +16,19 @@ type ICMPHeader struct {
 	Checksum uint16
 }
 
-// https://www.infraexpert.com/study/tcpip4.html
-// https://inc0x0.com/icmp-ip-packets-ping-manually-create-and-send-icmp-ip-packets/
-type ICMPv4EchoOrEchoReply struct {
+// Echo / Echo Reply
+// Timestamp / Timestamp Reply
+// Information Request / Information Reply
+// Address Mask Request / Address Mask Reply
+type ICMPv4Echo struct {
 	Header     *ICMPHeader
 	Identifier uint16
 	Sequence   uint16
 	Data       []byte
 }
 
-type ICMPv4DestinationUnreachable struct {
+// Destination Unreachable / Time Exceeded / Source Quench
+type ICMPv4Error struct {
 	Header     *ICMPHeader
 	Unused     uint32
 	OriginalIP *IPv4
@@ -34,14 +37,41 @@ type ICMPv4DestinationUnreachable struct {
 	// OriginalICMP *ICMPv4EchoOrEchoReply
 }
 
+// Parameter Problem
+type ICMPv4ParameterProblem struct {
+	Header     *ICMPHeader
+	Pointer    uint8
+	Unused     [3]byte
+	OriginalIP *IPv4
+}
+
+// Redirect
+type ICMPv4Redirect struct {
+	Header         *ICMPHeader
+	GatewayAddress uint32
+	OriginalIP     *IPv4
+}
+
 const (
-	ICMPv4_TYPE_ECHO_MESSAGE            = 0x08
-	ICMPv4_TYPE_ECHO_REPLY_MESSAGE      = 0x00
+	ICMPv4_TYPE_ECHO                    = 0x08
+	ICMPv4_TYPE_ECHO_REPLY              = 0x00
 	ICMPv4_TYPE_DESTINATION_UNREACHABLE = 0x03
+	ICMPv4_TYPE_SOURCE_QUENCH           = 0x04
+	ICMPv4_TYPE_REDIRECT                = 0x05
+	ICMPv4_TYPE_ROUTER_ADVERTISEMENT    = 0x09
+	ICMPv4_TYPE_ROUTER_SOLICITATION     = 0x0a
+	ICMPv4_TYPE_TIME_EXCEEDED           = 0x0b
+	ICMPv4_TYPE_PARAMETER_PROBLEM       = 0x0c
+	ICMPv4_TYPE_TIMESTAMP               = 0x0d
+	ICMPv4_TYPE_TIMESTAMP_REPLY         = 0x0e
+	ICMPv4_TYPE_INFORMATION_REQUEST     = 0x0f
+	ICMPv4_TYPE_INFORMATION_REPLY       = 0x10
+	ICMPv4_TYPE_ADDRESS_MASK_REQUEST    = 0x11
+	ICMPv4_TYPE_ADDRESS_MASK_REPLY      = 0x12
 )
 
-func ParsedICMPv4EchoOrEchoReply(payload []byte) *ICMPv4EchoOrEchoReply {
-	return &ICMPv4EchoOrEchoReply{
+func ParsedICMPv4Echo(payload []byte) *ICMPv4Echo {
+	return &ICMPv4Echo{
 		Header: &ICMPHeader{
 			Typ:      payload[0],
 			Code:     payload[1],
@@ -53,8 +83,8 @@ func ParsedICMPv4EchoOrEchoReply(payload []byte) *ICMPv4EchoOrEchoReply {
 	}
 }
 
-func ParsedICMPv4DestinationUnreachable(payload []byte) *ICMPv4DestinationUnreachable {
-	return &ICMPv4DestinationUnreachable{
+func ParsedICMPv4Error(payload []byte) *ICMPv4Error {
+	return &ICMPv4Error{
 		Header: &ICMPHeader{
 			Typ:      payload[0],
 			Code:     payload[1],
@@ -65,10 +95,35 @@ func ParsedICMPv4DestinationUnreachable(payload []byte) *ICMPv4DestinationUnreac
 	}
 }
 
-func NewICMPv4EchoOrEchoReply() *ICMPv4EchoOrEchoReply {
-	icmpv4 := &ICMPv4EchoOrEchoReply{
+func ParsedICMPv4ParameterProblem(payload []byte) *ICMPv4ParameterProblem {
+	return &ICMPv4ParameterProblem{
 		Header: &ICMPHeader{
-			Typ:  ICMPv4_TYPE_ECHO_MESSAGE,
+			Typ:      payload[0],
+			Code:     payload[1],
+			Checksum: binary.BigEndian.Uint16(payload[2:4]),
+		},
+		Pointer:    payload[4],
+		Unused:     [3]byte(payload[5:8]),
+		OriginalIP: ParsedIPv4(payload[8:]),
+	}
+}
+
+func ParsedICMPv4Redirect(payload []byte) *ICMPv4Redirect {
+	return &ICMPv4Redirect{
+		Header: &ICMPHeader{
+			Typ:      payload[0],
+			Code:     payload[1],
+			Checksum: binary.BigEndian.Uint16(payload[2:4]),
+		},
+		GatewayAddress: binary.BigEndian.Uint32(payload[4:8]),
+		OriginalIP:     ParsedIPv4(payload[8:]),
+	}
+}
+
+func NewICMPv4Echo() *ICMPv4Echo {
+	icmpv4 := &ICMPv4Echo{
+		Header: &ICMPHeader{
+			Typ:  ICMPv4_TYPE_ECHO,
 			Code: 0,
 		},
 		Identifier: 0x34a1,
@@ -86,7 +141,7 @@ func NewICMPv4EchoOrEchoReply() *ICMPv4EchoOrEchoReply {
 
 // icmpのタイムスタンプ要求で必要みたい
 // Linuxで、sudo hping3 1.1.1.1 --icmp --icmptype 13 でタイムスタンプ要求のパケット確認できる
-func (*ICMPv4EchoOrEchoReply) TimestampForTypeTimestampRequest() []byte {
+func (*ICMPv4Echo) TimestampForTypeTimestampRequest() []byte {
 	originalTimestamp := time.Now().Unix()
 	receiveTimestamp := 0x00000000
 	transmitTimestamp := 0x00000000
@@ -98,7 +153,7 @@ func (*ICMPv4EchoOrEchoReply) TimestampForTypeTimestampRequest() []byte {
 }
 
 // copy from https://cs.opensource.google/go/x/net/+/master:icmp/message.go
-func (i *ICMPv4EchoOrEchoReply) CalculateChecksum() {
+func (i *ICMPv4Echo) CalculateChecksum() {
 	b := i.Bytes()
 	csumcv := len(b) - 1 // checksum coverage
 	s := uint32(0)
@@ -116,7 +171,7 @@ func (i *ICMPv4EchoOrEchoReply) CalculateChecksum() {
 	i.Header.Checksum = binary.BigEndian.Uint16(ret)
 }
 
-func (i *ICMPv4EchoOrEchoReply) Bytes() []byte {
+func (i *ICMPv4Echo) Bytes() []byte {
 	buf := &bytes.Buffer{}
 	buf.WriteByte(i.Header.Typ)
 	buf.WriteByte(i.Header.Code)
@@ -128,7 +183,7 @@ func (i *ICMPv4EchoOrEchoReply) Bytes() []byte {
 }
 
 // FieldNode は、Monitor 詳細表示（Dissector バックエンド）向けのフィールドツリーを返す。
-func (i *ICMPv4EchoOrEchoReply) FieldNode() *FieldNode {
+func (i *ICMPv4Echo) FieldNode() *FieldNode {
 	children := []*FieldNode{
 		{Name: "Type", Value: fmt.Sprintf("0x%02x", i.Header.Typ)},
 		{Name: "Code", Value: fmt.Sprintf("0x%02x", i.Header.Code)},
@@ -146,7 +201,17 @@ func (i *ICMPv4EchoOrEchoReply) FieldNode() *FieldNode {
 	}
 }
 
-func (i *ICMPv4DestinationUnreachable) FieldNode() *FieldNode {
+func (i *ICMPv4Error) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	buf.WriteByte(i.Header.Typ)
+	buf.WriteByte(i.Header.Code)
+	WriteUint16(buf, i.Header.Checksum)
+	WriteUint32(buf, i.Unused)
+	buf.Write(i.OriginalIP.Bytes())
+	return buf.Bytes()
+}
+
+func (i *ICMPv4Error) FieldNode() *FieldNode {
 	node := &FieldNode{
 		Name: "ICMPv4",
 		Children: []*FieldNode{
@@ -164,18 +229,7 @@ func (i *ICMPv4DestinationUnreachable) FieldNode() *FieldNode {
 	if i.OriginalIP != nil {
 		original.Children = append(original.Children, i.OriginalIP.FieldNode())
 	}
-	var originalICMP *FieldNode
-	if len(i.OriginalIP.Data) > 0 {
-		// TODO: ここに足してく。全部が必要かは不明だけど
-		switch i.OriginalIP.Data[0] {
-		case ICMPv4_TYPE_ECHO_MESSAGE, ICMPv4_TYPE_ECHO_REPLY_MESSAGE:
-			parsed := ParsedICMPv4EchoOrEchoReply(i.OriginalIP.Data)
-			originalICMP = parsed.FieldNode()
-		case ICMPv4_TYPE_DESTINATION_UNREACHABLE:
-			parsed := ParsedICMPv4DestinationUnreachable(i.OriginalIP.Data)
-			originalICMP = parsed.FieldNode()
-		}
-	}
+	originalICMP := originalICMPv4FieldNode(i.OriginalIP)
 	if originalICMP != nil {
 		original.Children = append(original.Children, originalICMP)
 	}
@@ -186,12 +240,115 @@ func (i *ICMPv4DestinationUnreachable) FieldNode() *FieldNode {
 	return node
 }
 
-// ScratchICMPv4EchoOrEchoReplyAssembler は、スクラッチ実装（ICMPv4EchoOrEchoReply.Bytes）による Assembler。
-type ScratchICMPv4EchoOrEchoReplyAssembler struct{}
+func originalICMPv4FieldNode(ipv4 *IPv4) *FieldNode {
+	if len(ipv4.Data) > 0 {
+		switch ipv4.Data[0] {
+		case
+			ICMPv4_TYPE_ECHO, ICMPv4_TYPE_ECHO_REPLY,
+			ICMPv4_TYPE_TIMESTAMP, ICMPv4_TYPE_TIMESTAMP_REPLY,
+			ICMPv4_TYPE_INFORMATION_REQUEST, ICMPv4_TYPE_INFORMATION_REPLY,
+			ICMPv4_TYPE_ADDRESS_MASK_REQUEST, ICMPv4_TYPE_ADDRESS_MASK_REPLY:
 
-var _ Assembler = (*ScratchICMPv4EchoOrEchoReplyAssembler)(nil)
+			parsed := ParsedICMPv4Echo(ipv4.Data)
+			return parsed.FieldNode()
+		case ICMPv4_TYPE_DESTINATION_UNREACHABLE, ICMPv4_TYPE_TIME_EXCEEDED, ICMPv4_TYPE_SOURCE_QUENCH:
+			parsed := ParsedICMPv4Error(ipv4.Data)
+			return parsed.FieldNode()
+		case ICMPv4_TYPE_PARAMETER_PROBLEM:
+			parsed := ParsedICMPv4ParameterProblem(ipv4.Data)
+			return parsed.FieldNode()
+		case ICMPv4_TYPE_REDIRECT:
+			parsed := ParsedICMPv4Redirect(ipv4.Data)
+			return parsed.FieldNode()
+		}
+	}
+	return nil
+}
 
-func (s *ScratchICMPv4EchoOrEchoReplyAssembler) Fields() []FieldSpec {
+func (i *ICMPv4ParameterProblem) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	buf.WriteByte(i.Header.Typ)
+	buf.WriteByte(i.Header.Code)
+	WriteUint16(buf, i.Header.Checksum)
+	buf.WriteByte(i.Pointer)
+	buf.Write(i.Unused[:])
+	buf.Write(i.OriginalIP.Bytes())
+	return buf.Bytes()
+}
+
+func (i *ICMPv4ParameterProblem) FieldNode() *FieldNode {
+	node := &FieldNode{
+		Name: "ICMPv4",
+		Children: []*FieldNode{
+			{Name: "Type", Value: fmt.Sprintf("0x%02x", i.Header.Typ)},
+			{Name: "Code", Value: fmt.Sprintf("0x%02x", i.Header.Code)},
+			{Name: "Checksum", Value: fmt.Sprintf("0x%04x", i.Header.Checksum)},
+			{Name: "Pointer", Value: fmt.Sprintf("0x%02x", i.Pointer)},
+			{Name: "Unused", Value: fmt.Sprintf("0x%x", i.Unused)},
+		},
+	}
+
+	original := &FieldNode{
+		Name: "Original",
+	}
+	if i.OriginalIP != nil {
+		original.Children = append(original.Children, i.OriginalIP.FieldNode())
+	}
+	originalICMP := originalICMPv4FieldNode(i.OriginalIP)
+	if originalICMP != nil {
+		original.Children = append(original.Children, originalICMP)
+	}
+
+	if len(original.Children) > 0 {
+		node.Children = append(node.Children, original)
+	}
+	return node
+}
+
+func (i *ICMPv4Redirect) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	buf.WriteByte(i.Header.Typ)
+	buf.WriteByte(i.Header.Code)
+	WriteUint16(buf, i.Header.Checksum)
+	WriteUint32(buf, i.GatewayAddress)
+	buf.Write(i.OriginalIP.Bytes())
+	return buf.Bytes()
+}
+
+func (i *ICMPv4Redirect) FieldNode() *FieldNode {
+	node := &FieldNode{
+		Name: "ICMPv4",
+		Children: []*FieldNode{
+			{Name: "Type", Value: fmt.Sprintf("0x%02x", i.Header.Typ)},
+			{Name: "Code", Value: fmt.Sprintf("0x%02x", i.Header.Code)},
+			{Name: "Checksum", Value: fmt.Sprintf("0x%04x", i.Header.Checksum)},
+			{Name: "Gateway Address", Value: fmt.Sprintf("0x%x", i.GatewayAddress)},
+		},
+	}
+
+	original := &FieldNode{
+		Name: "Original",
+	}
+	if i.OriginalIP != nil {
+		original.Children = append(original.Children, i.OriginalIP.FieldNode())
+	}
+	originalICMP := originalICMPv4FieldNode(i.OriginalIP)
+	if originalICMP != nil {
+		original.Children = append(original.Children, originalICMP)
+	}
+
+	if len(original.Children) > 0 {
+		node.Children = append(node.Children, original)
+	}
+	return node
+}
+
+// ScratchICMPv4EchoAssembler は、スクラッチ実装（ICMPv4Echo.Bytes）による Assembler。
+type ScratchICMPv4EchoAssembler struct{}
+
+var _ Assembler = (*ScratchICMPv4EchoAssembler)(nil)
+
+func (s *ScratchICMPv4EchoAssembler) Fields() []FieldSpec {
 	return []FieldSpec{
 		{Key: "type", Label: "Type", Kind: FieldKindHex, Default: "0x08"},
 		{Key: "code", Label: "Code", Kind: FieldKindHex, Default: "0x00"},
@@ -203,7 +360,7 @@ func (s *ScratchICMPv4EchoOrEchoReplyAssembler) Fields() []FieldSpec {
 	}
 }
 
-func (s *ScratchICMPv4EchoOrEchoReplyAssembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
+func (s *ScratchICMPv4EchoAssembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
 	icmpv4, err := s.AssembleICMPv4(values)
 	if err != nil {
 		return nil, err
@@ -225,8 +382,8 @@ func (s *ScratchICMPv4EchoOrEchoReplyAssembler) Assemble(values map[string]any, 
 // AssembleICMPv4 は values から ICMPv4 構造体を組み立てる（自動計算は行わず生値のまま）。
 // TUI の動的フォームが、既存の送信経路（sender の packets、自動計算やL3連結はそちらの責務）へ
 // 構造体を渡すために使う。
-func (s *ScratchICMPv4EchoOrEchoReplyAssembler) AssembleICMPv4(values map[string]any) (*ICMPv4EchoOrEchoReply, error) {
-	icmpv4 := &ICMPv4EchoOrEchoReply{Header: &ICMPHeader{}}
+func (s *ScratchICMPv4EchoAssembler) AssembleICMPv4(values map[string]any) (*ICMPv4Echo, error) {
+	icmpv4 := &ICMPv4Echo{Header: &ICMPHeader{}}
 	var err error
 	if icmpv4.Header.Typ, err = uint8FromValue(values["type"]); err != nil {
 		return nil, fmt.Errorf("type: %w", err)

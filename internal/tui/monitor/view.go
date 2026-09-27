@@ -77,13 +77,21 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 		viewers = append(viewers, &FieldNodeView{passive.IPv6.FieldNode()})
 		hexdump.IPv6 = passive.IPv6
 	}
-	if passive.ICMPv4EchoOrEchoReply != nil {
-		viewers = append(viewers, &FieldNodeView{passive.ICMPv4EchoOrEchoReply.FieldNode()})
-		hexdump.ICMPv4EchoOrEchoReply = passive.ICMPv4EchoOrEchoReply
+	if passive.ICMPv4Echo != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv4Echo.FieldNode()})
+		hexdump.ICMPv4Echo = passive.ICMPv4Echo
 	}
-	if passive.ICMPv4DestinationUnreachable != nil {
-		viewers = append(viewers, &FieldNodeView{passive.ICMPv4DestinationUnreachable.FieldNode()})
-		hexdump.ICMPv4DestinationUnreachable = passive.ICMPv4DestinationUnreachable
+	if passive.ICMPv4Error != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv4Error.FieldNode()})
+		hexdump.ICMPv4Error = passive.ICMPv4Error
+	}
+	if passive.ICMPv4ParameterProblem != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv4ParameterProblem.FieldNode()})
+		hexdump.ICMPv4ParameterProblem = passive.ICMPv4ParameterProblem
+	}
+	if passive.ICMPv4Redirect != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv4Redirect.FieldNode()})
+		hexdump.ICMPv4Redirect = passive.ICMPv4Redirect
 	}
 	if passive.TCP != nil {
 		viewers = append(viewers, &FieldNodeView{passive.TCP.FieldNode()})
@@ -139,9 +147,4 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 	viewers = append(viewers, hexdump)
 
 	return viewers
-}
-
-// 2byteをintへ変換
-func bytesToInt(b []byte) int {
-	return int(b[0])<<8 + int(b[1])
 }

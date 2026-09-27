@@ -11,8 +11,10 @@ type HexadecimalDump struct {
 	*packemon.ARP
 	*packemon.IPv4
 	*packemon.IPv6
-	*packemon.ICMPv4EchoOrEchoReply
-	*packemon.ICMPv4DestinationUnreachable
+	*packemon.ICMPv4Echo
+	*packemon.ICMPv4Error
+	*packemon.ICMPv4ParameterProblem
+	*packemon.ICMPv4Redirect
 	*packemon.TCP
 	*packemon.UDP
 	*packemon.TLSClientHello
@@ -61,14 +63,55 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 	const udpHeaderLength = 8
 	loopForL4View := 1 + loopForL3View
 	switch {
-	case h.ICMPv4EchoOrEchoReply != nil:
-		switch h.ICMPv4EchoOrEchoReply.Header.Typ {
-		case packemon.ICMPv4_TYPE_ECHO_MESSAGE:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo Message", h.ICMPv4EchoOrEchoReply.Bytes())
-		case packemon.ICMPv4_TYPE_ECHO_REPLY_MESSAGE:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo Reply Message", h.ICMPv4EchoOrEchoReply.Bytes())
+	case h.ICMPv4Echo != nil:
+		switch h.ICMPv4Echo.Header.Typ {
+		case packemon.ICMPv4_TYPE_ECHO:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_ECHO_REPLY:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo Reply", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_TIMESTAMP:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Timestamp", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_TIMESTAMP_REPLY:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Timestamp Reply", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_INFORMATION_REQUEST:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Information Request", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_INFORMATION_REPLY:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Information Reply", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_ADDRESS_MASK_REQUEST:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Address Mask Request", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_ADDRESS_MASK_REPLY:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Address Mask Reply", h.ICMPv4Echo.Bytes())
 		default:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo or Echo Reply", h.ICMPv4EchoOrEchoReply.Bytes())
+			// 定義なし。なんらかのICMPの正常系通知だけど多分変なパケットの時
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Something Echo", h.ICMPv4Echo.Bytes())
+		}
+	case h.ICMPv4Error != nil:
+		switch h.ICMPv4Error.Header.Typ {
+		case packemon.ICMPv4_TYPE_DESTINATION_UNREACHABLE:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Destination Unreachable", h.ICMPv4Error.Bytes())
+		case packemon.ICMPv4_TYPE_TIME_EXCEEDED:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Time Exceeded", h.ICMPv4Error.Bytes())
+		case packemon.ICMPv4_TYPE_SOURCE_QUENCH:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Source Quench", h.ICMPv4Error.Bytes())
+		default:
+			// 定義なし。なんらかのICMPのエラーだけど多分変なパケットの時
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Something Error", h.ICMPv4Error.Bytes())
+		}
+	case h.ICMPv4ParameterProblem != nil:
+		switch h.ICMPv4ParameterProblem.Header.Typ {
+		case packemon.ICMPv4_TYPE_PARAMETER_PROBLEM:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Parameter Problem", h.ICMPv4ParameterProblem.Bytes())
+		default:
+			// 定義なし。なんらかのICMPのエラーだけど多分変なパケットの時
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Something Error", h.ICMPv4ParameterProblem.Bytes())
+		}
+	case h.ICMPv4Redirect != nil:
+		switch h.ICMPv4Redirect.Header.Typ {
+		case packemon.ICMPv4_TYPE_REDIRECT:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Redirect", h.ICMPv4Redirect.Bytes())
+		default:
+			// 定義なし。なんらかのICMPパケットだけど多分変なパケットの時
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Something Redirect", h.ICMPv4Redirect.Bytes())
 		}
 	case h.TCP != nil:
 		loopForL4View = viewHexadecimalDump(table, loopForL4View, "TCP", h.TCP.Bytes()[0:h.TCP.HeaderLength/4])

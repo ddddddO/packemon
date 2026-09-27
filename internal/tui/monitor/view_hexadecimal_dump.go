@@ -14,6 +14,7 @@ type HexadecimalDump struct {
 	*packemon.ICMPv4Echo
 	*packemon.ICMPv4Error
 	*packemon.ICMPv4ParameterProblem
+	*packemon.ICMPv4Redirect
 	*packemon.TCP
 	*packemon.UDP
 	*packemon.TLSClientHello
@@ -68,8 +69,21 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo", h.ICMPv4Echo.Bytes())
 		case packemon.ICMPv4_TYPE_ECHO_REPLY:
 			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo Reply", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_TIMESTAMP:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Timestamp", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_TIMESTAMP_REPLY:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Timestamp Reply", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_INFORMATION_REQUEST:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Information Request", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_INFORMATION_REPLY:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Information Reply", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_ADDRESS_MASK_REQUEST:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Address Mask Request", h.ICMPv4Echo.Bytes())
+		case packemon.ICMPv4_TYPE_ADDRESS_MASK_REPLY:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Address Mask Reply", h.ICMPv4Echo.Bytes())
 		default:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Echo or Echo Reply", h.ICMPv4Echo.Bytes())
+			// 定義なし。なんらかのICMPの正常系通知だけど多分変なパケットの時
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Something Echo", h.ICMPv4Echo.Bytes())
 		}
 	case h.ICMPv4Error != nil:
 		switch h.ICMPv4Error.Header.Typ {
@@ -90,6 +104,14 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 		default:
 			// 定義なし。なんらかのICMPのエラーだけど多分変なパケットの時
 			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Something Error", h.ICMPv4ParameterProblem.Bytes())
+		}
+	case h.ICMPv4Redirect != nil:
+		switch h.ICMPv4Redirect.Header.Typ {
+		case packemon.ICMPv4_TYPE_REDIRECT:
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Redirect", h.ICMPv4Redirect.Bytes())
+		default:
+			// 定義なし。なんらかのICMPパケットだけど多分変なパケットの時
+			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv4 Something Redirect", h.ICMPv4Redirect.Bytes())
 		}
 	case h.TCP != nil:
 		loopForL4View = viewHexadecimalDump(table, loopForL4View, "TCP", h.TCP.Bytes()[0:h.TCP.HeaderLength/4])

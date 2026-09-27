@@ -17,6 +17,9 @@ type ICMPHeader struct {
 }
 
 // Echo / Echo Reply
+// Timestamp / Timestamp Reply
+// Information Request / Information Reply
+// Address Mask Request / Address Mask Reply
 type ICMPv4Echo struct {
 	Header     *ICMPHeader
 	Identifier uint16
@@ -40,6 +43,13 @@ type ICMPv4ParameterProblem struct {
 	Pointer    uint8
 	Unused     [3]byte
 	OriginalIP *IPv4
+}
+
+// Redirect
+type ICMPv4Redirect struct {
+	Header         *ICMPHeader
+	GatewayAddress uint32
+	OriginalIP     *IPv4
 }
 
 const (
@@ -95,6 +105,18 @@ func ParsedICMPv4ParameterProblem(payload []byte) *ICMPv4ParameterProblem {
 		Pointer:    payload[4],
 		Unused:     [3]byte(payload[5:8]),
 		OriginalIP: ParsedIPv4(payload[8:]),
+	}
+}
+
+func ParsedICMPv4Redirect(payload []byte) *ICMPv4Redirect {
+	return &ICMPv4Redirect{
+		Header: &ICMPHeader{
+			Typ:      payload[0],
+			Code:     payload[1],
+			Checksum: binary.BigEndian.Uint16(payload[2:4]),
+		},
+		GatewayAddress: binary.BigEndian.Uint32(payload[4:8]),
+		OriginalIP:     ParsedIPv4(payload[8:]),
 	}
 }
 
@@ -220,13 +242,23 @@ func (i *ICMPv4Error) FieldNode() *FieldNode {
 
 func originalICMPv4FieldNode(ipv4 *IPv4) *FieldNode {
 	if len(ipv4.Data) > 0 {
-		// TODO: ここに足してく。全部が必要かは不明だけど
 		switch ipv4.Data[0] {
-		case ICMPv4_TYPE_ECHO, ICMPv4_TYPE_ECHO_REPLY:
+		case
+			ICMPv4_TYPE_ECHO, ICMPv4_TYPE_ECHO_REPLY,
+			ICMPv4_TYPE_TIMESTAMP, ICMPv4_TYPE_TIMESTAMP_REPLY,
+			ICMPv4_TYPE_INFORMATION_REQUEST, ICMPv4_TYPE_INFORMATION_REPLY,
+			ICMPv4_TYPE_ADDRESS_MASK_REQUEST, ICMPv4_TYPE_ADDRESS_MASK_REPLY:
+
 			parsed := ParsedICMPv4Echo(ipv4.Data)
 			return parsed.FieldNode()
 		case ICMPv4_TYPE_DESTINATION_UNREACHABLE, ICMPv4_TYPE_TIME_EXCEEDED, ICMPv4_TYPE_SOURCE_QUENCH:
 			parsed := ParsedICMPv4Error(ipv4.Data)
+			return parsed.FieldNode()
+		case ICMPv4_TYPE_PARAMETER_PROBLEM:
+			parsed := ParsedICMPv4ParameterProblem(ipv4.Data)
+			return parsed.FieldNode()
+		case ICMPv4_TYPE_REDIRECT:
+			parsed := ParsedICMPv4Redirect(ipv4.Data)
 			return parsed.FieldNode()
 		}
 	}
@@ -256,7 +288,44 @@ func (i *ICMPv4ParameterProblem) FieldNode() *FieldNode {
 		},
 	}
 
-	// 例えば、Echo Message -> Destination Unreachable が返ってきた時の Echo Messageの内容とそのIPパケットがOriginalに入ってくる
+	original := &FieldNode{
+		Name: "Original",
+	}
+	if i.OriginalIP != nil {
+		original.Children = append(original.Children, i.OriginalIP.FieldNode())
+	}
+	originalICMP := originalICMPv4FieldNode(i.OriginalIP)
+	if originalICMP != nil {
+		original.Children = append(original.Children, originalICMP)
+	}
+
+	if len(original.Children) > 0 {
+		node.Children = append(node.Children, original)
+	}
+	return node
+}
+
+func (i *ICMPv4Redirect) Bytes() []byte {
+	buf := &bytes.Buffer{}
+	buf.WriteByte(i.Header.Typ)
+	buf.WriteByte(i.Header.Code)
+	WriteUint16(buf, i.Header.Checksum)
+	WriteUint32(buf, i.GatewayAddress)
+	buf.Write(i.OriginalIP.Bytes())
+	return buf.Bytes()
+}
+
+func (i *ICMPv4Redirect) FieldNode() *FieldNode {
+	node := &FieldNode{
+		Name: "ICMPv4",
+		Children: []*FieldNode{
+			{Name: "Type", Value: fmt.Sprintf("0x%02x", i.Header.Typ)},
+			{Name: "Code", Value: fmt.Sprintf("0x%02x", i.Header.Code)},
+			{Name: "Checksum", Value: fmt.Sprintf("0x%04x", i.Header.Checksum)},
+			{Name: "Gateway Address", Value: fmt.Sprintf("0x%x", i.GatewayAddress)},
+		},
+	}
+
 	original := &FieldNode{
 		Name: "Original",
 	}

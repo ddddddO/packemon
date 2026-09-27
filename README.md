@@ -154,17 +154,17 @@ The rightmost image shows how the packet list is filtered.
   - [x] Echo Reply
   - [x] Destination Unreachable
   - [x] Source Quench
-  - [ ] Redirect
+  - [x] Redirect
   - [ ] Router Advertisement
   - [ ] Router Solicitation
   - [x] Time Exceeded
   - [x] Parameter Problem
-  - [ ] Timestamp
-  - [ ] Timestamp Reply
-  - [ ] Information Request
-  - [ ] Information Reply
-  - [ ] Address Mask Request
-  - [ ] Address Mask Reply
+  - [x] Timestamp
+  - [x] Timestamp Reply
+  - [x] Information Request
+  - [x] Information Reply
+  - [x] Address Mask Request
+  - [x] Address Mask Reply
 - [ ] ICMPv6
 - [x] TCP (WIP)
 - [x] UDP

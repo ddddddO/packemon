@@ -82,16 +82,7 @@ func parsedPassiveIPv4(ethernetFrame *EthernetFrame, shouldParseFull bool) (pass
 
 	switch ipv4.Protocol {
 	case IPv4_PROTO_ICMPv4:
-		if len(ipv4.Data) > 0 {
-			switch ipv4.Data[0] {
-			case ICMPv4_TYPE_ECHO, ICMPv4_TYPE_ECHO_REPLY:
-				passive.ICMPv4Echo = ParsedICMPv4Echo(ipv4.Data)
-			case ICMPv4_TYPE_DESTINATION_UNREACHABLE, ICMPv4_TYPE_TIME_EXCEEDED, ICMPv4_TYPE_SOURCE_QUENCH:
-				passive.ICMPv4Error = ParsedICMPv4Error(ipv4.Data)
-			case ICMPv4_TYPE_PARAMETER_PROBLEM:
-				passive.ICMPv4ParameterProblem = ParsedICMPv4ParameterProblem(ipv4.Data)
-			}
-		}
+		parsedPassiveICMPv4(passive, ipv4)
 	case IPv4_PROTO_TCP:
 		parsedPassiveTCPLayer(passive, ipv4.Data, shouldParseFull)
 	case IPv4_PROTO_UDP:
@@ -122,6 +113,26 @@ func parsedPassiveIPv6(ethernetFrame *EthernetFrame, shouldParseFull bool) (pass
 		parsedPassiveUDPLayer(passive, ipv6.Data, shouldParseFull)
 	}
 	return passive
+}
+
+func parsedPassiveICMPv4(passive *Passive, ipv4 *IPv4) {
+	if len(ipv4.Data) > 0 {
+		switch ipv4.Data[0] {
+		case
+			ICMPv4_TYPE_ECHO, ICMPv4_TYPE_ECHO_REPLY,
+			ICMPv4_TYPE_TIMESTAMP, ICMPv4_TYPE_TIMESTAMP_REPLY,
+			ICMPv4_TYPE_INFORMATION_REQUEST, ICMPv4_TYPE_INFORMATION_REPLY,
+			ICMPv4_TYPE_ADDRESS_MASK_REQUEST, ICMPv4_TYPE_ADDRESS_MASK_REPLY:
+
+			passive.ICMPv4Echo = ParsedICMPv4Echo(ipv4.Data)
+		case ICMPv4_TYPE_DESTINATION_UNREACHABLE, ICMPv4_TYPE_TIME_EXCEEDED, ICMPv4_TYPE_SOURCE_QUENCH:
+			passive.ICMPv4Error = ParsedICMPv4Error(ipv4.Data)
+		case ICMPv4_TYPE_PARAMETER_PROBLEM:
+			passive.ICMPv4ParameterProblem = ParsedICMPv4ParameterProblem(ipv4.Data)
+		case ICMPv4_TYPE_REDIRECT:
+			passive.ICMPv4Redirect = ParsedICMPv4Redirect(ipv4.Data)
+		}
+	}
 }
 
 // parsedPassiveTCPLayer は TCP と、well-known port から判定できる上位層（HTTP/TLS）を

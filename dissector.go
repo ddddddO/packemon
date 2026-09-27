@@ -78,6 +78,9 @@ func FieldTreeFromPassive(p *Passive) *FieldTree {
 	if p.ICMPv4ParameterProblem != nil {
 		ft.Nodes = append(ft.Nodes, p.ICMPv4ParameterProblem.FieldNode())
 	}
+	if p.ICMPv4Redirect != nil {
+		ft.Nodes = append(ft.Nodes, p.ICMPv4Redirect.FieldNode())
+	}
 	if p.TCP != nil {
 		ft.Nodes = append(ft.Nodes, p.TCP.FieldNode())
 	}

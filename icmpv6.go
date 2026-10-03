@@ -191,6 +191,28 @@ type ICMPv6Echo struct {
 	Data       []byte
 }
 
+func CalculateChecksumICMPv6(ipv6 *IPv6, icmpv6Data []byte) uint16 {
+	buf := &bytes.Buffer{}
+	buf.Write(ipv6.PseudoHeader(uint32(len(icmpv6Data))))
+	buf.Write(icmpv6Data)
+
+	b := buf.Bytes()
+	csumcv := len(b) - 1 // checksum coverage
+	s := uint32(0)
+	for i := 0; i < csumcv; i += 2 {
+		s += uint32(b[i+1])<<8 | uint32(b[i])
+	}
+	if csumcv&1 == 0 {
+		s += uint32(b[csumcv])
+	}
+	s = s>>16 + s&0xffff
+	s = s + s>>16
+
+	ret := make([]byte, 2)
+	binary.LittleEndian.PutUint16(ret, ^uint16(s))
+	return binary.BigEndian.Uint16(ret)
+}
+
 func (i *ICMPv6Echo) Bytes() []byte {
 	buf := &bytes.Buffer{}
 	buf.WriteByte(i.Header.Typ)
@@ -400,4 +422,59 @@ func ParsedICMPv6MulticastListenerDiscovery(payload []byte) *ICMPv6MulticastList
 		Reserved:         binary.BigEndian.Uint16(payload[6:8]),
 		MulticastAddress: [16]byte(payload[8:24]),
 	}
+}
+
+type ScratchICMPv6Assembler struct{}
+
+var _ Assembler = (*ScratchICMPv6Assembler)(nil)
+
+func (s *ScratchICMPv6Assembler) Fields() []FieldSpec {
+	return []FieldSpec{
+		{Key: "type", Label: "Type", Kind: FieldKindHex, Default: "0x80"},
+		{Key: "code", Label: "Code", Kind: FieldKindHex, Default: "0x00"},
+		{Key: "checksum", Label: "Checksum", Kind: FieldKindHex, Default: "0x0000"},
+		{Key: "calc_checksum", Label: "Automatically calculate checksum ?", Kind: FieldKindCheckbox, Default: "true"},
+		{Key: "identifier", Label: "Identifier", Kind: FieldKindHex, Default: "0x34a1"},
+		{Key: "sequence", Label: "Sequence", Kind: FieldKindHex, Default: "0x0001"},
+		{Key: "data", Label: "Data", Kind: FieldKindHex, Default: ""},
+	}
+}
+
+func (s *ScratchICMPv6Assembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
+	icmpv6, err := s.AssembleICMPv6(values)
+	if err != nil {
+		return nil, err
+	}
+
+	if calc, err := boolFromValue(values["calc_checksum"]); err != nil {
+		return nil, fmt.Errorf("calc_checksum: %w", err)
+	} else if calc {
+		icmpv6.Header.Checksum = 0x0
+	}
+
+	return icmpv6.Bytes(), nil
+}
+
+func (s *ScratchICMPv6Assembler) AssembleICMPv6(values map[string]any) (*ICMPv6Echo, error) {
+	icmpv6 := &ICMPv6Echo{Header: &ICMPHeader{}}
+	var err error
+	if icmpv6.Header.Typ, err = uint8FromValue(values["type"]); err != nil {
+		return nil, fmt.Errorf("type: %w", err)
+	}
+	if icmpv6.Header.Code, err = uint8FromValue(values["code"]); err != nil {
+		return nil, fmt.Errorf("code: %w", err)
+	}
+	if icmpv6.Header.Checksum, err = uint16FromValue(values["checksum"]); err != nil {
+		return nil, fmt.Errorf("checksum: %w", err)
+	}
+	if icmpv6.Identifier, err = uint16FromValue(values["identifier"]); err != nil {
+		return nil, fmt.Errorf("identifier: %w", err)
+	}
+	if icmpv6.Sequence, err = uint16FromValue(values["sequence"]); err != nil {
+		return nil, fmt.Errorf("sequence: %w", err)
+	}
+	if icmpv6.Data, err = bytesFromValue(values["data"]); err != nil {
+		return nil, fmt.Errorf("data: %w", err)
+	}
+	return icmpv6, nil
 }

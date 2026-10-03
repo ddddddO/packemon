@@ -191,7 +191,7 @@ func (s *ScratchIPv4Assembler) Fields() []FieldSpec {
 		{Key: "flags", Label: "Flags", Kind: FieldKindHex, Default: "0x40"},
 		{Key: "fragment_offset", Label: "Fragment Offset", Kind: FieldKindHex, Default: "0x0000"},
 		{Key: "ttl", Label: "TTL", Kind: FieldKindHex, Default: "0x80"},
-		{Key: "protocol", Label: "Protocol", Kind: FieldKindSelectOrHex, Default: "ICMPv4", Options: []string{"ICMPv4", "UDP", "TCP"}},
+		{Key: "protocol", Label: "Protocol", Kind: FieldKindSelectOrHex, Default: "ICMPv4", Options: []string{"ICMPv4", "ICMPv6", "UDP", "TCP"}},
 		{Key: "checksum", Label: "Header Checksum", Kind: FieldKindHex, Default: "0x0000"},
 		{Key: "calc_checksum", Label: "Automatically calculate checksum ?", Kind: FieldKindCheckbox, Default: "true"},
 		{Key: "src", Label: "Source IP Addr", Kind: FieldKindText, Default: "0.0.0.0"},

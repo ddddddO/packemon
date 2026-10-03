@@ -106,7 +106,8 @@ func (m *monitor) Run(ctx context.Context) error {
 			}
 		}
 		if key == tcell.KeyEnter {
-			m.table.Select(m.table.GetOffset())
+			row, col := m.table.GetOffset()
+			m.table.Select(row+1, col)
 			m.table.SetSelectable(true, false)
 		}
 	}).SetSelectedStyle(tcell.Style{}.Background(tcell.ColorRed)).SetSelectedFunc(func(row int, column int) {

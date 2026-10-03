@@ -150,28 +150,28 @@ type HistoryRow struct {
 func (m *monitor) newHistoryRow(passive *packemon.Passive, id uint64) *HistoryRow {
 	r := &HistoryRow{
 		id:             tview.NewTableCell(fmt.Sprintf("%d", id)).SetTextColor(tcell.ColorWhite),
-		destinationMAC: tview.NewTableCell(fmt.Sprintf("%x", passive.EthernetFrame.Header.Dst)).SetTextColor(tcell.Color38),
-		sourceMAC:      tview.NewTableCell(fmt.Sprintf("%x", passive.EthernetFrame.Header.Src)).SetTextColor(tcell.Color48),
-		typ:            tview.NewTableCell(fmt.Sprintf("%x", passive.EthernetFrame.Header.Typ)).SetTextColor(tcell.Color98),
+		destinationMAC: tview.NewTableCell(fmt.Sprintf("%x", passive.EthernetFrame.Header.Dst)).SetTextColor(headers['d'].Color),
+		sourceMAC:      tview.NewTableCell(fmt.Sprintf("%x", passive.EthernetFrame.Header.Src)).SetTextColor(headers['s'].Color),
+		typ:            tview.NewTableCell(fmt.Sprintf("%x", passive.EthernetFrame.Header.Typ)).SetTextColor(headers['t'].Color),
 	}
 
-	r.protocol = tview.NewTableCell(passive.HighLayerProto()).SetTextColor(tcell.Color50)
+	r.protocol = tview.NewTableCell(passive.HighLayerProto()).SetTextColor(headers['p'].Color)
 
 	if passive.IPv4 != nil {
-		r.destinationIPAddr = tview.NewTableCell(passive.IPv4.StrDstIPAddr()).SetTextColor(tcell.Color51)
-		r.sourceIPAddr = tview.NewTableCell(passive.IPv4.StrSrcIPAddr()).SetTextColor(tcell.Color181)
+		r.destinationIPAddr = tview.NewTableCell(passive.IPv4.StrDstIPAddr()).SetTextColor(headers['D'].Color)
+		r.sourceIPAddr = tview.NewTableCell(passive.IPv4.StrSrcIPAddr()).SetTextColor(headers['S'].Color)
 	} else if passive.IPv6 != nil {
-		r.destinationIPAddr = tview.NewTableCell(passive.IPv6.StrDstIPAddr()).SetTextColor(tcell.Color51)
-		r.sourceIPAddr = tview.NewTableCell(passive.IPv6.StrSrcIPAddr()).SetTextColor(tcell.Color181)
+		r.destinationIPAddr = tview.NewTableCell(passive.IPv6.StrDstIPAddr()).SetTextColor(headers['D'].Color)
+		r.sourceIPAddr = tview.NewTableCell(passive.IPv6.StrSrcIPAddr()).SetTextColor(headers['S'].Color)
 	} else {
-		r.destinationIPAddr = tview.NewTableCell("-").SetTextColor(tcell.Color51)
-		r.sourceIPAddr = tview.NewTableCell("-").SetTextColor(tcell.Color181)
+		r.destinationIPAddr = tview.NewTableCell("-").SetTextColor(headers['D'].Color)
+		r.sourceIPAddr = tview.NewTableCell("-").SetTextColor(headers['S'].Color)
 	}
 
 	if passive.TCP != nil {
-		r.info = tview.NewTableCell(fmt.Sprintf("%d <- %d |%s|", passive.TCP.DstPort, passive.TCP.SrcPort, passive.TCP.Flags)).SetTextColor(tcell.ColorFloralWhite)
+		r.info = tview.NewTableCell(fmt.Sprintf("%d <- %d |%s|", passive.TCP.DstPort, passive.TCP.SrcPort, passive.TCP.Flags)).SetTextColor(headers['i'].Color)
 	} else if passive.UDP != nil {
-		r.info = tview.NewTableCell(fmt.Sprintf("%d <- %d", passive.UDP.DstPort, passive.UDP.SrcPort)).SetTextColor(tcell.ColorFloralWhite)
+		r.info = tview.NewTableCell(fmt.Sprintf("%d <- %d", passive.UDP.DstPort, passive.UDP.SrcPort)).SetTextColor(headers['i'].Color)
 	}
 
 	return r

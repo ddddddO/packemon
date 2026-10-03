@@ -64,6 +64,12 @@ var (
 	DEFAULT_ICMPv4_IDENTIFIER = "0x34a1"
 	DEFAULT_ICMPv4_SEQUENCE   = "0x0001"
 
+	DEFAULT_ICMPv6_TYPE       = "0x80"
+	DEFAULT_ICMPv6_CODE       = "0x00"
+	DEFAULT_ICMPv6_CHECKSUM   = "0x0000"
+	DEFAULT_ICMPv6_IDENTIFIER = "0x34a1"
+	DEFAULT_ICMPv6_SEQUENCE   = "0x0001"
+
 	DEFAULT_UDP_PORT_SOURCE      = "47000"
 	DEFAULT_UDP_PORT_DESTINATION = "53"
 	DEFAULT_UDP_LENGTH           = "0x0030"
@@ -129,6 +135,8 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 	udpForm.SetBorder(true).SetTitle(" UDP ").SetTitleAlign(tview.AlignLeft)
 	icmpForm := g.icmpForm()
 	icmpForm.SetBorder(true).SetTitle(" ICMPv4 ").SetTitleAlign(tview.AlignLeft)
+	icmpv6Form := g.icmpv6Form()
+	icmpv6Form.SetBorder(true).SetTitle(" ICMPv6 ").SetTitleAlign(tview.AlignLeft)
 
 	// L3
 	ipv6Form := g.ipv6Form()
@@ -151,6 +159,7 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 		AddPage("UDP", udpForm, true, true).
 		AddPage("TCP", tcpForm, true, true).
 		AddPage("ICMPv4", icmpForm, true, true).
+		AddPage("ICMPv6", icmpv6Form, true, true).
 		AddPage("IPv6", ipv6Form, true, true).
 		AddPage("IPv4", ipv4Form, true, true).
 		AddPage("ARP", arpForm, true, true).
@@ -189,7 +198,7 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 	})
 	l5_6Protocols.SetCurrentOption(0)
 
-	l4s := []string{"", "ICMPv4", "TCP", "UDP"}
+	l4s := []string{"", "ICMPv4", "ICMPv6", "TCP", "UDP"}
 	l4Protocols := tview.NewDropDown()
 	l4Protocols.SetTitle("Lγ").SetBorder(true)
 	l4Protocols.SetOptions(l4s, func(text string, index int) {
@@ -296,6 +305,7 @@ type packets struct {
 	ipv4     *packemon.IPv4
 	ipv6     *packemon.IPv6
 	icmpv4   *packemon.ICMPv4Echo
+	icmpv6   *packemon.ICMPv6Echo
 	tcp      *packemon.TCP
 	udp      *packemon.UDP
 	dns      *packemon.DNS
@@ -441,6 +451,31 @@ func defaultPackets() (*packets, error) {
 		Sequence:   binary.BigEndian.Uint16(icmpSequence),
 	}
 
+	icmpv6Type, err := strHexToUint8(DEFAULT_ICMPv6_TYPE)
+	if err != nil {
+		return nil, err
+	}
+	icmpv6Code, err := strHexToUint8(DEFAULT_ICMPv6_CODE)
+	if err != nil {
+		return nil, err
+	}
+	icmpv6Identifier, err := packemon.StrHexToBytes2(DEFAULT_ICMPv6_IDENTIFIER)
+	if err != nil {
+		return nil, err
+	}
+	icmpv6Sequence, err := packemon.StrHexToBytes2(DEFAULT_ICMPv6_SEQUENCE)
+	if err != nil {
+		return nil, err
+	}
+	icmpv6 := &packemon.ICMPv6Echo{
+		Header: &packemon.ICMPHeader{
+			Typ:  icmpv6Type,
+			Code: icmpv6Code,
+		},
+		Identifier: binary.BigEndian.Uint16(icmpv6Identifier),
+		Sequence:   binary.BigEndian.Uint16(icmpv6Sequence),
+	}
+
 	srcIP, err := packemon.StrIPToBytes(DEFAULT_IP_SOURCE)
 	if err != nil {
 		return nil, err
@@ -562,6 +597,7 @@ func defaultPackets() (*packets, error) {
 		ipv4:     ipv4,
 		ipv6:     ipv6,
 		icmpv4:   icmp,
+		icmpv6:   icmpv6,
 		udp:      udp,
 		tcp:      tcp,
 		dns:      dns,

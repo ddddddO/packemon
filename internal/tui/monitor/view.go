@@ -65,6 +65,7 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 		viewers = append(viewers, &FieldNodeView{passive.EthernetFrame.FieldNode()})
 		hexdump.EthernetFrame = passive.EthernetFrame
 	}
+
 	if passive.ARP != nil {
 		viewers = append(viewers, &FieldNodeView{passive.ARP.FieldNode()})
 		hexdump.ARP = passive.ARP
@@ -77,6 +78,7 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 		viewers = append(viewers, &FieldNodeView{passive.IPv6.FieldNode()})
 		hexdump.IPv6 = passive.IPv6
 	}
+
 	if passive.ICMPv4Echo != nil {
 		viewers = append(viewers, &FieldNodeView{passive.ICMPv4Echo.FieldNode()})
 		hexdump.ICMPv4Echo = passive.ICMPv4Echo
@@ -93,6 +95,36 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 		viewers = append(viewers, &FieldNodeView{passive.ICMPv4Redirect.FieldNode()})
 		hexdump.ICMPv4Redirect = passive.ICMPv4Redirect
 	}
+
+	if passive.ICMPv6Error != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv6Error.FieldNode()})
+		hexdump.ICMPv6Error = passive.ICMPv6Error
+	}
+	if passive.ICMPv6PacketTooBig != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv6PacketTooBig.FieldNode()})
+		hexdump.ICMPv6PacketTooBig = passive.ICMPv6PacketTooBig
+	}
+	if passive.ICMPv6ParameterProblem != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv6ParameterProblem.FieldNode()})
+		hexdump.ICMPv6ParameterProblem = passive.ICMPv6ParameterProblem
+	}
+	if passive.ICMPv6Echo != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv6Echo.FieldNode()})
+		hexdump.ICMPv6Echo = passive.ICMPv6Echo
+	}
+	if passive.ICMPv6NeighborDiscovery != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv6NeighborDiscovery.FieldNode()})
+		hexdump.ICMPv6NeighborDiscovery = passive.ICMPv6NeighborDiscovery
+	}
+	if passive.ICMPv6RouterAdvertisement != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv6RouterAdvertisement.FieldNode()})
+		hexdump.ICMPv6RouterAdvertisement = passive.ICMPv6RouterAdvertisement
+	}
+	if passive.ICMPv6MulticastListenerDiscovery != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv6MulticastListenerDiscovery.FieldNode()})
+		hexdump.ICMPv6MulticastListenerDiscovery = passive.ICMPv6MulticastListenerDiscovery
+	}
+
 	if passive.TCP != nil {
 		viewers = append(viewers, &FieldNodeView{passive.TCP.FieldNode()})
 		hexdump.TCP = passive.TCP

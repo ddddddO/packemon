@@ -106,7 +106,7 @@ func parsedPassiveIPv6(ethernetFrame *EthernetFrame, shouldParseFull bool) (pass
 
 	switch ipv6.NextHeader {
 	case IPv6_NEXT_HEADER_ICMPv6:
-		// TODO: ICMPv6 のパース
+		parsedPassiveICMPv6(passive, ipv6)
 	case IPv6_NEXT_HEADER_TCP:
 		parsedPassiveTCPLayer(passive, ipv6.Data, shouldParseFull)
 	case IPv6_NEXT_HEADER_UDP:
@@ -131,6 +131,52 @@ func parsedPassiveICMPv4(passive *Passive, ipv4 *IPv4) {
 			passive.ICMPv4ParameterProblem = ParsedICMPv4ParameterProblem(ipv4.Data)
 		case ICMPv4_TYPE_REDIRECT:
 			passive.ICMPv4Redirect = ParsedICMPv4Redirect(ipv4.Data)
+		}
+	}
+}
+
+func parsedPassiveICMPv6(passive *Passive, ipv6 *IPv6) {
+	if len(ipv6.Data) > 0 {
+		switch ipv6.Data[0] {
+		case
+			ICMPv6_TYPE_DESTINATION_UNREACHABLE,
+			ICMPv6_TYPE_TIME_EXCEEDED,
+			ICMPv6_TYPE_PRIVATE_EXPERIMENTATION_100,
+			ICMPv6_TYPE_PRIVATE_EXPERIMENTATION_101,
+			ICMPv6_TYPE_RESERVED_FOR_EXPANSION_OF_ICMPV6_ERROR_MESSAGES:
+
+			passive.ICMPv6Error = ParsedICMPv6Error(ipv6.Data)
+		case ICMPv6_TYPE_PACKET_TOO_BIG:
+			passive.ICMPv6PacketTooBig = ParsedICMPv6PacketTooBig(ipv6.Data)
+		case ICMPv6_TYPE_PARAMETER_PROBLEM:
+			passive.ICMPv6ParameterProblem = ParsedICMPv6ParameterProblem(ipv6.Data)
+		case
+			ICMPv6_TYPE_ECHO_REQUEST,
+			ICMPv6_TYPE_ECHO_REPLY,
+			ICMPv6_TYPE_PRIVATE_EXPERIMENTATION_200,
+			ICMPv6_TYPE_PRIVATE_EXPERIMENTATION_201:
+
+			passive.ICMPv6Echo = ParsedICMPv6Echo(ipv6.Data)
+		case
+			ICMPv6_TYPE_ROUTER_SOLICITATION,
+			ICMPv6_TYPE_NEIGHBOR_SOLICITATION,
+			ICMPv6_TYPE_NEIGHBOR_ADVERTISEMENT,
+			ICMPv6_TYPE_REDIRECT,
+			ICMPv6_TYPE_SECURE_NEIGHBOR_DISCOVERY_141,
+			ICMPv6_TYPE_SECURE_NEIGHBOR_DISCOVERY_142,
+			ICMPv6_TYPE_HOME_AGENT_DISCOVERY_144,
+			ICMPv6_TYPE_HOME_AGENT_DISCOVERY_145:
+
+			passive.ICMPv6NeighborDiscovery = ParsedICMPv6NeighborDiscovery(ipv6.Data)
+		case ICMPv6_TYPE_ROUTER_ADVERTISEMENT:
+			passive.ICMPv6RouterAdvertisement = ParsedICMPv6RouterAdvertisement(ipv6.Data)
+		case
+			ICMPv6_TYPE_MULTICAST_LISTENER_QUERY,
+			ICMPv6_TYPE_MULTICAST_LISTENER_REPORT,
+			ICMPv6_TYPE_MULTICAST_LISTENER_DONE,
+			ICMPv6_TYPE_MLDv2_MULTICAST_LISTENER_REPORT:
+
+			passive.ICMPv6MulticastListenerDiscovery = ParsedICMPv6MulticastListenerDiscovery(ipv6.Data)
 		}
 	}
 }

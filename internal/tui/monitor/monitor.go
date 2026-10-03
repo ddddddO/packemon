@@ -93,7 +93,9 @@ func New(networkInterface *packemon.NetworkInterface, columns string, limit int,
 func (m *monitor) Run(ctx context.Context) error {
 	go m.networkInterface.Recieve(ctx, m.shouldParseFull)
 
-	m.table.Select(0, 0).SetDoneFunc(func(key tcell.Key) {
+	m.setHeader()
+
+	m.table.Select(1, 0).SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEscape {
 			m.table.SetSelectable(false, false)
 

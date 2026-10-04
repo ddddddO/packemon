@@ -136,8 +136,14 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 	udpForm.SetBorder(true).SetTitle(" UDP ").SetTitleAlign(tview.AlignLeft)
 	icmpForm := g.icmpForm()
 	icmpForm.SetBorder(true).SetTitle(" ICMPv4 ").SetTitleAlign(tview.AlignLeft)
-	icmpv6Form := g.icmpv6Form()
-	icmpv6Form.SetBorder(true).SetTitle(" ICMPv6 ").SetTitleAlign(tview.AlignLeft)
+
+	// ここはICMPv6用の初期化
+	icmpv6SelectPage := g.icmpv6SelectPage()
+	icmpv6SelectPage.SetBorder(true).SetTitle(" ICMPv6 ").SetTitleAlign(tview.AlignLeft)
+	icmpv6RchoRequestEchoReplyForm := g.icmpv6EchoRequestEchoReplyForm()
+	icmpv6RchoRequestEchoReplyForm.SetBorder(true).SetTitle(" ICMPv6 Echo Request/Reply ").SetTitleAlign(tview.AlignLeft)
+	icmpv6NeighborDiscoveryForm := g.icmpv6NeighborDiscoveryForm()
+	icmpv6NeighborDiscoveryForm.SetBorder(true).SetTitle(" ICMPv6 Neighbor Solicitation / Neighbor Advertisement / Router Solicitation ").SetTitleAlign(tview.AlignLeft)
 
 	// L3
 	ipv6Form := g.ipv6Form()
@@ -160,7 +166,9 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 		AddPage("UDP", udpForm, true, true).
 		AddPage("TCP", tcpForm, true, true).
 		AddPage("ICMPv4", icmpForm, true, true).
-		AddPage("ICMPv6", icmpv6Form, true, true).
+		AddPage("ICMPv6", icmpv6SelectPage, true, true).
+		AddPage(SELECTABLE_FORM_ICMPv6_ECHO_REQUEST_ECHO_REPLY, icmpv6RchoRequestEchoReplyForm, true, true).
+		AddPage(SELECTABLE_FORM_ICMPv6_NEIGHBOR_DISCOVERY, icmpv6NeighborDiscoveryForm, true, true).
 		AddPage("IPv6", ipv6Form, true, true).
 		AddPage("IPv4", ipv4Form, true, true).
 		AddPage("ARP", arpForm, true, true).
@@ -303,17 +311,18 @@ func (g *generator) switchToProtocolPage(targetLayer string, targetProtocol stri
 }
 
 type packets struct {
-	ethernet *packemon.EthernetHeader
-	arp      *packemon.ARP
-	ipv4     *packemon.IPv4
-	ipv6     *packemon.IPv6
-	icmpv4   *packemon.ICMPv4Echo
-	icmpv6   *packemon.ICMPv6Echo
-	tcp      *packemon.TCP
-	udp      *packemon.UDP
-	dns      *packemon.DNS
-	quic     *packemon.QUIC
-	http     *packemon.HTTP
+	ethernet                   *packemon.EthernetHeader
+	arp                        *packemon.ARP
+	ipv4                       *packemon.IPv4
+	ipv6                       *packemon.IPv6
+	icmpv4                     *packemon.ICMPv4Echo
+	icmpv6EchoRequestEchoReply *packemon.ICMPv6Echo
+	icmpv6NeighborDiscovery    *packemon.ICMPv6NeighborDiscovery
+	tcp                        *packemon.TCP
+	udp                        *packemon.UDP
+	dns                        *packemon.DNS
+	quic                       *packemon.QUIC
+	http                       *packemon.HTTP
 }
 
 func defaultPackets() (*packets, error) {
@@ -470,13 +479,19 @@ func defaultPackets() (*packets, error) {
 	if err != nil {
 		return nil, err
 	}
-	icmpv6 := &packemon.ICMPv6Echo{
+	icmpv6Echo := &packemon.ICMPv6Echo{
 		Header: &packemon.ICMPHeader{
 			Typ:  icmpv6Type,
 			Code: icmpv6Code,
 		},
 		Identifier: binary.BigEndian.Uint16(icmpv6Identifier),
 		Sequence:   binary.BigEndian.Uint16(icmpv6Sequence),
+	}
+	icmpv6NeighborDiscovery := &packemon.ICMPv6NeighborDiscovery{
+		Header: &packemon.ICMPHeader{
+			Typ:  packemon.ICMPv6_TYPE_NEIGHBOR_SOLICITATION,
+			Code: icmpv6Code,
+		},
 	}
 
 	srcIP, err := packemon.StrIPToBytes(DEFAULT_IP_SOURCE)
@@ -595,17 +610,18 @@ func defaultPackets() (*packets, error) {
 	}
 
 	return &packets{
-		ethernet: ethernetHeader,
-		arp:      arp,
-		ipv4:     ipv4,
-		ipv6:     ipv6,
-		icmpv4:   icmp,
-		icmpv6:   icmpv6,
-		udp:      udp,
-		tcp:      tcp,
-		dns:      dns,
-		quic:     quic,
-		http:     http,
+		ethernet:                   ethernetHeader,
+		arp:                        arp,
+		ipv4:                       ipv4,
+		ipv6:                       ipv6,
+		icmpv4:                     icmp,
+		icmpv6EchoRequestEchoReply: icmpv6Echo,
+		icmpv6NeighborDiscovery:    icmpv6NeighborDiscovery,
+		udp:                        udp,
+		tcp:                        tcp,
+		dns:                        dns,
+		quic:                       quic,
+		http:                       http,
 	}, nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"net"
+	"slices"
 	"strconv"
 	"time"
 
@@ -167,12 +168,8 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 
 	switchProtocol := func(targetLayer string) func(targetProtocol string, switchableProtocols []string) {
 		return func(targetProtocol string, switchableProtocols []string) {
-			for _, protocol := range switchableProtocols {
-				if targetProtocol == protocol {
-					g.sender.selectedProtocolByLayer[targetLayer] = targetProtocol
-					g.pages.SwitchToPage(targetProtocol)
-					g.app.SetFocus(g.pages)
-				}
+			if slices.Contains(switchableProtocols, targetProtocol) {
+				g.switchToProtocolPage(targetLayer, targetProtocol)
 			}
 		}
 	}
@@ -297,6 +294,12 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 		AddItem(interfaceTable, 8, 1, 2, 1, 0, 0, false)
 
 	return nil
+}
+
+func (g *generator) switchToProtocolPage(targetLayer string, targetProtocol string) {
+	g.sender.selectedProtocolByLayer[targetLayer] = targetProtocol
+	g.pages.SwitchToPage(targetProtocol)
+	g.app.SetFocus(g.pages)
 }
 
 type packets struct {

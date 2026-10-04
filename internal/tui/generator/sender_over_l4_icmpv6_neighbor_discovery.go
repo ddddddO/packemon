@@ -7,25 +7,23 @@ import (
 	"github.com/ddddddO/packemon"
 )
 
-func (s *sender) sendOverICMPv6(
+func (s *sender) sendOverICMPv6NeighborDiscovery(
 	ctx context.Context,
 	upperLayerPacket []byte,
 	selectedL3 string,
-	checkedCalcICMPv6Timestamp bool,
 	checkedCalcICMPv6Checksum bool,
 	checkedCalcIPv6PayloadLength bool,
 ) error {
-	// TODO: sender_over_l4_icmpv4.go と揃えた方が良い？
 	if len(upperLayerPacket) > 0 {
-		s.packets.icmpv6.Data = upperLayerPacket
+		s.packets.icmpv6NeighborDiscovery.Options = append(s.packets.icmpv6NeighborDiscovery.Options, upperLayerPacket...)
 	}
 
 	if checkedCalcICMPv6Checksum {
 		// 前回Send分が残ってると計算誤るため
-		s.packets.icmpv6.Header.Checksum = 0x0
-		s.packets.icmpv6.Header.Checksum = packemon.CalculateChecksumICMPv6(
+		s.packets.icmpv6NeighborDiscovery.Header.Checksum = 0x0
+		s.packets.icmpv6NeighborDiscovery.Header.Checksum = packemon.CalculateChecksumICMPv6(
 			s.packets.ipv6,
-			s.packets.icmpv6.Bytes(),
+			s.packets.icmpv6NeighborDiscovery.Bytes(),
 		)
 	}
 
@@ -35,9 +33,9 @@ func (s *sender) sendOverICMPv6(
 
 	switch selectedL3 {
 	case "IPv4":
-		return s.sendOverIPv4(ctx, s.packets.icmpv6.Bytes(), ethernetFrame, checkedCalcIPv4TotalLength, checkedCalcIPv4Checksum)
+		return s.sendOverIPv4(ctx, s.packets.icmpv6NeighborDiscovery.Bytes(), ethernetFrame, checkedCalcIPv4TotalLength, checkedCalcIPv4Checksum)
 	case "IPv6":
-		return s.sendOverIPv6(ctx, s.packets.icmpv6.Bytes(), ethernetFrame, checkedCalcIPv6PayloadLength)
+		return s.sendOverIPv6(ctx, s.packets.icmpv6NeighborDiscovery.Bytes(), ethernetFrame, checkedCalcIPv6PayloadLength)
 	case "ARP":
 		return fmt.Errorf("unsupported under ARP")
 	default:

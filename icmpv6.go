@@ -258,7 +258,8 @@ func ParsedICMPv6Echo(payload []byte) *ICMPv6Echo {
 	}
 }
 
-// Router Solicitation / Neighbor Solicitation / Neighbor Advertisement / Redirect / Secure Neighbor Discovery / Home Agent Discovery
+// TODO: Redirect / Secure Neighbor Discovery / Home Agent Discovery はこの構造体でカバー不可. monitorのパースでこれ使っちゃってるの直す。READMEも
+// Router Solicitation / Neighbor Solicitation / Neighbor Advertisement
 type ICMPv6NeighborDiscovery struct {
 	Header        *ICMPHeader
 	ReservedFlags uint32
@@ -424,11 +425,11 @@ func ParsedICMPv6MulticastListenerDiscovery(payload []byte) *ICMPv6MulticastList
 	}
 }
 
-type ScratchICMPv6Assembler struct{}
+type ScratchICMPv6EchoAssembler struct{}
 
-var _ Assembler = (*ScratchICMPv6Assembler)(nil)
+var _ Assembler = (*ScratchICMPv6EchoAssembler)(nil)
 
-func (s *ScratchICMPv6Assembler) Fields() []FieldSpec {
+func (s *ScratchICMPv6EchoAssembler) Fields() []FieldSpec {
 	return []FieldSpec{
 		{Key: "type", Label: "Type", Kind: FieldKindHex, Default: "0x80"},
 		{Key: "code", Label: "Code", Kind: FieldKindHex, Default: "0x00"},
@@ -440,8 +441,8 @@ func (s *ScratchICMPv6Assembler) Fields() []FieldSpec {
 	}
 }
 
-func (s *ScratchICMPv6Assembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
-	icmpv6, err := s.AssembleICMPv6(values)
+func (s *ScratchICMPv6EchoAssembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
+	icmpv6, err := s.AssembleICMPv6Echo(values)
 	if err != nil {
 		return nil, err
 	}
@@ -455,7 +456,7 @@ func (s *ScratchICMPv6Assembler) Assemble(values map[string]any, payload []byte)
 	return icmpv6.Bytes(), nil
 }
 
-func (s *ScratchICMPv6Assembler) AssembleICMPv6(values map[string]any) (*ICMPv6Echo, error) {
+func (s *ScratchICMPv6EchoAssembler) AssembleICMPv6Echo(values map[string]any) (*ICMPv6Echo, error) {
 	icmpv6 := &ICMPv6Echo{Header: &ICMPHeader{}}
 	var err error
 	if icmpv6.Header.Typ, err = uint8FromValue(values["type"]); err != nil {
@@ -475,6 +476,63 @@ func (s *ScratchICMPv6Assembler) AssembleICMPv6(values map[string]any) (*ICMPv6E
 	}
 	if icmpv6.Data, err = bytesFromValue(values["data"]); err != nil {
 		return nil, fmt.Errorf("data: %w", err)
+	}
+	return icmpv6, nil
+}
+
+type ScratchICMPv6NeighborDiscoveryAssembler struct{}
+
+var _ Assembler = (*ScratchICMPv6NeighborDiscoveryAssembler)(nil)
+
+func (s *ScratchICMPv6NeighborDiscoveryAssembler) Fields() []FieldSpec {
+	return []FieldSpec{
+		{Key: "type", Label: "Type", Kind: FieldKindHex, Default: "0x87"},
+		{Key: "code", Label: "Code", Kind: FieldKindHex, Default: "0x00"},
+		{Key: "checksum", Label: "Checksum", Kind: FieldKindHex, Default: "0x0000"},
+		{Key: "calc_checksum", Label: "Automatically calculate checksum ?", Kind: FieldKindCheckbox, Default: "true"},
+		{Key: "reserved_flags", Label: "Reserved Flags", Kind: FieldKindHex, Default: "0x00000000"},
+		{Key: "target_address", Label: "Target Address", Kind: FieldKindText, Default: ""},
+		{Key: "options", Label: "Options", Kind: FieldKindHex, Default: ""},
+	}
+}
+
+func (s *ScratchICMPv6NeighborDiscoveryAssembler) Assemble(values map[string]any, payload []byte) ([]byte, error) {
+	icmpv6, err := s.AssembleICMPv6NeighborDiscovery(values)
+	if err != nil {
+		return nil, err
+	}
+
+	if calc, err := boolFromValue(values["calc_checksum"]); err != nil {
+		return nil, fmt.Errorf("calc_checksum: %w", err)
+	} else if calc {
+		icmpv6.Header.Checksum = 0x0
+	}
+
+	return icmpv6.Bytes(), nil
+}
+
+func (s *ScratchICMPv6NeighborDiscoveryAssembler) AssembleICMPv6NeighborDiscovery(values map[string]any) (*ICMPv6NeighborDiscovery, error) {
+	icmpv6 := &ICMPv6NeighborDiscovery{Header: &ICMPHeader{}}
+	var err error
+	if icmpv6.Header.Typ, err = uint8FromValue(values["type"]); err != nil {
+		return nil, fmt.Errorf("type: %w", err)
+	}
+	if icmpv6.Header.Code, err = uint8FromValue(values["code"]); err != nil {
+		return nil, fmt.Errorf("code: %w", err)
+	}
+	if icmpv6.Header.Checksum, err = uint16FromValue(values["checksum"]); err != nil {
+		return nil, fmt.Errorf("checksum: %w", err)
+	}
+	if icmpv6.ReservedFlags, err = uint32FromValue(values["reserved_flags"]); err != nil {
+		return nil, fmt.Errorf("reserved_flags: %w", err)
+	}
+	targetAddress, err := ipv6AddrFromValue(values["target_address"])
+	if err != nil {
+		return nil, fmt.Errorf("target_address: %w", err)
+	}
+	copy(icmpv6.TargetAddress[:], targetAddress)
+	if icmpv6.Options, err = bytesFromValue(values["options"]); err != nil {
+		return nil, fmt.Errorf("options: %w", err)
 	}
 	return icmpv6, nil
 }

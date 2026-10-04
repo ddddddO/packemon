@@ -52,7 +52,7 @@ The rightmost image shows how the packet list is filtered.
 - [x] IPv4
 - [x] IPv6
 - [ ] ICMPv4
-  - [x] Echo / Echo Reply
+  - [x] Echo Request / Echo Reply
   - [ ] Destination Unreachable
   - [ ] Source Quench
   - [ ] Redirect
@@ -64,8 +64,8 @@ The rightmost image shows how the packet list is filtered.
   - [ ] Information Request / Information Reply
   - [ ] Address Mask Request / Address Mask Reply
 - [ ] ICMPv6
-  - [x] Echo / Echo Reply
-  - [ ] ...
+  - [x] Echo Request / Echo Reply
+  - [x] Neighbor Solicitation / Neighbor Advertisement / Router Solicitation
 - [x] TCP
 - [x] UDP
 - [x] TLSv1.2
@@ -152,7 +152,7 @@ The rightmost image shows how the packet list is filtered.
 - [x] IPv4 (WIP)
 - [x] IPv6 (WIP)
 - [ ] ICMPv4 (WIP)
-  - [x] Echo
+  - [x] Echo Request
   - [x] Echo Reply
   - [x] Destination Unreachable
   - [x] Source Quench
@@ -168,7 +168,7 @@ The rightmost image shows how the packet list is filtered.
   - [x] Address Mask Request
   - [x] Address Mask Reply
 - [ ] ICMPv6
-  - [x] Echo
+  - [x] Echo Request
   - [x] Echo Reply
   - [x] (Type 200 / 201) Private Experimentation
   - [x] Destination Unreachable
@@ -178,12 +178,12 @@ The rightmost image shows how the packet list is filtered.
   - [x] Packet Too Big
   - [x] Parameter Problem
   - [x] Router Solicitation
+  - [x] Router Advertisement
   - [x] Neighbor Solicitation
   - [x] Neighbor Advertisement
   - [x] Redirect 
   - [x] Secure Neighbor Discovery
   - [x] Home Agent Discovery
-  - [x] Router Advertisement
   - [x] Multicast Listener Discovery (Type 130, 131, 132)
 - [x] TCP (WIP)
 - [x] UDP

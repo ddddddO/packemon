@@ -157,19 +157,16 @@ func parsedPassiveICMPv6(passive *Passive, ipv6 *IPv6) {
 			ICMPv6_TYPE_PRIVATE_EXPERIMENTATION_201:
 
 			passive.ICMPv6Echo = ParsedICMPv6Echo(ipv6.Data)
-		case
-			ICMPv6_TYPE_ROUTER_SOLICITATION,
-			ICMPv6_TYPE_NEIGHBOR_SOLICITATION,
-			ICMPv6_TYPE_NEIGHBOR_ADVERTISEMENT,
-			ICMPv6_TYPE_REDIRECT,
-			ICMPv6_TYPE_SECURE_NEIGHBOR_DISCOVERY_141,
-			ICMPv6_TYPE_SECURE_NEIGHBOR_DISCOVERY_142,
-			ICMPv6_TYPE_HOME_AGENT_DISCOVERY_144,
-			ICMPv6_TYPE_HOME_AGENT_DISCOVERY_145:
-
-			passive.ICMPv6NeighborDiscovery = ParsedICMPv6NeighborDiscovery(ipv6.Data)
+		case ICMPv6_TYPE_NEIGHBOR_SOLICITATION:
+			passive.ICMPv6NeighborSolicitation = ParsedICMPv6NeighborSolicitation(ipv6.Data)
+		case ICMPv6_TYPE_NEIGHBOR_ADVERTISEMENT:
+			passive.ICMPv6NeighborAdvertisement = ParsedICMPv6NeighborAdvertisement(ipv6.Data)
+		case ICMPv6_TYPE_ROUTER_SOLICITATION:
+			passive.ICMPv6RouterSolicitation = ParsedICMPv6RouterSolicitation(ipv6.Data)
 		case ICMPv6_TYPE_ROUTER_ADVERTISEMENT:
 			passive.ICMPv6RouterAdvertisement = ParsedICMPv6RouterAdvertisement(ipv6.Data)
+		case ICMPv6_TYPE_REDIRECT:
+			passive.ICMPv6Redirect = ParsedICMPv6Redirect(ipv6.Data)
 		case
 			ICMPv6_TYPE_MULTICAST_LISTENER_QUERY,
 			ICMPv6_TYPE_MULTICAST_LISTENER_REPORT,

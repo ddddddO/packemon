@@ -21,8 +21,11 @@ type HexadecimalDump struct {
 	*packemon.ICMPv6PacketTooBig
 	*packemon.ICMPv6ParameterProblem
 	*packemon.ICMPv6Echo
-	*packemon.ICMPv6NeighborDiscovery
+	*packemon.ICMPv6NeighborSolicitation
+	*packemon.ICMPv6NeighborAdvertisement
+	*packemon.ICMPv6RouterSolicitation
 	*packemon.ICMPv6RouterAdvertisement
+	*packemon.ICMPv6Redirect
 	*packemon.ICMPv6MulticastListenerDiscovery
 
 	*packemon.TCP
@@ -170,30 +173,29 @@ func (h *HexadecimalDump) viewTable() *tview.Table {
 			// 定義なし。なんらかのICMPの正常系通知だけど多分変なパケットの時
 			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Something Echo", h.ICMPv6Echo.Bytes())
 		}
-	case h.ICMPv6NeighborDiscovery != nil:
-		switch h.ICMPv6NeighborDiscovery.Header.Typ {
-		case packemon.ICMPv6_TYPE_ROUTER_SOLICITATION:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Router Solicitation", h.ICMPv6NeighborDiscovery.Bytes())
-		case packemon.ICMPv6_TYPE_ROUTER_ADVERTISEMENT:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Router Advertisement", h.ICMPv6NeighborDiscovery.Bytes())
-		case packemon.ICMPv6_TYPE_NEIGHBOR_SOLICITATION:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Neighbor Solicitation", h.ICMPv6NeighborDiscovery.Bytes())
-		case packemon.ICMPv6_TYPE_NEIGHBOR_ADVERTISEMENT:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Neighbor Advertisement", h.ICMPv6NeighborDiscovery.Bytes())
-		case packemon.ICMPv6_TYPE_REDIRECT:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Redirect", h.ICMPv6NeighborDiscovery.Bytes())
-		case packemon.ICMPv6_TYPE_SECURE_NEIGHBOR_DISCOVERY_141:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Secure Neighbor Discovery 141", h.ICMPv6NeighborDiscovery.Bytes())
-		case packemon.ICMPv6_TYPE_SECURE_NEIGHBOR_DISCOVERY_142:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Secure Neighbor Discovery 142", h.ICMPv6NeighborDiscovery.Bytes())
-		case packemon.ICMPv6_TYPE_HOME_AGENT_DISCOVERY_144:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Home Agent Discovery 144", h.ICMPv6NeighborDiscovery.Bytes())
-		case packemon.ICMPv6_TYPE_HOME_AGENT_DISCOVERY_145:
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Home Agent Discovery 145", h.ICMPv6NeighborDiscovery.Bytes())
-		default:
-			// 定義なし。なんらかのICMPの正常系通知だけど多分変なパケットの時
-			loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Something Neighbor Discovery", h.ICMPv6NeighborDiscovery.Bytes())
-		}
+	case h.ICMPv6NeighborSolicitation != nil:
+		loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Neighbor Solicitation", h.ICMPv6NeighborSolicitation.Bytes())
+	case h.ICMPv6NeighborAdvertisement != nil:
+		loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Neighbor Advertisement", h.ICMPv6NeighborAdvertisement.Bytes())
+	case h.ICMPv6RouterSolicitation != nil:
+		loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Router Solicitation", h.ICMPv6RouterSolicitation.Bytes())
+	case h.ICMPv6RouterAdvertisement != nil:
+		loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Router Advertisement", h.ICMPv6RouterAdvertisement.Bytes())
+	case h.ICMPv6Redirect != nil:
+		loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Redirect", h.ICMPv6Redirect.Bytes())
+		// switch h.ICMPv6NeighborSolicitation.Header.Typ {
+		// case packemon.ICMPv6_TYPE_SECURE_NEIGHBOR_DISCOVERY_141:
+		// 	loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Secure Neighbor Discovery 141", h.ICMPv6NeighborSolicitation.Bytes())
+		// case packemon.ICMPv6_TYPE_SECURE_NEIGHBOR_DISCOVERY_142:
+		// 	loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Secure Neighbor Discovery 142", h.ICMPv6NeighborSolicitation.Bytes())
+		// case packemon.ICMPv6_TYPE_HOME_AGENT_DISCOVERY_144:
+		// 	loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Home Agent Discovery 144", h.ICMPv6NeighborSolicitation.Bytes())
+		// case packemon.ICMPv6_TYPE_HOME_AGENT_DISCOVERY_145:
+		// 	loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Home Agent Discovery 145", h.ICMPv6NeighborSolicitation.Bytes())
+		// default:
+		// 	// 定義なし。なんらかのICMPの正常系通知だけど多分変なパケットの時
+		// 	loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Something Neighbor Discovery", h.ICMPv6NeighborSolicitation.Bytes())
+		// }
 	case h.ICMPv6RouterAdvertisement != nil:
 		loopForL4View = viewHexadecimalDump(table, loopForL4View, "ICMPv6 Router Advertisement", h.ICMPv6RouterAdvertisement.Bytes())
 	case h.ICMPv6MulticastListenerDiscovery != nil:

@@ -23,8 +23,11 @@ type Passive struct {
 	ICMPv6PacketTooBig               *ICMPv6PacketTooBig
 	ICMPv6ParameterProblem           *ICMPv6ParameterProblem
 	ICMPv6Echo                       *ICMPv6Echo
-	ICMPv6NeighborDiscovery          *ICMPv6NeighborDiscovery
+	ICMPv6NeighborSolicitation       *ICMPv6NeighborSolicitation
+	ICMPv6NeighborAdvertisement      *ICMPv6NeighborAdvertisement
+	ICMPv6RouterSolicitation         *ICMPv6RouterSolicitation
 	ICMPv6RouterAdvertisement        *ICMPv6RouterAdvertisement
+	ICMPv6Redirect                   *ICMPv6Redirect
 	ICMPv6MulticastListenerDiscovery *ICMPv6MulticastListenerDiscovery
 
 	IPv4          *IPv4
@@ -49,10 +52,24 @@ func (p *Passive) HighLayerProto() string {
 		proto = "IPv6"
 	}
 
-	if p.ICMPv4Echo != nil || p.ICMPv4Error != nil || p.ICMPv4ParameterProblem != nil || p.ICMPv4Redirect != nil {
+	if p.ICMPv4Echo != nil ||
+		p.ICMPv4Error != nil ||
+		p.ICMPv4ParameterProblem != nil ||
+		p.ICMPv4Redirect != nil {
+
 		proto = "ICMPv4"
 	}
-	if p.ICMPv6Error != nil || p.ICMPv6PacketTooBig != nil || p.ICMPv6ParameterProblem != nil || p.ICMPv6Echo != nil || p.ICMPv6NeighborDiscovery != nil || p.ICMPv6RouterAdvertisement != nil || p.ICMPv6MulticastListenerDiscovery != nil {
+	if p.ICMPv6Error != nil ||
+		p.ICMPv6PacketTooBig != nil ||
+		p.ICMPv6ParameterProblem != nil ||
+		p.ICMPv6Echo != nil ||
+		p.ICMPv6NeighborSolicitation != nil ||
+		p.ICMPv6NeighborAdvertisement != nil ||
+		p.ICMPv6RouterSolicitation != nil ||
+		p.ICMPv6RouterAdvertisement != nil ||
+		p.ICMPv6Redirect != nil ||
+		p.ICMPv6MulticastListenerDiscovery != nil {
+
 		proto = "ICMPv6"
 	}
 	if p.UDP != nil {

@@ -142,8 +142,16 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 	icmpv6SelectPage.SetBorder(true).SetTitle(" ICMPv6 ").SetTitleAlign(tview.AlignLeft)
 	icmpv6RchoRequestEchoReplyForm := g.icmpv6EchoRequestEchoReplyForm()
 	icmpv6RchoRequestEchoReplyForm.SetBorder(true).SetTitle(" ICMPv6 Echo Request/Reply ").SetTitleAlign(tview.AlignLeft)
-	icmpv6NeighborDiscoveryForm := g.icmpv6NeighborDiscoveryForm()
-	icmpv6NeighborDiscoveryForm.SetBorder(true).SetTitle(" ICMPv6 Neighbor Solicitation / Neighbor Advertisement / Router Solicitation ").SetTitleAlign(tview.AlignLeft)
+	icmpv6NeighborSolicitationForm := g.icmpv6NeighborSolicitationForm()
+	icmpv6NeighborSolicitationForm.SetBorder(true).SetTitle(" ICMPv6 Neighbor Solicitation").SetTitleAlign(tview.AlignLeft)
+	icmpv6NeighborAdvertisementForm := g.icmpv6NeighborAdvertisementForm()
+	icmpv6NeighborAdvertisementForm.SetBorder(true).SetTitle(" ICMPv6 Neighbor Advertisement").SetTitleAlign(tview.AlignLeft)
+	icmpv6RouterSolicitationForm := g.icmpv6RouterSolicitationForm()
+	icmpv6RouterSolicitationForm.SetBorder(true).SetTitle(" ICMPv6 Router Solicitation").SetTitleAlign(tview.AlignLeft)
+	icmpv6RouterAdvertisementForm := g.icmpv6RouterAdvertisementForm()
+	icmpv6RouterAdvertisementForm.SetBorder(true).SetTitle(" ICMPv6 Router Advertisement").SetTitleAlign(tview.AlignLeft)
+	icmpv6RedirectForm := g.icmpv6RedirectForm()
+	icmpv6RedirectForm.SetBorder(true).SetTitle(" ICMPv6 Redirect").SetTitleAlign(tview.AlignLeft)
 
 	// L3
 	ipv6Form := g.ipv6Form()
@@ -166,9 +174,15 @@ func (g *generator) form(ctx context.Context, sendFn func(*packemon.EthernetFram
 		AddPage("UDP", udpForm, true, true).
 		AddPage("TCP", tcpForm, true, true).
 		AddPage("ICMPv4", icmpForm, true, true).
+		// ↓ICMPv6用page
 		AddPage("ICMPv6", icmpv6SelectPage, true, true).
 		AddPage(SELECTABLE_FORM_ICMPv6_ECHO_REQUEST_ECHO_REPLY, icmpv6RchoRequestEchoReplyForm, true, true).
-		AddPage(SELECTABLE_FORM_ICMPv6_NEIGHBOR_DISCOVERY, icmpv6NeighborDiscoveryForm, true, true).
+		AddPage(SELECTABLE_FORM_ICMPv6_NEIGHBOR_SOLICITATION, icmpv6NeighborSolicitationForm, true, true).
+		AddPage(SELECTABLE_FORM_ICMPv6_NEIGHBOR_ADVERTISEMENT, icmpv6NeighborAdvertisementForm, true, true).
+		AddPage(SELECTABLE_FORM_ICMPv6_ROUTER_SOLICITATION, icmpv6RouterSolicitationForm, true, true).
+		AddPage(SELECTABLE_FORM_ICMPv6_ROUTER_ADVERTISEMENT, icmpv6RouterAdvertisementForm, true, true).
+		AddPage(SELECTABLE_FORM_ICMPv6_REDIRECT, icmpv6RedirectForm, true, true).
+		// ↑ICMPv6用page
 		AddPage("IPv6", ipv6Form, true, true).
 		AddPage("IPv4", ipv4Form, true, true).
 		AddPage("ARP", arpForm, true, true).
@@ -311,18 +325,22 @@ func (g *generator) switchToProtocolPage(targetLayer string, targetProtocol stri
 }
 
 type packets struct {
-	ethernet                   *packemon.EthernetHeader
-	arp                        *packemon.ARP
-	ipv4                       *packemon.IPv4
-	ipv6                       *packemon.IPv6
-	icmpv4                     *packemon.ICMPv4Echo
-	icmpv6EchoRequestEchoReply *packemon.ICMPv6Echo
-	icmpv6NeighborDiscovery    *packemon.ICMPv6NeighborDiscovery
-	tcp                        *packemon.TCP
-	udp                        *packemon.UDP
-	dns                        *packemon.DNS
-	quic                       *packemon.QUIC
-	http                       *packemon.HTTP
+	ethernet                    *packemon.EthernetHeader
+	arp                         *packemon.ARP
+	ipv4                        *packemon.IPv4
+	ipv6                        *packemon.IPv6
+	icmpv4                      *packemon.ICMPv4Echo
+	icmpv6EchoRequestEchoReply  *packemon.ICMPv6Echo
+	icmpv6NeighborSolicitation  *packemon.ICMPv6NeighborSolicitation
+	icmpv6NeighborAdvertisement *packemon.ICMPv6NeighborAdvertisement
+	icmpv6RouterSolicitation    *packemon.ICMPv6RouterSolicitation
+	icmpv6RouterAdvertisement   *packemon.ICMPv6RouterAdvertisement
+	icmpv6Redirect              *packemon.ICMPv6Redirect
+	tcp                         *packemon.TCP
+	udp                         *packemon.UDP
+	dns                         *packemon.DNS
+	quic                        *packemon.QUIC
+	http                        *packemon.HTTP
 }
 
 func defaultPackets() (*packets, error) {
@@ -487,9 +505,33 @@ func defaultPackets() (*packets, error) {
 		Identifier: binary.BigEndian.Uint16(icmpv6Identifier),
 		Sequence:   binary.BigEndian.Uint16(icmpv6Sequence),
 	}
-	icmpv6NeighborDiscovery := &packemon.ICMPv6NeighborDiscovery{
+	icmpv6NeighborSolicitation := &packemon.ICMPv6NeighborSolicitation{
 		Header: &packemon.ICMPHeader{
 			Typ:  packemon.ICMPv6_TYPE_NEIGHBOR_SOLICITATION,
+			Code: icmpv6Code,
+		},
+	}
+	icmpv6NeighborAdvertisement := &packemon.ICMPv6NeighborAdvertisement{
+		Header: &packemon.ICMPHeader{
+			Typ:  packemon.ICMPv6_TYPE_NEIGHBOR_ADVERTISEMENT,
+			Code: icmpv6Code,
+		},
+	}
+	icmpv6RouterSolicitation := &packemon.ICMPv6RouterSolicitation{
+		Header: &packemon.ICMPHeader{
+			Typ:  packemon.ICMPv6_TYPE_ROUTER_SOLICITATION,
+			Code: icmpv6Code,
+		},
+	}
+	icmpv6RouterAdvertisement := &packemon.ICMPv6RouterAdvertisement{
+		Header: &packemon.ICMPHeader{
+			Typ:  packemon.ICMPv6_TYPE_ROUTER_ADVERTISEMENT,
+			Code: icmpv6Code,
+		},
+	}
+	icmpv6Redirect := &packemon.ICMPv6Redirect{
+		Header: &packemon.ICMPHeader{
+			Typ:  packemon.ICMPv6_TYPE_REDIRECT,
 			Code: icmpv6Code,
 		},
 	}
@@ -610,18 +652,22 @@ func defaultPackets() (*packets, error) {
 	}
 
 	return &packets{
-		ethernet:                   ethernetHeader,
-		arp:                        arp,
-		ipv4:                       ipv4,
-		ipv6:                       ipv6,
-		icmpv4:                     icmp,
-		icmpv6EchoRequestEchoReply: icmpv6Echo,
-		icmpv6NeighborDiscovery:    icmpv6NeighborDiscovery,
-		udp:                        udp,
-		tcp:                        tcp,
-		dns:                        dns,
-		quic:                       quic,
-		http:                       http,
+		ethernet:                    ethernetHeader,
+		arp:                         arp,
+		ipv4:                        ipv4,
+		ipv6:                        ipv6,
+		icmpv4:                      icmp,
+		icmpv6EchoRequestEchoReply:  icmpv6Echo,
+		icmpv6NeighborSolicitation:  icmpv6NeighborSolicitation,
+		icmpv6NeighborAdvertisement: icmpv6NeighborAdvertisement,
+		icmpv6RouterSolicitation:    icmpv6RouterSolicitation,
+		icmpv6RouterAdvertisement:   icmpv6RouterAdvertisement,
+		icmpv6Redirect:              icmpv6Redirect,
+		udp:                         udp,
+		tcp:                         tcp,
+		dns:                         dns,
+		quic:                        quic,
+		http:                        http,
 	}, nil
 }
 

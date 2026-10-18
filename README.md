@@ -65,7 +65,9 @@ The rightmost image shows how the packet list is filtered.
   - [ ] Address Mask Request / Address Mask Reply
 - [ ] ICMPv6
   - [x] Echo Request / Echo Reply
-  - [x] Neighbor Solicitation / Neighbor Advertisement / Router Solicitation
+  - [x] Neighbor Solicitation / Neighbor Advertisement
+  - [x] Router Solicitation / Router Advertisement
+  - [x] Redirect 
 - [x] TCP
 - [x] UDP
 - [x] TLSv1.2
@@ -170,10 +172,10 @@ The rightmost image shows how the packet list is filtered.
 - [ ] ICMPv6
   - [x] Echo Request
   - [x] Echo Reply
-  - [x] (Type 200 / 201) Private Experimentation
+  - [x] Private Experimentation (Type 200 / 201)
   - [x] Destination Unreachable
   - [x] Time Exceeded
-  - [x] (Type 100 / 101) Private Experimentation
+  - [x] Private Experimentation (Type 100 / 101)
   - [x] Reserved for expansion of ICMPv6 error messages
   - [x] Packet Too Big
   - [x] Parameter Problem
@@ -182,8 +184,6 @@ The rightmost image shows how the packet list is filtered.
   - [x] Neighbor Solicitation
   - [x] Neighbor Advertisement
   - [x] Redirect 
-  - [x] Secure Neighbor Discovery
-  - [x] Home Agent Discovery
   - [x] Multicast Listener Discovery (Type 130, 131, 132)
 - [x] TCP (WIP)
 - [x] UDP

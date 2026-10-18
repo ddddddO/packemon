@@ -7,11 +7,11 @@ import (
 	"github.com/rivo/tview"
 )
 
-var checkedCalcICMPv6NeighborDiscoveryChecksum = true
+var checkedCalcICMPv6NeighborAdvertisementChecksum = true
 
-func (g *generator) icmpv6NeighborDiscoveryForm() *tview.Form {
-	var assembler packemon.Assembler = &packemon.ScratchICMPv6NeighborDiscoveryAssembler{}
-	icmpForm, collectValues := buildDynamicForm(assembler, "ICMPv6", "This section generates ICMPv6 Neighbor Discovery messages.", map[string]string{
+func (g *generator) icmpv6NeighborAdvertisementForm() *tview.Form {
+	var assembler packemon.Assembler = &packemon.ScratchICMPv6NeighborAdvertisementAssembler{}
+	icmpForm, collectValues := buildDynamicForm(assembler, "ICMPv6", "This section generates ICMPv6 Neighbor Advertisement messages.", map[string]string{
 		"target_address": DEFAULT_IPv6_DESTINATION,
 	})
 
@@ -25,8 +25,8 @@ func (g *generator) icmpv6NeighborDiscoveryForm() *tview.Form {
 		if err != nil {
 			return err
 		}
-		checkedCalcICMPv6NeighborDiscoveryChecksum = calc
-		g.sender.packets.icmpv6NeighborDiscovery = packemon.ParsedICMPv6NeighborDiscovery(b)
+		checkedCalcICMPv6NeighborAdvertisementChecksum = calc
+		g.sender.packets.icmpv6NeighborAdvertisement = packemon.ParsedICMPv6NeighborAdvertisement(b)
 		return nil
 	})
 

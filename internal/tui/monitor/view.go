@@ -112,13 +112,25 @@ func passiveToViewers(passive *packemon.Passive) []Viewer {
 		viewers = append(viewers, &FieldNodeView{passive.ICMPv6Echo.FieldNode()})
 		hexdump.ICMPv6Echo = passive.ICMPv6Echo
 	}
-	if passive.ICMPv6NeighborDiscovery != nil {
-		viewers = append(viewers, &FieldNodeView{passive.ICMPv6NeighborDiscovery.FieldNode()})
-		hexdump.ICMPv6NeighborDiscovery = passive.ICMPv6NeighborDiscovery
+	if passive.ICMPv6NeighborSolicitation != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv6NeighborSolicitation.FieldNode()})
+		hexdump.ICMPv6NeighborSolicitation = passive.ICMPv6NeighborSolicitation
+	}
+	if passive.ICMPv6NeighborAdvertisement != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv6NeighborAdvertisement.FieldNode()})
+		hexdump.ICMPv6NeighborAdvertisement = passive.ICMPv6NeighborAdvertisement
+	}
+	if passive.ICMPv6RouterSolicitation != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv6RouterSolicitation.FieldNode()})
+		hexdump.ICMPv6RouterSolicitation = passive.ICMPv6RouterSolicitation
 	}
 	if passive.ICMPv6RouterAdvertisement != nil {
 		viewers = append(viewers, &FieldNodeView{passive.ICMPv6RouterAdvertisement.FieldNode()})
 		hexdump.ICMPv6RouterAdvertisement = passive.ICMPv6RouterAdvertisement
+	}
+	if passive.ICMPv6Redirect != nil {
+		viewers = append(viewers, &FieldNodeView{passive.ICMPv6Redirect.FieldNode()})
+		hexdump.ICMPv6Redirect = passive.ICMPv6Redirect
 	}
 	if passive.ICMPv6MulticastListenerDiscovery != nil {
 		viewers = append(viewers, &FieldNodeView{passive.ICMPv6MulticastListenerDiscovery.FieldNode()})

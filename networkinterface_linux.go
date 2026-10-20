@@ -4,6 +4,7 @@
 package packemon
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net"
@@ -122,12 +123,14 @@ func (nw *NetworkInterface) send(ethernetFrame *EthernetFrame) error {
 }
 
 func (nw *NetworkInterface) recieve(ctx context.Context, shouldParseFull bool) error {
+	// MTU 1500 の最大フレーム（1514バイト）や GRO / TSO で結合されたパケットも切り詰めないよう、
+	// mac/win（pcap.OpenLive の snaplen）とそろえて 65536 バイトにする
+	recieved := make([]byte, 65536)
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
-			recieved := make([]byte, 1500)
 			n, _, err := unix.Recvfrom(nw.Socket, recieved, 0)
 			if err != nil {
 				if n == -1 {
@@ -136,7 +139,8 @@ func (nw *NetworkInterface) recieve(ctx context.Context, shouldParseFull bool) e
 				return err
 			}
 
-			nw.PassiveCh <- ParsedPacket(recieved[:n], shouldParseFull)
+			// パース結果は受信データを参照し続けるため、受信したバイト数分だけコピーして渡す（受信バッファは使い回す）
+			nw.PassiveCh <- ParsedPacket(bytes.Clone(recieved[:n]), shouldParseFull)
 		}
 	}
 }

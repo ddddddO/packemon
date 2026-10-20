@@ -99,8 +99,10 @@ func noRandomByte(length int) []byte {
 func calculateChecksum(packet []byte) []byte {
 	// まず16ビット毎に足す
 	sum := sumByteArr(packet)
-	// あふれた桁を足す
-	sum = (sum & 0xffff) + sum>>16
+	// あふれた桁を足す（足した結果がまたあふれることがあるので、上位16ビットが0になるまで繰り返す）
+	for sum>>16 != 0 {
+		sum = (sum & 0xffff) + sum>>16
+	}
 	// 論理否定を取った値をbyteにして返す
 	b := make([]byte, 2)
 	binary.BigEndian.PutUint16(b, uint16(sum^0xffff))
@@ -108,17 +110,13 @@ func calculateChecksum(packet []byte) []byte {
 }
 
 func sumByteArr(packet []byte) (sum uint) {
-	for i := range packet {
+	for i := 0; i+1 < len(packet); i += 2 {
+		sum += uint(binary.BigEndian.Uint16(packet[i:]))
+	}
 
-		// ここ足した. icmpのreply返ってきてるし大丈夫そう
-		if (i == len(packet)-2) && (len(packet)%2 != 0) {
-			sum += uint(packet[i])
-			break
-		}
-
-		if i%2 == 0 {
-			sum += uint(binary.BigEndian.Uint16(packet[i:]))
-		}
+	// 奇数長の場合、最後のバイトは後ろを0で埋めた16ビットとして足す（RFC 1071）
+	if len(packet)%2 != 0 {
+		sum += uint(packet[len(packet)-1]) << 8
 	}
 	return sum
 }

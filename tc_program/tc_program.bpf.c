@@ -23,7 +23,7 @@
 
 #define IP_P_ICMPv4 0x01
 #define IP_P_TCP 0x06
-#define IP_P_UDP 0x17
+#define IP_P_UDP 0x11
 
 // Wireshark観察する限りはそうだが要fix
 #define TCP_FLG_RST_ACK 0x29

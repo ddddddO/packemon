@@ -153,6 +153,7 @@ func TestScratchICMPv4Assembler_Assemble(t *testing.T) {
 		"type": "0x08", "code": "0x00",
 		"checksum": "0x0000", "calc_checksum": true,
 		"identifier": "0x34a1", "sequence": "0x0001",
+		"data": "",
 	}, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

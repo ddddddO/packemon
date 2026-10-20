@@ -369,7 +369,7 @@ func EstablishTCPTLSv1_2AndSendPayloadForIPv6_CustomImpl(ctx context.Context, nw
 			}
 
 			ethernetFrame := ParsedEthernetFrame(received)
-			if ethernetFrame.Header.Typ != ETHER_TYPE_IPv4 {
+			if ethernetFrame.Header.Typ != ETHER_TYPE_IPv6 {
 				continue
 			}
 

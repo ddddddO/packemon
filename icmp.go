@@ -240,27 +240,43 @@ func (i *ICMPv4Error) FieldNode() *FieldNode {
 	return node
 }
 
+// originalICMPv4FieldNode は、エラーメッセージに含まれる元パケットが ICMPv4 の場合だけ、その ICMPv4 部分を FieldNode にする。
+// 元パケットが UDP / TCP 等の場合や、ICMPv4 としての長さが足りない場合は nil を返す
 func originalICMPv4FieldNode(ipv4 *IPv4) *FieldNode {
-	if len(ipv4.Data) > 0 {
-		switch ipv4.Data[0] {
-		case
-			ICMPv4_TYPE_ECHO, ICMPv4_TYPE_ECHO_REPLY,
-			ICMPv4_TYPE_TIMESTAMP, ICMPv4_TYPE_TIMESTAMP_REPLY,
-			ICMPv4_TYPE_INFORMATION_REQUEST, ICMPv4_TYPE_INFORMATION_REPLY,
-			ICMPv4_TYPE_ADDRESS_MASK_REQUEST, ICMPv4_TYPE_ADDRESS_MASK_REPLY:
+	// ICMPv4 ヘッダ（8バイト）
+	const minEchoLength = 8
+	// ICMPv4 ヘッダ（8バイト） + 元パケットの IPv4 ヘッダ（20バイト）
+	const minErrorLength = 8 + 20
 
-			parsed := ParsedICMPv4Echo(ipv4.Data)
-			return parsed.FieldNode()
-		case ICMPv4_TYPE_DESTINATION_UNREACHABLE, ICMPv4_TYPE_TIME_EXCEEDED, ICMPv4_TYPE_SOURCE_QUENCH:
-			parsed := ParsedICMPv4Error(ipv4.Data)
-			return parsed.FieldNode()
-		case ICMPv4_TYPE_PARAMETER_PROBLEM:
-			parsed := ParsedICMPv4ParameterProblem(ipv4.Data)
-			return parsed.FieldNode()
-		case ICMPv4_TYPE_REDIRECT:
-			parsed := ParsedICMPv4Redirect(ipv4.Data)
-			return parsed.FieldNode()
-		}
+	if ipv4 == nil || ipv4.Protocol != IPv4_PROTO_ICMPv4 || len(ipv4.Data) < minEchoLength {
+		return nil
+	}
+
+	switch ipv4.Data[0] {
+	case
+		ICMPv4_TYPE_ECHO, ICMPv4_TYPE_ECHO_REPLY,
+		ICMPv4_TYPE_TIMESTAMP, ICMPv4_TYPE_TIMESTAMP_REPLY,
+		ICMPv4_TYPE_INFORMATION_REQUEST, ICMPv4_TYPE_INFORMATION_REPLY,
+		ICMPv4_TYPE_ADDRESS_MASK_REQUEST, ICMPv4_TYPE_ADDRESS_MASK_REPLY:
+
+		parsed := ParsedICMPv4Echo(ipv4.Data)
+		return parsed.FieldNode()
+	}
+
+	if len(ipv4.Data) < minErrorLength {
+		return nil
+	}
+
+	switch ipv4.Data[0] {
+	case ICMPv4_TYPE_DESTINATION_UNREACHABLE, ICMPv4_TYPE_TIME_EXCEEDED, ICMPv4_TYPE_SOURCE_QUENCH:
+		parsed := ParsedICMPv4Error(ipv4.Data)
+		return parsed.FieldNode()
+	case ICMPv4_TYPE_PARAMETER_PROBLEM:
+		parsed := ParsedICMPv4ParameterProblem(ipv4.Data)
+		return parsed.FieldNode()
+	case ICMPv4_TYPE_REDIRECT:
+		parsed := ParsedICMPv4Redirect(ipv4.Data)
+		return parsed.FieldNode()
 	}
 	return nil
 }

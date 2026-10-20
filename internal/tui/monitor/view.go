@@ -15,7 +15,7 @@ type Viewer interface {
 }
 
 func (m *monitor) updateView(passive *packemon.Passive) {
-	go func(viewers []Viewer) {
+	go func() {
 		defer func() {
 			if e := recover(); e != nil {
 				trace := debug.Stack()
@@ -23,6 +23,10 @@ func (m *monitor) updateView(passive *packemon.Passive) {
 				m.addErrPage(err)
 			}
 		}()
+
+		// 各プロトコルの FieldNode 生成で panic しても上の recover で拾えるよう、goroutine 内で呼ぶ
+		// （引数で渡すと、goroutine 起動前に呼び出し元（tview のイベントループ）で評価されてしまう）
+		viewers := passiveToViewers(passive)
 
 		packetDetail := tview.NewFlex().SetDirection(tview.FlexRow)
 
@@ -53,7 +57,7 @@ func (m *monitor) updateView(passive *packemon.Passive) {
 		grid.AddItem(packetDetail, 0, 0, 1, 1, 1, 1, true)
 		m.app.SetRoot(grid, true)
 		m.app.Draw()
-	}(passiveToViewers(passive))
+	}()
 }
 
 func passiveToViewers(passive *packemon.Passive) []Viewer {

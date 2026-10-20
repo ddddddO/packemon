@@ -262,20 +262,21 @@ func (d *DNS) FlagsString() string {
 // DomainString は Queries.Domain（ラベルエンコード済み）を "go.dev" 形式へ戻す。
 func (d *DNS) DomainString() string {
 	s := ""
-	for i := 0; i < len(d.Queries.Domain); {
-		b := d.Queries.Domain[i]
-		charCnt := int(b)
-
-		for j := 0; j < charCnt; j++ {
-			i++
-			s += string(d.Queries.Domain[i])
-		}
+	domain := d.Queries.Domain
+	for i := 0; i < len(domain); {
+		charCnt := int(domain[i])
 		i++
 
-		if b == 0x00 {
+		if charCnt == 0x00 {
 			return s
 		}
-		s += "."
+		// ラベル長が残りのバイト数を超える（不正なパケットや圧縮ポインタ）場合は、そこまでで打ち切る
+		if i+charCnt > len(domain) {
+			return s
+		}
+
+		s += string(domain[i:i+charCnt]) + "."
+		i += charCnt
 	}
 	return s
 }

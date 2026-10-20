@@ -92,13 +92,12 @@ func (i *IPv4) CalculateChecksum() {
 	b = make([]byte, 2)
 	binary.BigEndian.PutUint16(b, i.Identification)
 	header = append(header, b...)
-	header = append(header, i.Flags)
-
 	b = make([]byte, 2)
-	// TODO: FragmentOffset/Ttl のフィールド追加するときこのあたり要確認
-	binary.BigEndian.PutUint16(b, i.FragmentOffset|uint16(i.Ttl))
+	// Flags（上位3ビット） + Fragment Offset（下位13ビット）
+	binary.BigEndian.PutUint16(b, uint16(i.Flags)<<8|i.FragmentOffset)
 	header = append(header, b...)
 
+	header = append(header, i.Ttl)
 	header = append(header, i.Protocol)
 	b = make([]byte, 2)
 	binary.BigEndian.PutUint16(b, i.HeaderChecksum)
@@ -119,7 +118,8 @@ func (i *IPv4) Bytes() []byte {
 	buf.WriteByte(i.Tos)
 	WriteUint16(buf, i.TotalLength)
 	WriteUint16(buf, i.Identification)
-	WriteUint16(buf, hton(uint16(i.Flags)|i.FragmentOffset))
+	// Flags（上位3ビット） + Fragment Offset（下位13ビット）
+	WriteUint16(buf, uint16(i.Flags)<<8|i.FragmentOffset)
 	buf.WriteByte(i.Ttl)
 	buf.WriteByte(i.Protocol)
 	WriteUint16(buf, i.HeaderChecksum)

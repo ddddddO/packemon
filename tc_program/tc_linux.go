@@ -4,6 +4,7 @@
 package tc_program
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -53,14 +54,23 @@ func PrepareAnalyzingIngressPackets(nwInterface string, objs *tc_programObjects)
 	})
 }
 
-// TODO: err即returnではなくすべての処理してからerr返すようにしたほうがいいかも
+// Close は、エラーがあってもすべて閉じてから、まとめてエラーを返す
 func Close(ebpfProg *tc_programObjects, links ...link.Link) error {
+	var errs []error
 	if ebpfProg != nil {
-		ebpfProg.Close()
+		if err := ebpfProg.Close(); err != nil {
+			errs = append(errs, err)
+		}
 	}
 	for _, l := range links {
-		l.Close()
+		// アタッチに失敗した link は nil で渡ってくる
+		if l == nil {
+			continue
+		}
+		if err := l.Close(); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }

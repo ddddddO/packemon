@@ -408,7 +408,7 @@ func ParsedICMPv6RouterSolicitation(payload []byte) *ICMPv6RouterSolicitation {
 			Checksum: binary.BigEndian.Uint16(payload[2:4]),
 		},
 		Reserved: binary.BigEndian.Uint32(payload[4:8]),
-		Options:  payload[24:],
+		Options:  payload[8:],
 	}
 }
 

@@ -20,13 +20,20 @@ func (g *generator) tcpForm() *tview.Form {
 	tcpForm, collectValues := buildDynamicForm(assembler, "TCP", "This section generates TCP.", nil)
 
 	g.sender.registerApplyForm("TCP", func() error {
+		values := collectValues()
 		// sender.packets は構造体を保持するため、Assembler が返すバイト列をパースして
 		// 構造体へ戻す（バックエンドに依らず共通の変換。往復のロスレス性は
 		// TestAssembleThenParseRoundtrip_allProtocols で保証）
-		b, err := assembler.Assemble(collectValues(), nil)
+		b, err := assembler.Assemble(values, nil)
 		if err != nil {
 			return err
 		}
+
+		calc, err := boolFromValues(values, "calc_checksum")
+		if err != nil {
+			return err
+		}
+		checkedCalcTCPChecksum = calc
 		g.sender.packets.tcp = packemon.ParsedTCP(b)
 		return nil
 	})
@@ -34,9 +41,6 @@ func (g *generator) tcpForm() *tview.Form {
 	tcpForm.
 		AddCheckbox("Do TCP 3way handshake ?", doTCP3wayHandshake, func(checked bool) {
 			doTCP3wayHandshake = checked
-		}).
-		AddCheckbox("Automatically calculate checksum ?", checkedCalcTCPChecksum, func(checked bool) {
-			checkedCalcTCPChecksum = checked
 		}).
 		AddButton("Send!", func() {
 			if err := g.sender.sendLayer4(context.TODO()); err != nil {

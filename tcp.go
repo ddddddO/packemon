@@ -260,6 +260,7 @@ func (s *ScratchTCPAssembler) Fields() []FieldSpec {
 		{Key: "flags", Label: "Flags", Kind: FieldKindHex, Default: "0x02"},
 		{Key: "window", Label: "Window", Kind: FieldKindHex, Default: "0xfaf0"},
 		{Key: "checksum", Label: "Checksum", Kind: FieldKindHex, Default: "0x0000"},
+		{Key: "calc_checksum", Label: "Automatically calculate checksum ?", Kind: FieldKindCheckbox, Default: "true"},
 		{Key: "urgent_pointer", Label: "Urgent Pointer", Kind: FieldKindHex, Default: "0x0000"},
 	}
 }

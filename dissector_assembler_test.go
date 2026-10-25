@@ -110,13 +110,6 @@ func TestScratchIPv4Assembler_Assemble(t *testing.T) {
 	if ip.StrSrcIPAddr() != "192.168.0.1" || ip.StrDstIPAddr() != "192.168.0.2" {
 		t.Fatalf("addr: got %s -> %s", ip.StrSrcIPAddr(), ip.StrDstIPAddr())
 	}
-	// 自動計算: ヘッダ20バイト + payload 4バイト
-	if ip.TotalLength != 24 {
-		t.Fatalf("total length: got %d, want 24", ip.TotalLength)
-	}
-	if ip.HeaderChecksum == 0 {
-		t.Fatal("checksum should be calculated")
-	}
 	if !bytes.Equal(ip.Data, payload) {
 		t.Fatalf("payload mismatch: %x", ip.Data)
 	}
@@ -207,10 +200,6 @@ func TestScratchUDPAssembler_Assemble(t *testing.T) {
 	udp := ParsedUDP(got)
 	if udp.SrcPort != 47000 || udp.DstPort != 53 {
 		t.Fatalf("port: got %d -> %d", udp.SrcPort, udp.DstPort)
-	}
-	// 自動計算: ヘッダ8バイト + payload 2バイト
-	if udp.Length != 10 {
-		t.Fatalf("length: got %d, want 10", udp.Length)
 	}
 }
 

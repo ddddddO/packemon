@@ -24,7 +24,7 @@ func (dnw *debugNetworkInterface) SendDNSquery(firsthopMACAddr [6]byte) error {
 		Checksum: 0x0000,
 	}
 	udp.Data = dns.Bytes()
-	udp.Len()
+	udp.Length = udp.Len()
 	var srcIPAddr uint32 = 0xac184fcf // 172.23.242.78
 	var dstIPAddr uint32 = 0x08080808 // 8.8.8.8 = DNSクエリ用
 	ipv4 := p.NewIPv4(p.IPv4_PROTO_UDP, srcIPAddr, dstIPAddr)

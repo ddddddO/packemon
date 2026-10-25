@@ -206,19 +206,6 @@ func (s *ScratchIPv4Assembler) Assemble(values map[string]any, payload []byte) (
 	}
 	ip.Data = payload
 
-	// 自動計算のオン/オフ（オフにすれば「わざと不正な値」も送れる）
-	if calc, err := boolFromValue(values["calc_total_length"]); err != nil {
-		return nil, fmt.Errorf("calc_total_length: %w", err)
-	} else if calc {
-		ip.CalculateTotalLength()
-	}
-	if calc, err := boolFromValue(values["calc_checksum"]); err != nil {
-		return nil, fmt.Errorf("calc_checksum: %w", err)
-	} else if calc {
-		ip.HeaderChecksum = 0x0
-		ip.CalculateChecksum()
-	}
-
 	return ip.Bytes(), nil
 }
 

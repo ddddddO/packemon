@@ -22,7 +22,7 @@ func (s *sender) sendOverUDP(
 	}
 	s.packets.udp.Data = upperLayerPacket
 	if checkedCalcUDPLength {
-		s.packets.udp.Len()
+		s.packets.udp.Length = s.packets.udp.Len()
 	}
 	ethernetFrame := &packemon.EthernetFrame{
 		Header: s.packets.ethernet,

@@ -135,6 +135,9 @@ func (nw *NetworkInterface) recieve(ctx context.Context, shouldParseFull bool) e
 				}
 				return err
 			}
+			if n < 14 { // Minimum Ethernet frame size
+				continue
+			}
 
 			nw.PassiveCh <- ParsedPacket(recieved[:n], shouldParseFull)
 		}

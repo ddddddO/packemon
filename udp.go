@@ -25,7 +25,7 @@ func ParsedUDP(payload []byte) *UDP {
 	}
 }
 
-func (u *UDP) Len() {
+func (u *UDP) Len() uint16 {
 	length := 0
 	b := make([]byte, 2)
 	binary.BigEndian.PutUint16(b, u.SrcPort)
@@ -44,7 +44,7 @@ func (u *UDP) Len() {
 	length += len(b)
 
 	length += len(u.Data)
-	u.Length = uint16(length)
+	return uint16(length)
 }
 
 func (u *UDP) CalculateChecksum(ipv4 *IPv4) {
@@ -54,8 +54,7 @@ func (u *UDP) CalculateChecksum(ipv4 *IPv4) {
 		binary.Write(buf, binary.BigEndian, ipv4.DstAddr)
 		buf.WriteByte(0x00)
 		buf.WriteByte(ipv4.Protocol)
-		u.Len()
-		WriteUint16(buf, u.Length)
+		WriteUint16(buf, u.Len())
 		return buf.Bytes()
 	}
 
@@ -139,13 +138,6 @@ func (s *ScratchUDPAssembler) Assemble(values map[string]any, payload []byte) ([
 		return nil, err
 	}
 	udp.Data = payload
-
-	// 自動計算のオン/オフ（オフにすれば「わざと不正な値」も送れる）
-	if calc, err := boolFromValue(values["calc_length"]); err != nil {
-		return nil, fmt.Errorf("calc_length: %w", err)
-	} else if calc {
-		udp.Len()
-	}
 
 	return udp.Bytes(), nil
 }

@@ -97,8 +97,23 @@ func validateAndParseMACAddress(input string) MACValidationResult {
 				}
 			}
 
+			// Separators in the wrong place (e.g. a trailing colon) mean the user is still typing
+			if !isSeparatedMACAddress(input) {
+				return MACValidationResult{
+					Valid: true, // Allow continued typing
+				}
+			}
+
 			b, err = packemon.StrHexToBytes("0x" + cleaned)
 		} else {
+			// "0x" + 12 hex chars
+			if l > 14 {
+				return MACValidationResult{
+					Valid: false,
+					Error: "Invalid MAC address format",
+				}
+			}
+
 			b, err = packemon.StrHexToBytes(input)
 		}
 
@@ -122,4 +137,21 @@ func validateAndParseMACAddress(input string) MACValidationResult {
 	return MACValidationResult{
 		Valid: true, // Allow continued typing
 	}
+}
+
+// isSeparatedMACAddress reports whether input is in XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX form
+func isSeparatedMACAddress(input string) bool {
+	if len(input) != 17 {
+		return false
+	}
+	sep := input[2]
+	if sep != ':' && sep != '-' {
+		return false
+	}
+	for i := 2; i < len(input); i += 3 {
+		if input[i] != sep {
+			return false
+		}
+	}
+	return true
 }

@@ -119,18 +119,25 @@ func TestValidateAndParseMACAddress(t *testing.T) {
 			input:       "0x3c585d55770e123456",
 			wantHasAddr: false,
 			wantValid:   false,
-			wantError:   "MAC address too long (max 20 characters)",
-		},
-		{
-			name:        "too long colon format",
-			input:       "3c:58:5d:55:77:0e:12:34",
-			wantHasAddr: false,
-			wantValid:   false,
 			wantError:   "Invalid MAC address format",
 		},
 		{
+			name:        "too long colon format",
+			input:       "3c:58:5d:55:77:0e:12:34", // 23 characters
+			wantHasAddr: false,
+			wantValid:   false,
+			wantError:   "MAC address too long (max 20 characters)",
+		},
+		{
 			name:        "too long dash format",
-			input:       "3c-58-5d-55-77-0e-12-34",
+			input:       "3c-58-5d-55-77-0e-12-34", // 23 characters
+			wantHasAddr: false,
+			wantValid:   false,
+			wantError:   "MAC address too long (max 20 characters)",
+		},
+		{
+			name:        "too long colon format within 20 characters",
+			input:       "3c:58:5d:55:77:0e:12", // 20 characters
 			wantHasAddr: false,
 			wantValid:   false,
 			wantError:   "Invalid MAC address format",
